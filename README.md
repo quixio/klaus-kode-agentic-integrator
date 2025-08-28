@@ -4,11 +4,6 @@
 
 Note that Klaus Kode is designed to help build pipelines that need *high throughput*. If you’re dealing with a very small number of events such as emails and chat messages for a handful of users, you might be better off with [make.com](http://make.com) or [n8n.io](https://n8n.io/). Klaus Kode is best suited for scenarios where you need to integrate high-fidelity data sources — this could be continuous telemetry streams, blockchain transaction feeds or large static datasets that need to be ingested and processed in a distributed manner.
 
-## **Prerequisites**# **Getting Started with Klaus Kode — the Agentic Data Integrator** 
-
- Klaus Kode is a Python-based Agentic Data Integrator that helps you [vibe code](https://en.wikipedia.org/wiki/Vibe_coding) your data integrations so you can connect to more systems, faster. You run it in your terminal as a workflow wizard. It uses AI agents to generate connector code, run and test that code, analyze logs, as well as managing dependencies and environment variables. It uses the [Quix Cloud](https://quix.io/quix-cloud) platform as a sandbox for running code in isolated containers and storing data. 
-
-Note that Klaus Kode is designed to help build pipelines that need *high throughput*. If you’re dealing with a very small number of events such as emails and chat messages for a handful of users, you might be better off with [make.com](http://make.com) or [n8n.io](https://n8n.io/). Klaus Kode is best suited for scenarios where you need to integrate high-fidelity data sources — from continuous telemetry streams and blockchain transaction feeds to large static datasets that need to be ingested and processed in a distributed manner.
 
 ## **Prerequisites**
 
