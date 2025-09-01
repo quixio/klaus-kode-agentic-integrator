@@ -69,26 +69,21 @@ Here are those steps again in more detail:
 $ git clone https://github.com/quixio/quix-coding-agent.git
 ```
 
-   
-
+  
 2) Set up a virtual environment and activate it (assuming Linux/Mac)  
    
-
+**Linux/MacOS**
 ```shell
-$ python -m venv venv
-$ source venv/bin/activate
+bash start.sh
 ```
-
-   
-
-3) Install the Klaus Kode dependencies.  
-   
-
+**Windows**
 ```shell
-(venv) $ pip install -r requirements.txt
+bash start.bat
 ```
-
-   
+OR **Windows Powershell**
+```shell
+bash start.ps1
+```
 
 4) Create a .env file (make a copy of the.env example) and enter your API keys and PAT token  
    
