@@ -1,0 +1,33 @@
+{
+    "libraryItemId": "opc-ua-server",
+    "name": "OPC UA Server",
+    "language": "Python",
+    "tags": {
+        "Pipeline Stage": ["Server"],
+        "Category": ["External APIs"],
+        "Type": ["Auxiliary Services"]
+    },
+    "shortDescription": "This is an OPC UA server for testing purposes.",
+    "DefaultFile": "main.py",
+    "EntryPoint": "dockerfile",
+    "RunEntryPoint": "main.py",
+    "Variables": [],
+    "DeploySettings": {
+        "DeploymentType": "Service",
+        "CpuMillicores": 200,
+        "MemoryInMb": 500,
+        "Replicas": 1,
+        "PublicAccess": false,
+        "ValidateConnection": false,
+        "Network": {
+          "ServiceName": "intopcserver",
+          "Ports":
+          [
+            {
+              "Port": 4840,
+              "TargetPort": 4840
+            }
+          ]
+        }
+    }
+}

@@ -1,0 +1,72 @@
+{
+    "libraryItemId": "s3-iceberg-destination",
+    "name": "AWS S3 Iceberg Sink",
+    "language": "Python",
+    "tags": {
+        "Pipeline Stage": ["Destination"],
+        "Type": ["Connectors"],
+        "Category": ["Open table format"]
+    },
+    "shortDescription": "Consume data from a Kafka topic and write it to an Apache Iceberg table stored in AWS S3 using the AWS Glue Data Catalog.",
+    "DefaultFile": "main.py",
+    "EntryPoint": "dockerfile",
+    "RunEntryPoint": "main.py",
+    "IconFile": "icon.png",
+    "Variables": [{
+            "Name": "input",
+            "Type": "EnvironmentVariable",
+            "InputType": "InputTopic",
+            "Description": "This is the input topic",
+            "DefaultValue": "input",
+            "Required": true
+        },
+        {
+            "Name": "AWS_S3_URI",
+            "Type": "EnvironmentVariable",
+            "InputType": "FreeText",
+            "Description": "The URI or URL to your S3 bucket",
+            "DefaultValue": "",
+            "Required": true
+        },
+        {
+            "Name": "AWS_REGION",
+            "Type": "EnvironmentVariable",
+            "InputType": "FreeText",
+            "Description": "The region of your S3 bucket",
+            "DefaultValue": "",
+            "Required": true
+        },
+        {
+            "Name": "AWS_SECRET_ACCESS_KEY",
+            "Type": "EnvironmentVariable",
+            "InputType": "Secret",
+            "Description": "Your AWS secret",
+            "DefaultValue": "",
+            "Required": true
+        },
+        {
+            "Name": "AWS_ACCESS_KEY_ID",
+            "Type": "EnvironmentVariable",
+            "InputType": "Secret",
+            "Description": "Your AWS Access Key",
+            "DefaultValue": "",
+            "Required": true
+        },
+        {
+            "Name": "table_name",
+            "Type": "EnvironmentVariable",
+            "InputType": "FreeText",
+            "Description": "The table to publish data to",
+            "DefaultValue": "",
+            "Required": true
+        }
+    ],
+    "DeploySettings": {
+        "DeploymentType": "Service",
+        "CpuMillicores": 200,
+        "MemoryInMb": 500,
+        "Replicas": 1,
+        "PublicAccess": false,
+        "ValidateConnection": false
+    }
+}

@@ -1,0 +1,73 @@
+{
+  "libraryItemId": "redis-destination",
+  "name": "Redis Sink",
+  "language": "Python",
+  "tags": {
+    "Pipeline Stage": ["Destination"],
+    "Type": ["Connectors"],
+    "Category": ["Cache"]
+  },
+  "shortDescription": "Consume data from a Kafka topic and persist it to Redis.",
+  "DefaultFile": "main.py",
+  "EntryPoint": "dockerfile",
+  "RunEntryPoint": "main.py",
+  "IconFile": "icon.png",
+  "Variables": [
+    {
+      "Name": "input",
+      "Type": "EnvironmentVariable",
+      "InputType": "InputTopic",
+      "Description": "This is the input topic",
+      "DefaultValue": "input",
+      "Required": true
+    },
+    {
+      "Name": "redis_host",
+      "Type": "EnvironmentVariable",
+      "InputType": "FreeText",
+      "Description": "Host address for the Redis instance",
+      "DefaultValue": "",
+      "Required": true
+    },
+    {
+      "Name": "redis_port",
+      "Type": "EnvironmentVariable",
+      "InputType": "FreeText",
+      "Description": "Port for the Redis instance",
+      "DefaultValue": "6379",
+      "Required": true
+    },
+    {
+      "Name": "redis_password",
+      "Type": "EnvironmentVariable",
+      "InputType": "FreeText",
+      "Description": "Password for the Redis instance",
+      "DefaultValue": "",
+      "Required": false
+    },
+    {
+      "Name": "redis_username",
+      "Type": "EnvironmentVariable",
+      "InputType": "FreeText",
+      "Description": "Username for the Redis instance",
+      "DefaultValue": "",
+      "Required": false
+    },
+    {
+      "Name": "redis_key_prefix",
+      "Type": "EnvironmentVariable",
+      "InputType": "FreeText",
+      "Description": "The prefix for the key to store data under",
+      "DefaultValue": "",
+      "Required": false
+    }
+  ],
+  "DeploySettings": {
+    "DeploymentType": "Service",
+    "CpuMillicores": 200,
+    "MemoryInMb": 500,
+    "Replicas": 1,
+    "PublicAccess": false,
+    "ValidateConnection": false
+  }
+}

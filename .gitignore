@@ -201,7 +201,45 @@ cython_debug/
 .cursorignore
 .cursorindexingignore
 
+# Serena
+#  Serena is a code analysis tool. The .serena directory contains cache and project files
+.serena/
+
 # Marimo
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# Local configuration (installation-specific)
+config/local.yaml
+config/local.yml
+config/*.local.yaml
+config/*.local.yml
+
+# MISC
+
+*.Identifier
+human_prompts/
+reference/
+context_after*.json
+working_files/*
+venv12/
+resources/docs_content.md
+resources/library_search_results.json
+resources/library_selection_debug.md
+resources/template_code.py
+resources/template_requirements.txt
+manual_backups/
+logging/*
+claude_docs_archive/
+.claude
+quix-ai-sidekick-sidepanel/
+
+# Navigation documentation (temporary analysis files)
+navigation_*.md
+
+# Implementation plans (temporary)
+interruptible_auto_debug_plan.md
+
+# Startup Guide (contains local setup info)
+STARTUP_GUIDE.md

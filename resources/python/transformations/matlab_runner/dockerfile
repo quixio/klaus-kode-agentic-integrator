@@ -1,0 +1,23 @@
+FROM mathworks/matlab:r2023b
+
+USER root
+
+# Install Python
+RUN apt-get update && apt-get install -y \
+    python3.10 python3.10-dev python3.10-venv
+
+USER matlab
+
+ENV MW_LICENSING_DIAGNOSTICS=1
+
+ENV MLM_LICENSE_FILE=27000@your-license-server
+
+# Add MATLAB Runtime
+ENV LD_LIBRARY_PATH=/opt/matlab/R2024b/bin/glnxa64:$LD_LIBRARY_PATH
+
+# Install the MATLAB Python Engine
+RUN pip3 install matlabengine==23.2.3
+
+COPY main.py /app/main.py
+
+ENTRYPOINT ["python", "/app/main.py"]

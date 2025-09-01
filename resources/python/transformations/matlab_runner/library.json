@@ -1,0 +1,31 @@
+{
+  "libraryItemId": "matlab-runner",
+  "name": "Matlab Runner",
+  "language": "Python",
+  "tags": {
+    "Complexity": ["Medium"],
+    "Pipeline Stage": ["Transformation"]
+  },
+  "shortDescription": "Import and run Matlab functions within Quix",
+  "DefaultFile": "main.py",
+  "EntryPoint": "dockerfile",
+  "RunEntryPoint": "main.py",
+  "Variables": [
+    {
+      "Name": "input",
+      "Type": "EnvironmentVariable",
+      "InputType": "InputTopic",
+      "Description": "This is the raw data input topic",
+      "DefaultValue": "",
+      "Required": true
+    },
+    {
+      "Name": "output",
+      "Type": "EnvironmentVariable",
+      "InputType": "OutputTopic",
+      "Description": "This is the output for the hugging face model score",
+      "DefaultValue": "hugging-face-output",
+      "Required": true
+    }
+  ]
+}

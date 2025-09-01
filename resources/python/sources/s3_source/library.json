@@ -1,0 +1,90 @@
+{
+  "libraryItemId": "s3-source",
+  "name": "S3 Source",
+  "language": "Python",
+  "IsHighlighted": true,
+  "DisplayOrder": 1,
+  "tags": {
+    "Pipeline Stage": ["Source"],
+    "Type": ["Connectors"]  
+  },
+  "shortDescription": "Publish S3 data to a Kafka topic.",
+  "DefaultFile": "main.py",
+  "EntryPoint": "dockerfile",
+  "RunEntryPoint": "main.py",
+  "IconFile": "icon.png",
+  "Variables": [
+    {
+      "Name": "output",
+      "Type": "EnvironmentVariable",
+      "InputType": "OutputTopic",
+      "Description": "Name of the output topic to write into",
+      "DefaultValue": "s3-data",
+      "Required": true
+    },
+    {
+      "Name": "S3_BUCKET",
+      "Type": "EnvironmentVariable",
+      "InputType": "FreeText",
+      "Description": "The URI or URL to your S3 bucket",
+      "DefaultValue": "",
+      "Required": true
+  },
+  {
+      "Name": "S3_REGION",
+      "Type": "EnvironmentVariable",
+      "InputType": "FreeText",
+      "Description": "The region of your S3 bucket",
+      "DefaultValue": "",
+      "Required": true
+  },
+  {
+      "Name": "S3_SECRET",
+      "Type": "EnvironmentVariable",
+      "InputType": "Secret",
+      "Description": "Your AWS secret",
+      "DefaultValue": "",
+      "Required": true
+  },
+  {
+      "Name": "S3_ACCESS_KEY_ID",
+      "Type": "EnvironmentVariable",
+      "InputType": "Secret",
+      "Description": "Your AWS Access Key",
+      "DefaultValue": "",
+      "Required": true
+  },
+  {
+      "Name": "S3_FOLDER_PATH",
+      "Type": "EnvironmentVariable",
+      "InputType": "FreeText",
+      "Description": "The path to the S3 folder to consume",
+      "DefaultValue": "",
+      "Required": true
+  },
+  {
+      "Name": "S3_FILE_FORMAT",
+      "Type": "EnvironmentVariable",
+      "InputType": "FreeText",
+      "Description": "The file format of the files",
+      "DefaultValue": "json",
+      "Required": true
+  },
+  {
+      "Name": "S3_FILE_COMPRESSION",
+      "Type": "EnvironmentVariable",
+      "InputType": "FreeText",
+      "Description": "The type of file compression used for the files",
+      "DefaultValue": "gzip",
+      "Required": true
+  }
+  ],
+  "DeploySettings": {
+    "DeploymentType": "Job",
+    "CpuMillicores": 100,
+    "MemoryInMb": 100,
+    "Replicas": 1,
+    "PublicAccess": false,
+    "ValidateConnection": false
+  }
+}

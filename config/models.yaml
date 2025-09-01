@@ -1,0 +1,80 @@
+models:
+  claude_code_sdk:
+    model: sonnet
+    max_turns: 50
+    max_thinking_tokens: 8000
+    allowed_tools:
+    - Read
+    - Write
+    - Edit
+    - Bash
+    - Glob
+    - Grep
+    - MultiEdit
+    - WebSearch
+    - WebFetch
+    permission_mode: acceptEdits
+    debug:
+      max_turns: 50
+      model: sonnet
+    sink: # No longer used, goes directly to claude 
+      provider: anthropic
+      model: claude-opus-4-1-20250805
+      fallback: gpt-4o
+      bypass_litellm: false
+    source: # No longer used, goes directly to claude 
+      provider: anthropic
+      model: claude-opus-4-1-20250805
+      fallback: gpt-4o
+      bypass_litellm: false
+  schema_analysis:
+    sink:
+      provider: openai
+      model: gpt-4o
+      bypass_litellm: false
+    source:
+      provider: openai
+      model: gpt-4o
+      bypass_litellm: false
+  template_matching:
+    provider: openai
+    model: gpt-4o
+    bypass_litellm: false
+  debugging:
+    provider: openai
+    model: gpt-4o
+    fallback: gpt-4o
+    bypass_litellm: true
+    verbosity: high
+    reasoning: medium
+  env_var_translation:
+    provider: openai
+    model: gpt-4o
+    bypass_litellm: false
+  tech_preparation:
+    provider: openai
+    model: gpt-4o
+    bypass_litellm: false
+  log_analysis:
+    provider: openai
+    model: gpt-4o
+    fallback: gpt-4o
+    bypass_litellm: true
+    verbosity: low
+    reasoning: minimal
+parameters:
+  temperature:
+    code_generation: 0.1
+    schema_analysis: 0.3
+    template_matching: 0.2
+    debugging: 0.3
+    tech_preparation: 0.5
+  max_tokens:
+    code_generation: 8000
+    schema_analysis: 4000
+    template_matching: 2000
+    debugging: 4000
+  timeout:
+    default: 120
+    code_generation: 180
+    debugging: 240

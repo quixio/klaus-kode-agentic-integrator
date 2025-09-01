@@ -1,0 +1,27 @@
+{
+  "libraryItemId": "starter-destination",
+  "name": "Starter Sink",
+  "language": "Python",
+  "IsHighlighted": true,
+  "DisplayOrder": 3,
+  "tags": {
+    "Complexity": ["Easy"],
+    "Technology": ["Quix Streams"],
+    "Pipeline Stage": ["Destination"],
+    "Popular Subjects": ["Quick Start"],
+    "Type": ["Basic templates"]
+  },
+  "shortDescription": "Consume data from a Kafka topic and sink it to any destination that you configure.",
+  "DefaultFile": "main.py",
+  "EntryPoint": "dockerfile",
+  "RunEntryPoint": "main.py",
+  "Variables": [
+    {
+      "Name": "input",
+      "Type": "EnvironmentVariable",
+      "InputType": "InputTopic",
+      "Description": "Name of the input topic to listen to.",
+      "DefaultValue": "transform"
+    }
+  ]
+}

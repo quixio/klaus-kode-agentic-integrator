@@ -1,0 +1,5 @@
+quixstreams==2.9.0
+pyodbc
+requests
+SQLAlchemy
+python-dotenv

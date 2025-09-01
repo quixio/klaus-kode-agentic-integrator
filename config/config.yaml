@@ -1,0 +1,160 @@
+# Main Configuration File
+# General settings for the Quix Coding Agent
+
+application:
+  name: "Quix Coding Agent"
+  version: "2.0.0"
+  description: "AI-powered agent for creating Quix applications"
+
+# API Configuration
+api:
+  quix:
+    base_url: "${QUIX_BASE_URL:-https://portal-api.platform.quix.io}"
+    timeout: 30
+    max_retries: 3
+    retry_delay: 2
+  
+  # AI Provider API configuration loaded from environment
+  openai:
+    api_key: "${OPENAI_API_KEY}"
+  
+  anthropic:
+    api_key: "${ANTHROPIC_API_KEY}"
+
+# File paths and directories
+paths:
+  working_directory: "working_files"
+  resources_directory: "resources"
+  prompts_directory: "prompts"
+  logs_directory: "logging"
+  cache_directory: "working_files"
+  
+  # Documentation paths
+  sink_docs: "resources/sink"
+  source_docs: "resources/source"
+  common_docs: "resources/common"
+
+# Logging configuration
+logging:
+  level: "${LOG_LEVEL:-INFO}"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  file_enabled: true
+  console_enabled: true
+  max_file_size: 10485760  # 10MB
+  backup_count: 5
+
+# Cache configuration
+cache:
+  enabled: true
+  ttl: 3600  # seconds (1 hour)
+  prerequisites_ttl: 7200  # 2 hours for prerequisites
+  max_size: 100  # MB
+
+# Sandbox configuration
+sandbox:
+  max_message_count: 5
+  timeout: 30  # seconds
+  retry_attempts: 3
+  production_loop_check: true
+
+# Deployment configuration
+deployment:
+  health_check_interval: 10  # seconds
+  max_health_checks: 30
+  deployment_timeout: 300  # seconds
+  auto_start: true
+
+# Debug configuration
+debug:
+  enabled: "${DEBUG_MODE:-false}"
+  save_context: true
+  verbose_logging: true
+  save_intermediate_files: true
+  max_autodebug_attempts: 10  # Maximum auto-debug retry attempts before prompting user
+
+# Package mappings for dependency resolution
+package_mappings:
+  psycopg2: "psycopg2-binary"
+  snowflake: "snowflake-connector-python"
+  cassandra: "cassandra-driver"
+  mongodb: "pymongo"
+  redis: "redis"
+  elasticsearch: "elasticsearch"
+  kafka: "kafka-python"
+  rabbitmq: "pika"
+  azure: "azure-storage-blob"
+  aws: "boto3"
+  gcp: "google-cloud-storage"
+
+# Supported technologies
+technologies:
+  sinks:
+    - TimescaleDB
+    - QuestDB
+    - InfluxDB
+    - PostgreSQL
+    - MySQL
+    - MongoDB
+    - Cassandra
+    - Elasticsearch
+    - Redis
+    - BigQuery
+    - Snowflake
+    - S3
+    - Azure Blob Storage
+    - File System
+    - CSV
+    - HTTP/REST API
+  
+  sources:
+    - PostgreSQL
+    - MySQL
+    - MongoDB
+    - Redis
+    - Kafka
+    - RabbitMQ
+    - HTTP/REST API
+    - WebSocket
+    - File System
+    - CSV
+    - S3
+    - Azure Blob Storage
+    - Google Cloud Storage
+    - FTP/SFTP
+
+# Feature flags
+features:
+  enable_caching: true
+  enable_debug_mode: "${DEBUG_MODE:-false}"
+  enable_auto_retry: true
+  enable_health_checks: true
+  enable_monitoring: true
+  enable_smart_defaults: true
+  enable_missing_vars_detection: true
+
+# UI/CLI configuration
+ui:
+  clear_screen: true
+  use_colors: true
+  show_progress_bars: true
+  confirm_destructive_actions: true
+  default_timeout: 30  # seconds for user input
+
+# Validation rules
+validation:
+  min_code_length: 50  # characters
+  max_code_length: 50000
+  required_code_elements:
+    - "import"
+    - "app ="
+    - "def"
+  
+  forbidden_patterns:
+    - "exec("
+    - "eval("
+    - "__import__"
+  
+  required_files:
+    - "main.py"
+    - "requirements.txt"
+    - "dockerfile"

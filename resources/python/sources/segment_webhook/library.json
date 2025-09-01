@@ -1,0 +1,42 @@
+{
+  "libraryItemId": "segment-webhook-source",
+  "name": "Segment Source",
+  "language": "Python",
+  "tags": {
+    "Pipeline Stage": ["Source"],
+    "Type": ["Connectors"],
+    "Category": ["External APIs"]
+  },
+  "shortDescription": "Read event data from Segment and publish it to a Kafka topic.",
+  "DefaultFile": "main.py",
+  "EntryPoint": "dockerfile",
+  "RunEntryPoint": "main.py",
+  "IconFile": "icon.jpg",
+  "Variables": [
+    {
+      "Name": "output",
+      "Type": "EnvironmentVariable",
+      "InputType": "OutputTopic",
+      "Description": "Name of the output topic to stream into",
+      "DefaultValue": "segment-data",
+      "Required": true
+    },
+    {
+      "Name": "shared_secret",
+      "Type": "EnvironmentVariable",
+      "InputType": "FreeText",
+      "Description": "The secret you configured in Segment",
+      "DefaultValue": "",
+      "Required": true
+    }
+  ],
+  "DeploySettings": {
+    "DeploymentType": "Service",
+    "CpuMillicores": 200,
+    "MemoryInMb": 200,
+    "Replicas": 1,
+    "ValidateConnection": true,
+    "PublicAccess": true,
+    "UrlPrefix": "segment-webhook"
+  }
+}

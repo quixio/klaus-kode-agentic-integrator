@@ -1,0 +1,92 @@
+# Workflow Configuration
+# Defines available workflows and their properties
+
+workflows:
+  sink:
+    name: "Create Quix Sink"
+    description: "Create an application to consume data from a Quix topic and send to an external destination"
+    phases:
+      - prerequisites_collection
+      - schema_analysis
+      - knowledge_gathering
+      - code_generation
+      - sandbox_testing
+      - deployment
+      - monitoring
+    welcome_message: |
+      ==============================================
+      Welcome to the AI-Powered Quix Sink Creation Workflow!
+      ==============================================
+      
+      I'll help you create a complete Quix sink application that:
+      - Reads data from a Quix topic
+      - Processes and transforms the data as needed
+      - Sends it to your chosen destination system
+      
+      This wizard will guide you through:
+      1. Selecting your workspace and source topic
+      2. Choosing and configuring your destination
+      3. Analyzing data schema
+      4. Generating production-ready code
+      5. Testing in a sandbox environment
+      6. Deploying to your Quix workspace
+  
+  source:
+    name: "Create Quix Source"
+    description: "Create an application to produce data from an external system and publish to a Quix topic"
+    phases:
+      - prerequisites_collection
+      - schema_analysis
+      - knowledge_gathering
+      - code_generation
+      - connection_testing
+      - sandbox_testing
+      - deployment
+      - monitoring
+    welcome_message: |
+      ==============================================
+      Welcome to the AI-Powered Quix Source Creation Workflow!
+      ==============================================
+      
+      I'll help you create a complete Quix source application that:
+      - Connects to your external data source
+      - Reads and processes data
+      - Publishes it to a Quix topic
+      
+      This wizard will guide you through:
+      1. Selecting your workspace
+      2. Configuring your data source
+      3. Defining the output schema
+      4. Generating production-ready code
+      5. Testing connectivity and data flow
+      6. Deploying to your Quix workspace
+  
+  transform:
+    name: "Create Quix Transformation"
+    description: "Create an application to transform data between Quix topics"
+    enabled: false
+    placeholder_message: "Transform workflow coming soon!"
+  
+  starter:
+    name: "Create Quix Starter Application"
+    description: "Create a starter application from Quix templates"
+    enabled: false
+    placeholder_message: "Starter workflow coming soon!"
+
+# Phase-specific configuration
+phases:
+  retry_config:
+    max_attempts: 3
+    initial_delay: 2  # seconds
+    max_delay: 30
+    exponential_base: 2
+  
+  timeouts:
+    prerequisites_collection: 300
+    schema_analysis: 120
+    knowledge_gathering: 180
+    code_generation: 240
+    sandbox_testing: 300
+    deployment: 180
+    monitoring: 120
+    connection_testing: 120

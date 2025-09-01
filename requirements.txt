@@ -1,0 +1,9 @@
+openai-agents[litellm]==0.2.3
+openai<=1.97.1  # Pin to compatible version due to breaking changes in newer versions
+claude-code-sdk
+pandas
+tabulate
+python-dotenv
+pyyaml
+requests
+anyio

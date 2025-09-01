@@ -1,0 +1,36 @@
+{
+  "libraryItemId": "web-api-gateway",
+  "name": "HTTP API Source",
+  "language": "Python",
+  "IsHighlighted": true,
+  "DisplayOrder": 6,
+  "tags": {
+    "Pipeline Stage": ["Source"],
+    "Popular Subjects": ["Quick Start"],
+    "Category": ["External APIs"],
+    "Type": ["Connectors"]
+  },
+  "shortDescription": "Run a Flask web gateway and use it to publish to a Kafka topic via HTTP POST requests.",
+  "DefaultFile": "main.py",
+  "EntryPoint": "dockerfile",
+  "RunEntryPoint": "main.py",
+  "IconFile": "icon.png",
+  "Variables": [
+    {
+      "Name": "output",
+      "Type": "EnvironmentVariable",
+      "InputType": "OutputTopic",
+      "Description": "This is the output topic for hello world data",
+      "DefaultValue": "http-source",
+      "Required": true
+    }
+  ],
+  "DeploySettings": {
+    "DeploymentType": "Service",
+    "CpuMillicores": 200,
+    "MemoryInMb": 500,
+    "Replicas": 1,
+    "PublicAccess": true,
+    "UrlPrefix": "gateway"
+  }
+}

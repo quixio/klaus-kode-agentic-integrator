@@ -1,0 +1,65 @@
+{
+  "libraryItemId": "redis-source",
+  "name": "Redis Source",
+  "language": "Python",
+  "tags": {
+    "Pipeline Stage": ["Source"],
+    "Type": ["Connectors"],
+    "Category": ["Cache"]
+  },
+  "shortDescription": "Periodically query a Redis database and publish the results to a Kafka topic.",
+  "DefaultFile": "main.py",
+  "EntryPoint": "dockerfile",
+  "RunEntryPoint": "main.py",
+  "IconFile": "icon.png",
+  "Variables": [
+    {
+      "Name": "output",
+      "Type": "EnvironmentVariable",
+      "InputType": "OutputTopic",
+      "Description": "This is the Quix topic that will receive the stream",
+      "DefaultValue": "output",
+      "Required": true
+    },
+    {
+      "Name": "redis_host",
+      "Type": "EnvironmentVariable",
+      "InputType": "FreeText",
+      "Description": "Host address for the Redis instance",
+      "DefaultValue": "",
+      "Required": true
+    },
+    {
+      "Name": "redis_port",
+      "Type": "EnvironmentVariable",
+      "InputType": "FreeText",
+      "Description": "Port for the Redis instance",
+      "DefaultValue": "6379",
+      "Required": true
+    },
+    {
+      "Name": "redis_password",
+      "Type": "EnvironmentVariable",
+      "InputType": "FreeText",
+      "Description": "Password for the Redis instance",
+      "DefaultValue": "",
+      "Required": false
+    },
+    {
+      "Name": "redis_username",
+      "Type": "EnvironmentVariable",
+      "InputType": "FreeText",
+      "Description": "Username for the Redis instance",
+      "DefaultValue": "",
+      "Required": false
+    }
+  ],
+  "DeploySettings": {
+    "DeploymentType": "Service",
+    "CpuMillicores": 200,
+    "MemoryInMb": 500,
+    "Replicas": 1,
+    "PublicAccess": false,
+    "ValidateConnection": true
+  }
+}

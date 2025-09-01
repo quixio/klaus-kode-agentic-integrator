@@ -1,0 +1,45 @@
+{
+    "libraryItemId": "websocket-destination",
+    "name": "Websocket Destination",
+    "language": "Python",
+    "tags": {
+        "Pipeline Stage": ["Destination"],
+        "Type": ["Connectors"],
+        "Category": ["External APIs"]
+    },
+    "shortDescription": "Send data from Kafka to a client connected to this websocket server",
+    "DefaultFile": "main.py",
+    "EntryPoint": "dockerfile",
+    "RunEntryPoint": "main.py",
+    "IconFile": "icon.png",
+    "Variables": [{
+        "Name": "input",
+        "Type": "EnvironmentVariable",
+        "InputType": "InputTopic",
+        "Description": "Name of the input topic to listen to.",
+        "Required": true
+    }, {
+        "Name": "WS_USERNAME",
+        "Type": "EnvironmentVariable",
+        "InputType": "Secret",
+        "Description": "Websocket username",
+        "DefaultValue": "websocket_username",
+        "Required": true
+    }, {
+        "Name": "WS_PASSWORD",
+        "Type": "EnvironmentVariable",
+        "InputType": "Secret",
+        "Description": "Websocket password",
+        "DefaultValue": "websocket_password",
+        "Required": true
+    }],
+    "DeploySettings": {
+        "DeploymentType": "Service",
+        "CpuMillicores": 200,
+        "MemoryInMb": 200,
+        "Replicas": 1,
+        "PublicAccess": true,
+        "UrlPrefix": "websocket",
+        "ValidateConnection": false
+    }
+}

@@ -1,0 +1,10 @@
+# Local Configuration Example
+# Copy this file to config/local.yaml and customize for your installation
+# config/local.yaml is ignored by git and won't be committed
+
+# Claude CLI installation path (optional - will auto-detect if not specified)
+# Uncomment and set to your Claude CLI installation path if auto-detection fails
+# claude_cli_path: /home/yourusername/.claude/local/node_modules/.bin
+
+# You can also set this via environment variable:
+# export CLAUDE_CLI_PATH=/path/to/claude/cli/bin

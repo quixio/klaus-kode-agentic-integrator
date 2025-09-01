@@ -1,0 +1,2 @@
+quixstreams[mongodb]==3.14.1
+python-dotenv

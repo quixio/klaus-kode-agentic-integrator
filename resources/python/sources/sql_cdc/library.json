@@ -1,0 +1,129 @@
+{
+  "libraryItemId": "sql-cdc-source",
+  "name": "SQL Change Data Capture Source",
+  "language": "Python",
+  "tags": {
+    "Pipeline Stage": ["Source"],
+    "Type": ["Connectors"],
+    "Category": ["SQL DB"]
+  },
+  "shortDescription": "Capture changes to an SQL database table and publish the change events to a Kafka topic.",
+  "DefaultFile": "main.py",
+  "EntryPoint": "dockerfile",
+  "RunEntryPoint": "main.py",
+  "IconFile": "icon.png",
+  "Variables": [
+    {
+      "Name": "output",
+      "Type": "EnvironmentVariable",
+      "InputType": "OutputTopic",
+      "Description": "The output topic for the captured data.",
+      "DefaultValue": "",
+      "Required": true
+    },
+    {
+      "Name": "driver",
+      "Type": "EnvironmentVariable",
+      "InputType": "FreeText",
+      "Description": "The table to monitor.",
+      "DefaultValue": "\\{/opt/microsoft/msodbcsql18/lib64/libmsodbcsql-18.1.so.1.1\\}",
+      "Required": true
+    },
+    {
+      "Name": "server",
+      "Type": "EnvironmentVariable",
+      "InputType": "FreeText",
+      "Description": "The server address.",
+      "DefaultValue": "",
+      "Required": true
+    },
+    {
+      "Name": "userid",
+      "Type": "EnvironmentVariable",
+      "InputType": "FreeText",
+      "Description": "The user ID.",
+      "DefaultValue": "",
+      "Required": true
+    },
+    {
+      "Name": "password",
+      "Type": "EnvironmentVariable",
+      "InputType": "Secret",
+      "Description": "The password.",
+      "DefaultValue": "",
+      "Required": true
+    },
+    {
+      "Name": "database",
+      "Type": "EnvironmentVariable",
+      "InputType": "FreeText",
+      "Description": "The database name.",
+      "DefaultValue": "",
+      "Required": true
+    },
+    {
+      "Name": "table_name",
+      "Type": "EnvironmentVariable",
+      "InputType": "FreeText",
+      "Description": "The table to monitor.",
+      "DefaultValue": "",
+      "Required": true
+    },
+    {
+      "Name": "last_modified_column",
+      "Type": "EnvironmentVariable",
+      "InputType": "FreeText",
+      "Description": "The column holiding the last modified or update date and time. e.g. `timestamp`",
+      "DefaultValue": "",
+      "Required": true
+    },
+    {
+      "Name": "time_delta",
+      "Type": "EnvironmentVariable",
+      "InputType": "FreeText",
+      "Description": "The amount of time in the past to look for data.  It should be in this format. `0,0,0,0,0` These are seconds, minutes, hours, days, weeks. `30,1,0,0,0` therefore this is 1 minute and 30 seconds.",
+      "DefaultValue": "0,1,0,0,0",
+      "Required": true
+    },
+    {
+      "Name": "offset_is_utc",
+      "Type": "EnvironmentVariable",
+      "InputType": "FreeText",
+      "Description": "True or False depending on whether the last_modified_column is in UTC.",
+      "DefaultValue": "True",
+      "Required": true
+    },
+    {
+      "Name": "columns_to_drop",
+      "Type": "EnvironmentVariable",
+      "InputType": "FreeText",
+      "Description": "Comma separated list of columns to exclude from data copied from the target table to Quix. ",
+      "DefaultValue": "",
+      "Required": false
+    },
+    {
+      "Name": "columns_to_rename",
+      "Type": "EnvironmentVariable",
+      "InputType": "FreeText",
+      "Description": "Columns to rename while streaming to Quix. This must be valid json e.g. `\\{\"DB COLUMN NAME\":\"QUIX_COLUMN_NAME\"\\}` or `\\{\"source_1\":\"dest_1\", \"source_2\":\"dest_2\"\\}`",
+      "DefaultValue": "",
+      "Required": false
+    },
+    {
+      "Name": "poll_interval_seconds",
+      "Type": "EnvironmentVariable",
+      "InputType": "FreeText",
+      "Description": "How often to check for new data in the source table.",
+      "DefaultValue": "60",
+      "Required": true
+    }
+  ],
+  "DeploySettings": {
+    "DeploymentType": "Service",
+    "CpuMillicores": 400,
+    "MemoryInMb": 500,
+    "Replicas": 1,
+    "PublicAccess": false,
+    "ValidateConnection": true
+  }
+}

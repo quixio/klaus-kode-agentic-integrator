@@ -1,0 +1,89 @@
+{
+    "libraryItemId": "big-query-sink",
+    "name": "BigQuery Sink",
+    "language": "Python",
+    "IconFile": "icon.png",
+    "tags": {
+      "Type": ["Connectors"],
+      "Pipeline Stage": ["Destination"],
+      "Category": ["Data warehouse"]
+    },
+    "shortDescription": "Persist data from Quix to BigQuery",
+    "EntryPoint": "dockerfile",
+    "RunEntryPoint": "main.py",
+    "DefaultFile": "main.py",
+    "Variables": [
+        {
+          "Name": "input",
+          "Type": "EnvironmentVariable",
+          "InputType": "InputTopic",
+          "Description": "This is the input topic",
+          "DefaultValue": "",
+          "Required": true
+        },
+        {
+          "Name": "PROJECT_ID",
+          "Type": "EnvironmentVariable",
+          "InputType": "FreeText",
+          "Description": "The BigQuery GCP Project ID",
+          "DefaultValue": "",
+          "Required": true
+        },
+        {
+          "Name": "DATASET_ID",
+          "Type": "EnvironmentVariable",
+          "InputType": "FreeText",
+          "Description": "The target BigQuery dataset ID",
+          "DefaultValue": "",
+          "Required": true
+        },
+        {
+          "Name": "DATASET_LOCATION",
+          "Type": "EnvironmentVariable",
+          "InputType": "FreeText",
+          "Description": "Location of BigQuery dataset",
+          "DefaultValue": "US",
+          "Required": true
+        },
+        {
+          "Name": "TABLE_NAME",
+          "Type": "EnvironmentVariable",
+          "InputType": "FreeText",
+          "Description": "Name of the destination table.",
+          "DefaultValue": "",
+          "Required": true
+        },
+        {
+          "Name": "CONSUMER_GROUP",
+          "Type": "EnvironmentVariable",
+          "InputType": "FreeText",
+          "Description": "Kafka consumer group.",
+          "DefaultValue": "big-query-sink-v1",
+          "Required": true
+        },
+        {
+          "Name": "SERVICE_ACCOUNT_JSON",
+          "Type": "EnvironmentVariable",
+          "InputType": "Secret",
+          "Description": "JSON string of the service account file for the BigQuery GCP project",
+          "DefaultValue": "",
+          "Required": true
+        },
+        {
+          "Name": "MAX_QUEUE_SIZE",
+          "Type": "EnvironmentVariable",
+          "InputType": "FreeText",
+          "Description": "Max queue size for the sink ingestion",
+          "DefaultValue": "50",
+          "Required": true
+        }
+      ],
+    "DeploySettings": {
+        "DeploymentType": "Service",
+        "CpuMillicores": 200,
+        "MemoryInMb": 200,
+        "Replicas": 1,
+        "PublicAccess": false,
+        "ValidateConnection": true
+    }
+}

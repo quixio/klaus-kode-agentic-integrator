@@ -1,0 +1,11 @@
+quixstreams==3.14.1
+python-dotenv
+jupyterlab
+notebook
+numpy
+pandas
+matplotlib
+seaborn
+scikit-learn
+scipy
+bcrypt

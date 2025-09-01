@@ -1,0 +1,77 @@
+{
+    "libraryItemId": "hivemq-source",
+    "name": "HiveMQ Source",
+    "language": "Python",
+    "tags": {
+        "Pipeline Stage": ["Source"],
+        "Type": ["Connectors"],
+        "Category": ["Message queue"]
+    },
+    "shortDescription": "Consume data from an MQTT broker and publish it to a Kafka topic.",
+    "DefaultFile": "mqtt_function.py",
+    "EntryPoint": "dockerfile",
+    "RunEntryPoint": "main.py",
+    "IconFile": "icon.png",
+    "Variables": [{
+            "Name": "output",
+            "Type": "EnvironmentVariable",
+            "InputType": "OutputTopic",
+            "Description": "Name of the output topic to publish to.",
+            "DefaultValue": "",
+            "Required": true
+        },
+        {
+            "Name": "mqtt_topic",
+            "Type": "EnvironmentVariable",
+            "InputType": "FreeText",
+            "DefaultValue": "#",
+            "Description": "The root for messages in MQTT, this can be anything",
+            "Required": true
+        },
+        {
+            "Name": "mqtt_server",
+            "Type": "EnvironmentVariable",
+            "InputType": "FreeText",
+            "Description": "The address of your MQTT server",
+            "Required": true
+        },
+        {
+            "Name": "mqtt_port",
+            "Type": "EnvironmentVariable",
+            "InputType": "FreeText",
+            "Description": "The port of your MQTT server",
+            "DefaultValue": "8883",
+            "Required": true
+        },
+        {
+            "Name": "mqtt_username",
+            "Type": "EnvironmentVariable",
+            "InputType": "FreeText",
+            "Description": "Username of your MQTT user",
+            "Required": false
+        },
+        {
+            "Name": "mqtt_password",
+            "Type": "EnvironmentVariable",
+            "InputType": "Secret",
+            "Description": "Password for the MQTT user",
+            "Required": false
+        },
+        {
+            "Name": "mqtt_version",
+            "Type": "EnvironmentVariable",
+            "InputType": "FreeText",
+            "Description": "MQTT protocol version: 3.1, 3.1.1, 5",
+            "DefaultValue": "3.1.1",
+            "Required": true
+        }
+    ],
+    "DeploySettings": {
+        "DeploymentType": "Service",
+        "CpuMillicores": 200,
+        "MemoryInMb": 200,
+        "Replicas": 1,
+        "PublicAccess": false,
+        "ValidateConnection": true
+    }
+}

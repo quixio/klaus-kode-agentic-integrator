@@ -1,0 +1,5 @@
+quixstreams==2.9.0
+flask
+requests
+waitress
+python-dotenv

@@ -1,0 +1,5 @@
+streamlit
+websockets
+pandas
+plotly
+asyncio

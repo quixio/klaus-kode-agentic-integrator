@@ -1,0 +1,33 @@
+{
+  "libraryItemId": "simple-csv-source",
+  "name": "CSV Source",
+  "language": "Python",
+  "tags": {
+    "Technology": ["Quix Streams"],
+    "Pipeline Stage": ["Source"],
+    "Popular Subjects": ["Quick Start"],
+    "Type": ["Demos"]
+  },
+  "shortDescription": "Read data from a CSV file and publish it to a Kafka topic.",
+  "DefaultFile": "main.py",
+  "EntryPoint": "dockerfile",
+  "RunEntryPoint": "main.py",
+  "Variables": [
+    {
+      "Name": "output",
+      "Type": "EnvironmentVariable",
+      "InputType": "OutputTopic",
+      "Description": "Name of the output topic to write into",
+      "DefaultValue": "csv-data",
+      "Required": true
+    }
+  ],
+  "DeploySettings": {
+    "DeploymentType": "Job",
+    "CpuMillicores": 200,
+    "MemoryInMb": 200,
+    "Replicas": 1,
+    "PublicAccess": false,
+    "ValidateConnection": false
+  }
+}

@@ -1,0 +1,2 @@
+quixstreams[pandas]==3.8.1
+python-dotenv

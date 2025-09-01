@@ -1,0 +1,15 @@
+{
+  "libraryItemId": "http-api-sample",
+  "name": "HTTP API Sample",
+  "language": "Python",
+  "IsHighlighted": true,
+  "DisplayOrder": 6,
+  "tags": {
+    "Complexity": ["Easy"]
+  },
+  "shortDescription": "Run a Flask HTTP API.",
+  "DefaultFile": "main.py",
+  "EntryPoint": "dockerfile",
+  "RunEntryPoint": "main.py",
+  "Variables": []
+}
