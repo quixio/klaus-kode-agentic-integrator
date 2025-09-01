@@ -70,19 +70,11 @@ $ git clone https://github.com/quixio/quix-coding-agent.git
 ```
 
   
-2) Set up a virtual environment and activate it (assuming Linux/Mac)  
+2) Run the startup script which creates a virtual environment, activates it, and installs the dependencies fron `requirements.txt` (assuming Linux/Mac)
+**NOTE**: Dependencies require Python 12 or later.
    
-**Linux/MacOS**
 ```shell
 bash start.sh
-```
-**Windows**
-```shell
-bash start.bat
-```
-OR **Windows Powershell**
-```shell
-bash start.ps1
 ```
 
 4) Create a .env file (make a copy of the.env example) and enter your API keys and PAT token  
