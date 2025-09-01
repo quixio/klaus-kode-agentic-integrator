@@ -67,7 +67,7 @@ Here are those steps again in more detail:
 $ git clone https://github.com/quixio/klaus-kode-agentic-integrator
 ```
   
-2) Create a `.env` file (make a copy of the.env example) and enter your API keys and PAT token  
+2) Create a `.env` file (make a copy of the `.env` example) and enter your API keys and PAT token  
    
 
 ```py
