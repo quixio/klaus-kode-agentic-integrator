@@ -81,8 +81,7 @@ CLAUDE_CLI_PATH=/home/username/.claude/local/node_modules/.bin
 ```
 
 3) Run the startup script which creates a virtual environment, activates it, and installs the dependencies fron `requirements.txt` (assuming Linux/Mac)
-**NOTE**: Dependencies require Python 12 or later.
-   
+
 ```shell
 bash start.sh
 ```
