@@ -11,9 +11,9 @@ Klaus Kode is best suited for scenarios where you need to integrate high-fidelit
 
 You’ll need a few things already in place before you can start with Klaus Kode. 
 
-These include:
+**These include**:
 
-1. Python and Git installed on your system  
+1. Python (3.12 or later) and Git installed on your system  
 2. The Claude Code CLI  
 3. A Quix project and PAT token   
 4. API tokens and billing enabled for OpenAI GPT APIs and Anthropic Claude APIs   
@@ -49,9 +49,7 @@ Klaus Kode uses OpenAI GPT4o for log file analysis and Anthropic’s Claude Sonn
 In summary, you need the following keys and tokens: 
 
 1. An [Anthropic API key](https://docs.anthropic.com/en/api/overview) API key — requires an Anthopic account with billing enabled and enough credit to run Claude Code. 
-
 2. An [OpenAI API key](https://platform.openai.com/docs/libraries) API key — if you have verified your organization already, it is cheaper to switch to GPT5-mini. You can do this 
-
 3. A [Quix Cloud PAT token](https://quix.io/docs/develop/authentication/personal-access-token.html) — you can [sign up for free](https://portal.cloud.quix.io/signup?utm_campaign=klaus-kode) to get one (this lets Klaus Kode run the code in a cloud sandbox)  
      
    You should then configure your environment variables with these keys as described in the following section
@@ -76,7 +74,7 @@ $ git clone https://github.com/quixio/klaus-kode-agentic-integrator
 bash start.sh
 ```
 
-4) Create a .env file (make a copy of the.env example) and enter your API keys and PAT token  
+4) Create a `.env` file (make a copy of the.env example) and enter your API keys and PAT token  
    
 
 ```py
@@ -88,10 +86,6 @@ QUIX_BASE_URL=https://portal-api.cloud.quix.io/
 ## OPTIONAL: If Klaus cannot autonmatically detect your Claude Code installation
 CLAUDE_CLI_PATH=/home/username/.claude/local/node_modules/.bin
 ```
-
-   
-
-   
 
 5) Run Klaus Kode  
    
