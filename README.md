@@ -67,14 +67,7 @@ Here are those steps again in more detail:
 $ git clone https://github.com/quixio/klaus-kode-agentic-integrator
 ```
   
-2) Run the startup script which creates a virtual environment, activates it, and installs the dependencies fron `requirements.txt` (assuming Linux/Mac)
-**NOTE**: Dependencies require Python 12 or later.
-   
-```shell
-bash start.sh
-```
-
-4) Create a `.env` file (make a copy of the.env example) and enter your API keys and PAT token  
+2) Create a `.env` file (make a copy of the.env example) and enter your API keys and PAT token  
    
 
 ```py
@@ -87,15 +80,13 @@ QUIX_BASE_URL=https://portal-api.cloud.quix.io/
 CLAUDE_CLI_PATH=/home/username/.claude/local/node_modules/.bin
 ```
 
-5) Run Klaus Kode  
+3) Run the startup script which creates a virtual environment, activates it, and installs the dependencies fron `requirements.txt` (assuming Linux/Mac)
+**NOTE**: Dependencies require Python 12 or later.
    
-
 ```shell
-(venv) $ python main.py
+bash start.sh
 ```
-
  
-
 
 ## **Klaus Kode Data Integration Workflow**
 You don't have to understand the workflow to get started, you can just give it a go and see what happens. 
