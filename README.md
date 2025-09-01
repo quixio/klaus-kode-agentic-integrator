@@ -66,9 +66,8 @@ Here are those steps again in more detail:
    
 
 ```shell
-$ git clone https://github.com/quixio/quix-coding-agent.git
+$ git clone https://github.com/quixio/klaus-kode-agentic-integrator
 ```
-
   
 2) Run the startup script which creates a virtual environment, activates it, and installs the dependencies fron `requirements.txt` (assuming Linux/Mac)
 **NOTE**: Dependencies require Python 12 or later.
