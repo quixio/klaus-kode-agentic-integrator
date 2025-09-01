@@ -1,0 +1,10 @@
+**/ref/
+**/obj/
+**/bin/
+DotSettings.user
+**DotSettings.user
+ca.cert
+.idea/
+__pycache__/
+certificates/
+state/

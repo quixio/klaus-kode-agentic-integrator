@@ -1,0 +1,34 @@
+{
+  "libraryItemId": "starter-transformation",
+  "name": "Starter Transformation",
+  "language": "Python",
+  "IsHighlighted": true,
+  "DisplayOrder": 2,
+  "tags": {
+    "Complexity": ["Easy"],
+    "Technology": ["Quix Streams"],
+    "Pipeline Stage": ["Transformation"],
+    "Popular Subjects": ["Quick Start"],
+    "Type": ["Basic templates"]
+  },
+  "shortDescription": "Consume data from a topic, apply a simple transformation and publish the result to an output topic.",
+  "DefaultFile": "main.py",
+  "EntryPoint": "dockerfile",
+  "RunEntryPoint": "main.py",
+  "Variables": [
+    {
+      "Name": "input",
+      "Type": "EnvironmentVariable",
+      "InputType": "InputTopic",
+      "Description": "Name of the input topic to listen to.",
+      "DefaultValue": "csv-data"
+    },
+    {
+      "Name": "output",
+      "Type": "EnvironmentVariable",
+      "InputType": "OutputTopic",
+      "Description": "Name of the output topic to write to.",
+      "DefaultValue": "transform"
+    }
+  ]
+}

@@ -1,0 +1,64 @@
+{
+  "libraryItemId": "confluent-kafka-destination",
+  "name": "Confluent Kafka Sink",
+  "language": "Python",
+  "tags": {
+    "Pipeline Stage": ["Destination"],
+    "Type": ["Connectors"],
+    "Category": ["Data streaming"]
+  },
+  "shortDescription": "Consume data from a Kafka topic in Quix and publish it to a topic in Confluent Cloud",
+  "DefaultFile": "quix_function.py",
+  "EntryPoint": "dockerfile",
+  "RunEntryPoint": "main.py",
+  "IconFile": "icon.png",
+  "Variables": [
+    {
+      "Name": "input",
+      "Type": "EnvironmentVariable",
+      "InputType": "InputTopic",
+      "Description": "Name of the Quix input topic to listen to.",
+      "DefaultValue": "",
+      "Required": true
+    },
+    {
+      "Name": "kafka_topic",
+      "Type": "EnvironmentVariable",
+      "InputType": "FreeText",
+      "Description": "Name of the Confluent Kafka topic to sink data to",
+      "Required": true
+    },
+    {
+      "Name": "kafka_key",
+      "Type": "EnvironmentVariable",
+      "InputType": "Secret",
+      "Description": "Obtained from the Confluent Kafka portal",
+      "DefaultValue": "",
+      "Required": true
+    },
+    {
+      "Name": "kafka_secret",
+      "Type": "EnvironmentVariable",
+      "InputType": "Secret",
+      "Description": "Obtained from the Confluent Kafka portal",
+      "DefaultValue": "",
+      "Required": true
+    },
+    {
+      "Name": "kafka_broker_address",
+      "Type": "EnvironmentVariable",
+      "InputType": "FreeText",
+      "Description": "Obtained from the Confluent Kafka portal",
+      "DefaultValue": "",
+      "Required": true
+    }
+  ],
+  "DeploySettings": {
+    "DeploymentType": "Service",
+    "CpuMillicores": 200,
+    "MemoryInMb": 200,
+    "Replicas": 1,
+    "PublicAccess": false,
+    "ValidateConnection": true
+  }
+}

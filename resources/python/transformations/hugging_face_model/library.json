@@ -1,0 +1,57 @@
+{
+  "libraryItemId": "hugging-face-model",
+  "name": "Hugging Face Model Transformation",
+  "language": "Python",
+  "tags": {
+    "Complexity": ["Medium"],
+    "Technology": ["Quix Streams"],
+    "Pipeline Stage": ["Transformation"],
+    "Popular Subjects": ["Sentiment Analysis", "Machine Learning"]
+  },
+  "shortDescription": "Consume data from a topic, use an ML model to run inference on the data and publish the results to an output topic.",
+  "DefaultFile": "hugging_face_model.py",
+  "EntryPoint": "dockerfile",
+  "RunEntryPoint": "main.py",
+  "Variables": [
+    {
+      "Name": "input",
+      "Type": "EnvironmentVariable",
+      "InputType": "InputTopic",
+      "Description": "This is the raw data input topic",
+      "DefaultValue": "",
+      "Required": true
+    },
+    {
+      "Name": "output",
+      "Type": "EnvironmentVariable",
+      "InputType": "OutputTopic",
+      "Description": "This is the output for the hugging face model score",
+      "DefaultValue": "hugging-face-output",
+      "Required": true
+    },
+    {
+      "Name": "HuggingFaceModel",
+      "Type": "EnvironmentVariable",
+      "InputType": "FreeText",
+      "Description": "Name of the Hugging Face model to be used",
+      "DefaultValue": "distilbert-base-uncased-finetuned-sst-2-english",
+      "Required": true
+    },
+    {
+      "Name": "TextColumnName",
+      "Type": "EnvironmentVariable",
+      "InputType": "FreeText",
+      "Description": "For the table structured input, specify name of the column where input text is located.",
+      "DefaultValue": "text",
+      "Required": false
+    }
+  ],
+  "DeploySettings": {
+    "DeploymentType": "Service",
+    "CpuMillicores": 200,
+    "MemoryInMb": 1000,
+    "Replicas": 1,
+    "PublicAccess": false,
+    "ValidateConnection": false
+  }
+}

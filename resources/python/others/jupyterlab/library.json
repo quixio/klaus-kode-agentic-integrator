@@ -1,0 +1,44 @@
+{
+  "libraryItemId": "jupyterlab",
+  "name": "JupyterLab",
+  "language": "docker",
+  "tags": {
+    "Category": ["Data Exploration"],
+    "Type": ["Auxiliary Services"]
+  },
+  "shortDescription": "Run JupyterLab in your pipeline.",
+  "DefaultFile": "dockerfile",
+  "EntryPoint": "dockerfile",
+  "IconFile": "icon.png",
+  "DeploySettings": {
+    "DeploymentType": "Service",
+    "CpuMillicores": 500,
+    "MemoryInMb": 2000,
+    "Replicas": 1,
+    "PublicAccess": true,
+    "UrlPrefix": "jupyterlab",
+    "State": {
+      "Enabled": true,
+      "Size": 1
+    },
+    "Network": {
+      "ServiceName": "jupyterlab",
+      "Ports":
+      [
+        {
+          "Port": 80,
+          "TargetPort": 8888
+        }
+      ]
+    }
+  },
+  "Variables": [
+    {
+      "Name": "JUPYTER_PASSWORD",
+      "Type": "EnvironmentVariable",
+      "InputType": "Secret",
+      "Description": "The allowed password for connecting to JupyterLab",
+      "Required": true
+    }
+  ]  
+}

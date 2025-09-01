@@ -1,0 +1,4 @@
+quixstreams==2.9.0
+transformers
+tensorflow
+python-dotenv

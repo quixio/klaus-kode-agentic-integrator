@@ -1,0 +1,26 @@
+{
+  "libraryItemId": "flet-input-form",
+  "name": "Flet Input Form",
+  "language": "Python",
+  "tags": {
+    "Complexity": ["Medium"],
+    "Technology": ["Quix Streams", "Flet"],
+    "Pipeline Stage": ["Source"],
+    "Popular Subjects": ["Data Input", "Manufacturing", "Web Forms"],
+    "Type": ["Input Form"]
+  },
+  "shortDescription": "A web-based input form template built with Flet that demonstrates how to create forms with validation and send data to Kafka topics using Quix Streams.",
+  "DefaultFile": "main.py",
+  "EntryPoint": "dockerfile",
+  "RunEntryPoint": "main.py",
+  "IconFile": "icon.png",
+  "Variables": [
+    {
+      "Name": "output",
+      "Type": "EnvironmentVariable",
+      "InputType": "OutputTopic",
+      "Description": "Name of the output topic to send data to.",
+      "DefaultValue": "data-input"
+    }
+  ]
+}

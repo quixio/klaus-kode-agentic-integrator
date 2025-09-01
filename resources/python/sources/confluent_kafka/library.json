@@ -1,0 +1,81 @@
+{
+  "libraryItemId": "confluent-kafka-source",
+  "name": "Confluent Kafka Source",
+  "language": "Python",
+  "tags": {
+    "Pipeline Stage": ["Source"],
+    "Type": ["Connectors"],
+    "Category": ["Data streaming"]
+  },
+  "shortDescription": "Consume data from a Kafka topic in Confluent Cloud and publish it to a topic in Quix",
+  "DefaultFile": "main.py",
+  "EntryPoint": "dockerfile",
+  "RunEntryPoint": "main.py",
+  "IconFile": "icon.png",
+  "Variables": [
+    {
+      "Name": "output",
+      "Type": "EnvironmentVariable",
+      "InputType": "OutputTopic",
+      "Description": "This is the Quix Topic that will receive the stream",
+      "DefaultValue": "coin-data",
+      "Required": true
+    },
+    {
+      "Name": "kafka_key",
+      "Type": "EnvironmentVariable",
+      "InputType": "FreeText",
+      "Description": "Obtained from the Confluent Kafka portal",
+      "DefaultValue": "",
+      "Required": true
+    },
+    {
+      "Name": "kafka_secret",
+      "Type": "EnvironmentVariable",
+      "InputType": "Secret",
+      "Description": "Obtained from the Confluent Kafka portal",
+      "DefaultValue": "",
+      "Required": true
+    },
+    {
+      "Name": "kafka_broker_address",
+      "Type": "EnvironmentVariable",
+      "InputType": "FreeText",
+      "Description": "Obtained from the Confluent Kafka portal",
+      "DefaultValue": "",
+      "Required": true
+    },
+    {
+      "Name": "kafka_sasl_mechanism",
+      "Type": "EnvironmentVariable",
+      "InputType": "FreeText",
+      "Description": "Obtained from the Confluent Kafka portal. Can be PLAIN, SCRAM-SHA-256, SCRAM-SHA-512, GSSAPI, OAUTHBEARER or AWS_MSK_IAM.",
+      "DefaultValue": "SCRAM-SHA-256",
+      "Required": true
+    },
+    {
+      "Name": "kafka_topic",
+      "Type": "EnvironmentVariable",
+      "InputType": "FreeText",
+      "Description": "The Confluent Kafka Topic you wish to read from",
+      "DefaultValue": "",
+      "Required": true
+    },
+    {
+      "Name": "kafka_ca_location",
+      "Type": "EnvironmentVariable",
+      "InputType": "FreeText",
+      "Description": "Path to the SSL CA certificate file for secure connections. If not provided, the system's default CA certificates will be used",
+      "DefaultValue": "",
+      "Required": false
+    }
+  ],
+  "DeploySettings": {
+    "DeploymentType": "Service",
+    "CpuMillicores": 200,
+    "MemoryInMb": 200,
+    "Replicas": 1,
+    "PublicAccess": false,
+    "ValidateConnection": true
+  }
+}

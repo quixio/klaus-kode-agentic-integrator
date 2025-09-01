@@ -1,0 +1,89 @@
+{
+  "libraryItemId": "postgres-cdc-source",
+  "name": "Postgres CDC Source",
+  "language": "Python",
+  "IconFile": "icon.png",
+  "tags": {
+    "Type": ["Connectors"],
+    "Pipeline Stage": ["Source"],
+    "Category": ["SQL DB"]
+  },
+  "shortDescription": "Capture changes to a Postgres database table and publish the change events to a Kafka topic.",
+  "EntryPoint": "dockerfile",
+  "RunEntryPoint": "main.py",
+  "DefaultFile": "main.py",
+  "Variables": [
+    {
+      "Name": "output",
+      "Type": "EnvironmentVariable",
+      "InputType": "OutputTopic",
+      "Description": "This is the output topic",
+      "DefaultValue": "postgres-cdc-source",
+      "Required": true
+    },
+    {
+      "Name": "PG_HOST",
+      "Type": "EnvironmentVariable",
+      "InputType": "FreeText",
+      "Description": "Host name of Postgres",
+      "DefaultValue": "",
+      "Required": true
+    },
+    {
+      "Name": "PG_PORT",
+      "Type": "EnvironmentVariable",
+      "InputType": "FreeText",
+      "Description": "Port of Postgres",
+      "DefaultValue": "5432",
+      "Required": true
+    },
+    {
+      "Name": "PG_USER",
+      "Type": "EnvironmentVariable",
+      "InputType": "FreeText",
+      "Description": "Username of Postgres",
+      "DefaultValue": "",
+      "Required": true
+    },
+    {
+      "Name": "PG_PASSWORD",
+      "Type": "EnvironmentVariable",
+      "InputType": "Secret",
+      "Description": "Password of Postgres",
+      "DefaultValue": "",
+      "Required": true
+    },
+    {
+      "Name": "PG_DATABASE",
+      "Type": "EnvironmentVariable",
+      "InputType": "FreeText",
+      "Description": "Database name of Postgres",
+      "DefaultValue": "",
+      "Required": true
+    },
+    {
+      "Name": "PG_SCHEMA",
+      "Type": "EnvironmentVariable",
+      "InputType": "FreeText",
+      "Description": "Name of schema for CDC",
+      "DefaultValue": "public",
+      "Required": true
+    },
+    {
+      "Name": "PG_TABLE",
+      "Type": "EnvironmentVariable",
+      "InputType": "FreeText",
+      "Description": "Name of table for CDC",
+      "DefaultValue": "",
+      "Required": true
+    }
+  ],
+  "DeploySettings": {
+    "DeploymentType": "Service",
+    "CpuMillicores": 200,
+    "MemoryInMb": 200,
+    "Replicas": 1,
+    "PublicAccess": false,
+    "ValidateConnection": true
+  }
+}

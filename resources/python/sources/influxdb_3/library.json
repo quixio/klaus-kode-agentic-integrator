@@ -1,0 +1,81 @@
+{
+  "libraryItemId": "influxdb-3-source",
+  "name": "InfluxDB 3.0 Source",
+  "language": "Python",
+  "tags": {
+    "Pipeline Stage": ["Source"],
+    "Type": ["Connectors"],
+    "Category": ["Time series DB"]
+  },
+  "shortDescription": "Use the InfluxDB 3.0 query API to periodically query InfluxDB and publish the results to a Kafka topic.",
+  "DefaultFile": "main.py",
+  "EntryPoint": "dockerfile",
+  "RunEntryPoint": "main.py",
+  "IconFile": "icon.png",
+  "Variables": [
+    {
+      "Name": "output",
+      "Type": "EnvironmentVariable",
+      "InputType": "OutputTopic",
+      "Description": "This is the Kafka topic that will receive the query results",
+      "DefaultValue": "influxdbv3-data",
+      "Required": true
+    },
+    {
+      "Name": "task_interval",
+      "Type": "EnvironmentVariable",
+      "InputType": "FreeText",
+      "Description": "Interval to run query. Must be within the InfluxDB notation; 1s, 1m, 1h, 1d, 1w, 1y",
+      "DefaultValue": "5m",
+      "Required": true
+    },
+    {
+      "Name": "INFLUXDB_HOST",
+      "Type": "EnvironmentVariable",
+      "InputType": "FreeText",
+      "Description": "Host address for the InfluxDB instance.",
+      "DefaultValue": "eu-central-1-1.aws.cloud2.influxdata.com",
+      "Required": true
+    },
+    {
+      "Name": "INFLUXDB_TOKEN",
+      "Type": "EnvironmentVariable",
+      "InputType": "FreeText",
+      "Description": "Authentication token to access InfluxDB.",
+      "DefaultValue": "<TOKEN>",
+      "Required": true
+    },
+    {
+      "Name": "INFLUXDB_ORG",
+      "Type": "EnvironmentVariable",
+      "InputType": "FreeText",
+      "Description": "Organization name in InfluxDB.",
+      "DefaultValue": "<ORG>",
+      "Required": true
+    },
+    {
+      "Name": "INFLUXDB_DATABASE",
+      "Type": "EnvironmentVariable",
+      "InputType": "FreeText",
+      "Description": "Database name in InfluxDB where data is stored.",
+      "DefaultValue": "<DATABASE>",
+      "Required": true
+    },
+    {
+      "Name": "INFLUXDB_MEASUREMENT_NAME",
+      "Type": "EnvironmentVariable",
+      "InputType": "FreeText",
+      "Description": "The InfluxDB measurement to read data from. If not specified, the name of the output topic will be used",
+      "DefaultValue": "<INSERT MEASUREMENT>",
+      "Required": false
+    }
+  ],
+  "DeploySettings": {
+    "DeploymentType": "Service",
+    "CpuMillicores": 200,
+    "MemoryInMb": 500,
+    "Replicas": 1,
+    "PublicAccess": false,
+    "ValidateConnection": true
+  }
+}

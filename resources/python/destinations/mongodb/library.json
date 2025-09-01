@@ -1,0 +1,142 @@
+{
+  "libraryItemId": "mongodb-destination",
+  "name": "MongoDB Sink",
+  "language": "Python",
+  "tags": {
+    "Pipeline Stage": ["Destination"],
+    "Type": ["Connectors"],
+    "Category": ["NoSQL DB"]
+  },
+  "shortDescription": "Consume data from a Kafka topic in Quix write it to a MongoDB database.",
+  "DefaultFile": "main.py",
+  "EntryPoint": "dockerfile",
+  "RunEntryPoint": "main.py",
+  "IconFile": "icon.png",
+  "Variables": [
+    {
+      "Name": "input",
+      "Type": "EnvironmentVariable",
+      "InputType": "InputTopic",
+      "Description": "The input Kafka topic name",
+      "DefaultValue": "input-data",
+      "Required": true
+    },
+    {
+      "Name": "MONGODB_HOST",
+      "Type": "EnvironmentVariable",
+      "InputType": "FreeText",
+      "Description": "MongoDB host name",
+      "DefaultValue": "mongodb",
+      "Required": true
+    },
+    {
+      "Name": "MONGODB_USERNAME",
+      "Type": "EnvironmentVariable",
+      "InputType": "FreeText",
+      "Description": "MongoDB username",
+      "DefaultValue": "admin",
+      "Required": true
+    },
+    {
+      "Name": "MONGODB_PASSWORD",
+      "Type": "EnvironmentVariable",
+      "InputType": "Secret",
+      "Description": "MongoDB password",
+      "Required": true
+    },
+    {
+      "Name": "MONGODB_DB",
+      "Type": "EnvironmentVariable",
+      "InputType": "FreeText",
+      "Description": "MongoDB database name",
+      "Required": true
+    },
+        {
+      "Name": "MONGODB_COLLECTION",
+      "Type": "EnvironmentVariable",
+      "InputType": "FreeText",
+      "Description": "MongoDB collection name",
+      "Required": true
+    },
+    {
+      "Name": "MONGODB_PORT",
+      "Type": "EnvironmentVariable",
+      "InputType": "FreeText",
+      "Description": "MongoDB host port",
+      "DefaultValue": "27017",
+      "Required": false
+    },
+    {
+      "Name": "MONGODB_DOCUMENT_MATCHER",
+      "Type": "EnvironmentVariable",
+      "InputType": "FreeText",
+      "Description": "How documents are selected to update; accepts a JSON-serializable string formatted as a MongoDB filter Query.",
+      "DefaultValue": "",
+      "Required": false
+    },
+    {
+      "Name": "MONGODB_UPSERT",
+      "Type": "EnvironmentVariable",
+      "InputType": "FreeText",
+      "Description": "Boolean to create documents if no matches with MONGODB_DOCUMENT_MATCHER",
+      "DefaultValue": "true",
+      "Required": false
+    },
+    {
+      "Name": "MONGODB_UPDATE_METHOD",
+      "Type": "EnvironmentVariable",
+      "InputType": "FreeText",
+      "Description": "How documents found with MONGODB_DOCUMENT_MATCHER are updated",
+      "DefaultValue": "UpdateOne",
+      "Required": false
+    },
+    {
+      "Name": "MONGODB_ADD_MESSAGE_METADATA",
+      "Type": "EnvironmentVariable",
+      "InputType": "FreeText",
+      "Description": "Boolean to include key, timestamp, and headers as '__{field}'",
+      "DefaultValue": "false",
+      "Required": false
+    },
+    {
+      "Name": "MONGODB_ADD_TOPIC_METADATA",
+      "Type": "EnvironmentVariable",
+      "InputType": "FreeText",
+      "Description": "Boolean to include topic, partition, and offset as '__{field}'",
+      "DefaultValue": "false",
+      "Required": false
+    },
+    {
+      "Name": "CONSUMER_GROUP_NAME",
+      "Type": "EnvironmentVariable",
+      "InputType": "FreeText",
+      "Description": "The name of the consumer group to use when consuming from Kafka",
+      "DefaultValue": "quixstreams-mongodb-sink",
+      "Required": true
+    },
+    {
+      "Name": "BUFFER_SIZE",
+      "Type": "EnvironmentVariable",
+      "InputType": "FreeText",
+      "Description": "The number of records that sink waits before flushing data to MongoDB",
+      "DefaultValue": "1000",
+      "Required": false
+    },
+    {
+      "Name": "BUFFER_TIMEOUT",
+      "Type": "EnvironmentVariable",
+      "InputType": "FreeText",
+      "Description": "The number of seconds that sink waits before flushing data to MongoDB",
+      "DefaultValue": "1",
+      "Required": false
+    }
+  ],
+  "DeploySettings": {
+    "DeploymentType": "Service",
+    "CpuMillicores": 200,
+    "MemoryInMb": 500,
+    "Replicas": 1,
+    "PublicAccess": false,
+    "ValidateConnection": true
+  }
+}

@@ -1,0 +1,171 @@
+{
+  "libraryItemId": "tdengine-destination",
+  "name": "TDengine Sink",
+  "language": "Python",
+  "tags": {
+    "Pipeline Stage": ["Destination"],
+    "Type": ["Connectors"],
+    "Category": ["Time series DB"]
+  },
+  "shortDescription": "Consume data from a Kafka topic in Quix and persist the data to an TDengine database.",
+  "DefaultFile": "main.py",
+  "EntryPoint": "dockerfile",
+  "RunEntryPoint": "main.py",
+  "IconFile": "icon.webp",
+  "Variables": [
+    {
+      "Name": "input",
+      "Type": "EnvironmentVariable",
+      "InputType": "InputTopic",
+      "Description": "This is the input topic",
+      "Required": true
+    },
+    {
+      "Name": "TDENGINE_HOST",
+      "Type": "EnvironmentVariable",
+      "InputType": "FreeText",
+      "Description": "Host address for the TDengine instance.",
+      "Required": true
+    },
+    {
+      "Name": "TDENGINE_TOKEN",
+      "Type": "EnvironmentVariable",
+      "InputType": "Secret",
+      "Description": "Authentication token to access TDengine. Either this or a username + password must be used.",
+      "Required": false
+    },
+    {
+      "Name": "TDENGINE_DATABASE",
+      "Type": "EnvironmentVariable",
+      "InputType": "FreeText",
+      "Description": "TDengine database name.",
+      "Required": true
+    },
+    {
+      "Name": "TDENGINE_SUPERTABLE",
+      "Type": "EnvironmentVariable",
+      "InputType": "FreeText",
+      "Description": "The TDengine supertable name; required when a custom callable is not defined in the code.",
+      "Required": false
+    },
+    {
+      "Name": "TDENGINE_TAGS_KEYS",
+      "Type": "EnvironmentVariable",
+      "InputType": "FreeText",
+      "Description": "The tags to include when writing the measurement data. Example: Tag1,Tag2",
+      "DefaultValue": "",
+      "Required": false
+    },
+    {
+      "Name": "TDENGINE_FIELDS_KEYS",
+      "Type": "EnvironmentVariable",
+      "InputType": "FreeText",
+      "Description": "The fields to include when writing the measurement data. Example: Field1,Field2",
+      "DefaultValue": "",
+      "Required": false
+    },
+    {
+      "Name": "TIMESTAMP_COLUMN",
+      "Type": "EnvironmentVariable",
+      "InputType": "FreeText",
+      "Description": "A key to be used as 'time' when converting to InfluxDB line protocol, else uses Kafka timestamp. May require adjusting `TDENGINE_TIME_PRECISION` to match.",
+      "Required": false
+    },
+    {
+      "Name": "TDENGINE_TIME_PRECISION",
+      "Type": "EnvironmentVariable",
+      "InputType": "FreeText",
+      "Description": "time precision assumed when converting to InfluxDB line protocol. Possible values: 'ms', 'ns', 'us', 's'.",
+      "DefaultValue": "ms",
+      "Required": true
+    },
+    {
+      "Name": "TDENGINE_NAME_SUBTABLES_FROM_TAGS",
+      "Type": "EnvironmentVariable",
+      "InputType": "FreeText",
+      "Description": "If `true`, name subtables using the tag values (joined on `__`), else use TDengine's auto-generated randomized values.",
+      "DefaultValue": "false",
+      "Required": false
+    },
+    {
+      "Name": "TDENGINE_ALLOW_MISSING_FIELDS",
+      "Type": "EnvironmentVariable",
+      "InputType": "FreeText",
+      "Description": "if `true`, skip the missing fields keys, else raise `KeyError`",
+      "DefaultValue": "false",
+      "Required": false
+    },
+    {
+      "Name": "TDENGINE_INCLUDE_METADATA_TAGS",
+      "Type": "EnvironmentVariable",
+      "InputType": "FreeText",
+      "Description": "if `true`, includes record's key, topic, and partition as tags.",
+      "DefaultValue": "false",
+      "Required": false
+    },
+    {
+      "Name": "TDENGINE_CONVERT_INTS_TO_FLOATS",
+      "Type": "EnvironmentVariable",
+      "InputType": "FreeText",
+      "Description": "if `true`, converts all integer values to floats.",
+      "DefaultValue": "false",
+      "Required": false
+    },
+    {
+      "Name": "TDENGINE_ENABLE_GZIP",
+      "Type": "EnvironmentVariable",
+      "InputType": "FreeText",
+      "Description": "if `true`, enables gzip compression for writes.",
+      "DefaultValue": "true",
+      "Required": false
+    },
+    {
+      "Name": "TDENGINE_MAX_RETRIES",
+      "Type": "EnvironmentVariable",
+      "InputType": "FreeText",
+      "Description": "Maximum number of retries for failed requests",
+      "DefaultValue": "5",
+      "Required": false
+    },
+    {
+      "Name": "TDENGINE_RETRY_BACKOFF_FACTOR",
+      "Type": "EnvironmentVariable",
+      "InputType": "FreeText",
+      "Description": "A {factor * 2^(retry_count)} backoff factor per retry attempt, starting from the second",
+      "DefaultValue": "1.0",
+      "Required": false
+    },
+    {
+      "Name": "CONSUMER_GROUP_NAME",
+      "Type": "EnvironmentVariable",
+      "InputType": "FreeText",
+      "Description": "The name of the consumer group to use when consuming from Kafka",
+      "DefaultValue": "tdengine-sink",
+      "Required": true
+    },
+    {
+      "Name": "BUFFER_SIZE",
+      "Type": "EnvironmentVariable",
+      "InputType": "FreeText",
+      "Description": "The number of records that sink holds before flush data to TDengine",
+      "DefaultValue": "1000",
+      "Required": false
+    },
+    {
+      "Name": "BUFFER_TIMEOUT",
+      "Type": "EnvironmentVariable",
+      "InputType": "FreeText",
+      "Description": "The number of seconds that sink holds before flush data to TDengine",
+      "DefaultValue": "1",
+      "Required": false
+    }
+  ],
+  "DeploySettings": {
+    "DeploymentType": "Service",
+    "CpuMillicores": 200,
+    "MemoryInMb": 500,
+    "Replicas": 1,
+    "PublicAccess": false,
+    "ValidateConnection": true
+  }
+}

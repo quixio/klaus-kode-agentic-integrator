@@ -1,0 +1,36 @@
+{
+  "libraryItemId": "demo-data-source",
+  "name": "Demo Data Source",
+  "language": "Python",
+  "IsHighlighted": true,
+  "DisplayOrder": 4,
+  "tags": {
+    "Technology": ["Quix Streams"],
+    "Pipeline Stage": ["Source"],
+    "Popular Subjects": ["Quick Start"],
+    "Type": ["Demos"]
+  },
+  "shortDescription": "Publish F1 telemetry data from a CSV file to a Kafka topic.",
+  "longDescription": "Publish F1 Telemetry data, recorded from an F1 game session, into a topic. <br/>You'll have access to the speed, acceleration, break usage and other detailed data from an F1 game, rebroadcast as if in real time.",
+  "DefaultFile": "main.py",
+  "EntryPoint": "dockerfile",
+  "RunEntryPoint": "main.py",
+  "Variables": [
+    {
+      "Name": "output",
+      "Type": "EnvironmentVariable",
+      "InputType": "OutputTopic",
+      "Description": "Name of the output topic to write into",
+      "DefaultValue": "f1-data",
+      "Required": true
+    }
+  ],
+  "DeploySettings": {
+    "DeploymentType": "Job",
+    "CpuMillicores": 200,
+    "MemoryInMb": 200,
+    "Replicas": 1,
+    "PublicAccess": false,
+    "ValidateConnection": false
+  }
+}

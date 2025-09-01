@@ -1,0 +1,65 @@
+{
+  "libraryItemId": "environment-source",
+  "name": "Environment Source",
+  "language": "Python",
+  "tags": {
+    "Pipeline Stage": ["Source"],
+    "Type": ["Connectors"],
+    "Category": ["Data streaming"]
+  },
+  "shortDescription": "Consume data from a Kafka topic in another environment. Useful to mirror production data to dev environments.",
+  "DefaultFile": "main.py",
+  "EntryPoint": "dockerfile",
+  "RunEntryPoint": "main.py",
+  "IconFile": "icon.png",
+  "Variables": [
+    {
+      "Name": "topic",
+      "Type": "EnvironmentVariable",
+      "InputType": "OutputTopic",
+      "Description": "The Quix topic that will be mirrored from the source environment.",
+      "DefaultValue": "",
+      "Required": false
+    },
+    {
+      "Name": "source_workspace_id",
+      "Type": "EnvironmentVariable",
+      "InputType": "FreeText",
+      "Description": "Source workspace ID",
+      "DefaultValue": "",
+      "Required": true
+    },
+    {
+      "Name": "source_sdk_token",
+      "Type": "EnvironmentVariable",
+      "InputType": "Secret",
+      "Description": "SDK token for source",
+      "DefaultValue": "source_sdk_token_key",
+      "Required": true
+    },
+    {
+      "Name": "consumer_group",
+      "Type": "EnvironmentVariable",
+      "InputType": "FreeText",
+      "Description": "Kafka consumer group",
+      "DefaultValue": "quix_environment_source",
+      "Required": false
+    },
+    {
+      "Name": "auto_offset_reset",
+      "Type": "EnvironmentVariable",
+      "InputType": "FreeText",
+      "Description": "Auto offset reset policy",
+      "DefaultValue": "earliest",
+      "Required": false
+    }
+  ],
+  "DeploySettings": {
+    "DeploymentType": "Service",
+    "CpuMillicores": 200,
+    "MemoryInMb": 500,
+    "Replicas": 1,
+    "PublicAccess": false,
+    "ValidateConnection": true
+  }
+}

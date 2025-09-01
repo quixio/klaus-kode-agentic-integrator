@@ -1,0 +1,40 @@
+{
+  "libraryItemId": "slack-destination",
+  "name": "Slack Sink",
+  "language": "Python",
+  "tags": {
+    "Pipeline Stage": ["Destination"],
+    "Type": ["Connectors"],
+    "Category": ["Alerting", "External APIs"]
+  },
+  "shortDescription": "Consume data from a Kafka topic and send Slack notifications based on your matching criteria.",
+  "DefaultFile": "quix_function.py",
+  "EntryPoint": "dockerfile",
+  "RunEntryPoint": "main.py",
+  "IconFile": "icon.png",
+  "Variables": [
+    {
+      "Name": "input",
+      "Type": "EnvironmentVariable",
+      "InputType": "InputTopic",
+      "Description": "Name of the input topic to listen to.",
+      "DefaultValue": "hard-braking",
+      "Required": true
+    },
+    {
+      "Name": "webhook_url",
+      "Type": "EnvironmentVariable",
+      "InputType": "FreeText",
+      "Description": "The webhook url to send notifications to",
+      "Required": true
+    }
+  ],
+  "DeploySettings": {
+    "DeploymentType": "Service",
+    "CpuMillicores": 200,
+    "MemoryInMb": 200,
+    "Replicas": 1,
+    "PublicAccess": false,
+    "ValidateConnection": false
+  }
+}

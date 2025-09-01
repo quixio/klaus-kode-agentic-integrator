@@ -1,0 +1,35 @@
+{
+  "libraryItemId": "starter-source",
+  "name": "Starter Source",
+  "language": "Python",
+  "IsHighlighted": true,
+  "DisplayOrder": 1,
+  "tags": {
+    "Technology": ["Quix Streams"],
+    "Pipeline Stage": ["Source"],
+    "Popular Subjects": ["Quick Start"],
+    "Type": ["Demos"]
+  },
+  "shortDescription": "Publish hard-coded lines of JSON data to a Kafka topic.",
+  "DefaultFile": "main.py",
+  "EntryPoint": "dockerfile",
+  "RunEntryPoint": "main.py",
+  "Variables": [
+    {
+      "Name": "output",
+      "Type": "EnvironmentVariable",
+      "InputType": "OutputTopic",
+      "Description": "Name of the output topic to write into",
+      "DefaultValue": "csv-data",
+      "Required": true
+    }
+  ],
+  "DeploySettings": {
+    "DeploymentType": "Job",
+    "CpuMillicores": 100,
+    "MemoryInMb": 150,
+    "Replicas": 1,
+    "PublicAccess": false,
+    "ValidateConnection": false
+  }
+}

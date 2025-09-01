@@ -1,0 +1,66 @@
+{
+  "libraryItemId": "snowplow-source",
+  "name": "Snowplow Source",
+  "language": "Python",
+  "tags": {
+    "Type": ["Connectors"],
+    "Pipeline Stage": ["Source"],
+    "Category": ["SQL DB"]
+  },
+  "shortDescription": "Read data from Snowplow and publish it to a Kafka topic.",
+  "longDescription": "Use this connector to connect to Snowplow and publish your data to a Kafka topic .<br/>This connector is for an AWS Kinesis backed Snowplow installation",
+  "DefaultFile": "quix_functions.py",
+  "EntryPoint": "dockerfile",
+  "RunEntryPoint": "main.py",
+  "IconFile": "icon.png",
+  "Variables": [
+    {
+      "Name": "output",
+      "Type": "EnvironmentVariable",
+      "InputType": "OutputTopic",
+      "Description": "This is the Quix Topic that will receive the stream",
+      "DefaultValue": "snowplow-data",
+      "Required": true
+    },
+    {
+      "Name": "aws_access_key_id",
+      "Type": "EnvironmentVariable",
+      "InputType": "FreeText",
+      "Description": "AWS Access Key Id",
+      "DefaultValue": "",
+      "Required": true
+    },
+    {
+      "Name": "aws_secret_access_key",
+      "Type": "EnvironmentVariable",
+      "InputType": "Secret",
+      "Description": "AWS Secret Access Key",
+      "DefaultValue": "",
+      "Required": true
+    },
+    {
+      "Name": "aws_region_name",
+      "Type": "EnvironmentVariable",
+      "InputType": "FreeText",
+      "Description": "AWS Region Name",
+      "DefaultValue": "",
+      "Required": true
+    },
+    {
+      "Name": "aws_stream_name",
+      "Type": "EnvironmentVariable",
+      "InputType": "FreeText",
+      "Description": "The name of the AWS stream you want to use",
+      "DefaultValue": "",
+      "Required": true
+    }
+  ],
+  "DeploySettings": {
+    "DeploymentType": "Job",
+    "CpuMillicores": 200,
+    "MemoryInMb": 200,
+    "Replicas": 1,
+    "PublicAccess": false,
+    "ValidateConnection": true
+  }
+}

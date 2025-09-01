@@ -1,0 +1,65 @@
+{
+    "libraryItemId": "opc-ua-client",
+    "name": "OPC UA Source",
+    "language": "Python",
+    "tags": {
+        "Pipeline Stage": ["Source"],
+        "Category": ["External APIs"],
+        "Type": ["Connectors"]
+    },
+    "shortDescription": "Connect to your OPC UA server to ingest data into Quix.",
+    "DefaultFile": "main.py",
+    "EntryPoint": "dockerfile",
+    "RunEntryPoint": "main.py",
+    "IconFile": "icon.png",
+    "Variables": [
+      {
+        "Name": "output",
+        "Type": "EnvironmentVariable",
+        "InputType": "OutputTopic",
+        "Description": "This is the Quix Topic that will receive the stream",
+        "DefaultValue": "opc_ua_data",
+        "Required": true
+      },
+      {
+        "Name": "OPC_SERVER_URL",
+        "Type": "EnvironmentVariable",
+        "InputType": "FreeText",
+        "Description": "The URL to your OPC UA server",
+        "DefaultValue": "https://intopcserver:4840/freeopcua/server/",
+        "Required": true
+      },
+      {
+        "Name": "OPC_NAMESPACE",
+        "Type": "EnvironmentVariable",
+        "InputType": "FreeText",
+        "Description": "The namespace of the data coming from your OPC UA server",
+        "DefaultValue": "http://quix.freeopcua.io",
+        "Required": true
+      },
+      {
+        "Name": "PARAMETER_NAMES_TO_PROCESS",
+        "Type": "EnvironmentVariable",
+        "InputType": "FreeText",
+        "Description": "List of parameters from your OPC UA server that you want to process. e.g. ['a', 'b', 'c']. NB:Use single quotes.",
+        "DefaultValue": "['THERMO_PROBE_1', 'THERMO_PROBE_2']",
+        "Required": true
+      },
+            {
+        "Name": "LOGLEVEL",
+        "Type": "EnvironmentVariable",
+        "InputType": "FreeText",
+        "Description": "Desired loglevel; Use 'DEBUG' to see change events, else INFO for max performance.",
+        "DefaultValue": "INFO",
+        "Required": false
+      }
+    ],
+    "DeploySettings": {
+        "DeploymentType": "Service",
+        "CpuMillicores": 200,
+        "MemoryInMb": 200,
+        "Replicas": 1,
+        "PublicAccess": false,
+        "ValidateConnection": false
+    }
+}

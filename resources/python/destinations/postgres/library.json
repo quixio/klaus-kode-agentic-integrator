@@ -1,0 +1,134 @@
+{
+  "libraryItemId": "postgresql-destination",
+  "name": "PostgreSQL Sink",
+  "language": "Python",
+  "tags": {
+    "Pipeline Stage": ["Destination"],
+    "Type": ["Connectors"],
+    "Category": ["SQL DB"]
+  },
+  "shortDescription": "Consume data from a Kafka topic in Quix and persist the data to a PostgreSQL database.",
+  "DefaultFile": "main.py",
+  "EntryPoint": "dockerfile",
+  "RunEntryPoint": "main.py",
+  "IconFile": "icon.png",
+  "Variables": [
+    {
+      "Name": "input",
+      "Type": "EnvironmentVariable",
+      "InputType": "InputTopic",
+      "Description": "This is the input topic",
+      "DefaultValue": "input-data",
+      "Required": true
+    },
+    {
+      "Name": "POSTGRES_HOST",
+      "Type": "EnvironmentVariable",
+      "InputType": "FreeText",
+      "Description": "Host address for the PostgreSQL instance.",
+      "DefaultValue": "postgresql",
+      "Required": true
+    },
+    {
+      "Name": "POSTGRES_PORT",
+      "Type": "EnvironmentVariable",
+      "InputType": "FreeText",
+      "Description": "Port number for the PostgreSQL instance.",
+      "DefaultValue": "80",
+      "Required": true
+    },
+    {
+      "Name": "POSTGRES_DBNAME",
+      "Type": "EnvironmentVariable",
+      "InputType": "FreeText",
+      "Description": "Database name in PostgreSQL where data should be stored.",
+      "DefaultValue": "quix",
+      "Required": true
+    },
+    {
+      "Name": "POSTGRES_USER",
+      "Type": "EnvironmentVariable",
+      "InputType": "FreeText",
+      "Description": "Username for the PostgreSQL database.",
+      "DefaultValue": "admin",
+      "Required": true
+    },
+    {
+      "Name": "POSTGRES_PASSWORD",
+      "Type": "EnvironmentVariable",
+      "InputType": "Secret",
+      "Description": "Password for the PostgreSQL database.",
+      "Required": true
+    },
+    {
+      "Name": "POSTGRES_TABLE",
+      "Type": "EnvironmentVariable",
+      "InputType": "FreeText",
+      "Description": "The PostgreSQL table where data will be stored. If the table does not exist, it will be created automatically.",
+      "Required": true
+    },
+    {
+      "Name": "POSTGRES_SCHEMA",
+      "Type": "EnvironmentVariable",
+      "InputType": "FreeText",
+      "Description": "The schema name. Schemas are a way of organizing tables and not related to the table data, referenced as `<schema_name>.<table_name>`. PostrgeSQL uses `public` by default under the hood.",
+      "DefaultValue": "public",
+      "Required": false
+    },
+    {
+      "Name": "POSTGRES_SCHEMA_AUTO_UPDATE",
+      "Type": "EnvironmentVariable",
+      "InputType": "FreeText",
+      "Description": "Automatically update the schema by adding new columns when new fields are detected.",
+      "DefaultValue": "true",
+      "Required": false
+    },
+    {
+      "Name": "POSTGRES_PRIMARY_KEY_COLUMNS",
+      "Type": "EnvironmentVariable",
+      "InputType": "FreeText",
+      "Description": "An optional comma-separated list of primary key column(s). Often paired with `POSTGRES_UPSERT_ON_PRIMARY_KEY=true`",
+      "Required": false
+    },
+    {
+      "Name": "POSTGRES_UPSERT_ON_PRIMARY_KEY",
+      "Type": "EnvironmentVariable",
+      "InputType": "FreeText",
+      "Description": "If `true`, upsert based on the given `primary_keys`, else every message is treated as an independent entry, and any primary key collisions will consequently raise an exception.",
+      "DefaultValue": "false",
+      "Required": false
+    },
+    {
+      "Name": "CONSUMER_GROUP_NAME",
+      "Type": "EnvironmentVariable",
+      "InputType": "FreeText",
+      "Description": "The name of the consumer group to use when consuming from Kafka",
+      "DefaultValue": "postgres-sink",
+      "Required": true
+    },
+    {
+      "Name": "BATCH_SIZE",
+      "Type": "EnvironmentVariable",
+      "InputType": "FreeText",
+      "Description": "The number of records that the sink holds before flushing data to PostgreSQL.",
+      "DefaultValue": "1000",
+      "Required": false
+    },
+    {
+      "Name": "BATCH_TIMEOUT",
+      "Type": "EnvironmentVariable",
+      "InputType": "FreeText",
+      "Description": "The number of seconds that the sink holds before flushing data to PostgreSQL.",
+      "DefaultValue": "1",
+      "Required": false
+    }
+  ],
+  "DeploySettings": {
+    "DeploymentType": "Service",
+    "CpuMillicores": 200,
+    "MemoryInMb": 500,
+    "Replicas": 1,
+    "PublicAccess": false,
+    "ValidateConnection": true
+  }
+}

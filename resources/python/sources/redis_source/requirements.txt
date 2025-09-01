@@ -1,0 +1,6 @@
+quixstreams==2.9.0
+pandas
+redis
+python-dotenv
+
+

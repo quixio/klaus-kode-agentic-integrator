@@ -1,0 +1,126 @@
+{
+  "libraryItemId": "elastic-search-destination",
+  "name": "Elasticsearch Sink",
+  "language": "Python",
+  "tags": {
+    "Pipeline Stage": ["Destination"],
+    "Type": ["Connectors"],
+    "Category": ["NoSQL DB"]
+  },
+  "shortDescription": "Consume data from a Kafka topic in Quix write it to Elasticsearch.",
+  "DefaultFile": "main.py",
+  "EntryPoint": "dockerfile",
+  "RunEntryPoint": "main.py",
+  "IconFile": "icon.png",
+  "Variables": [
+    {
+      "Name": "input",
+      "Type": "EnvironmentVariable",
+      "InputType": "InputTopic",
+      "Description": "The input Kafka topic name",
+      "DefaultValue": "input-data",
+      "Required": true
+    },
+    {
+      "Name": "ELASTICSEARCH_URL",
+      "Type": "EnvironmentVariable",
+      "InputType": "FreeText",
+      "Description": "Elasticsearch url",
+      "Required": true
+    },
+    {
+      "Name": "ELASTICSEARCH_INDEX",
+      "Type": "EnvironmentVariable",
+      "InputType": "FreeText",
+      "Description": "Elasticsearch Index name",
+      "Required": true
+    },
+    {
+      "Name": "ELASTICSEARCH_AUTHENTICATION_JSON",
+      "Type": "EnvironmentVariable",
+      "InputType": "Secret",
+      "Description": "A json-serializable object with Elasticsearch connection arguments",
+      "Required": true
+    },
+    {
+      "Name": "ELASTICSEARCH_MAPPING",
+      "Type": "EnvironmentVariable",
+      "InputType": "FreeText",
+      "Description": "A mapping of field types for the given Elasticsearch Index; accepts a JSON-serializable string",
+      "DefaultValue": "",
+      "Required": false
+    },
+    {
+      "Name": "ELASTICSEARCH_BATCH_SIZE",
+      "Type": "EnvironmentVariable",
+      "InputType": "FreeText",
+      "Description": "Integer for how large each chunk size is with bulk; ex; '500'",
+      "DefaultValue": "500",
+      "Required": false
+    },
+    {
+      "Name": "ELASTICSEARCH_MAX_BULK_RETRIES",
+      "Type": "EnvironmentVariable",
+      "InputType": "FreeText",
+      "Description": "Integer of retry attempts for each bulk batch; ex; '3'",
+      "DefaultValue": "3",
+      "Required": false
+    },
+    {
+      "Name": "ELASTICSEARCH_IGNORE_BULK_UPLOAD_ERRORS",
+      "Type": "EnvironmentVariable",
+      "InputType": "FreeText",
+      "Description": "Boolean to ignore any errors that occur when attempting an upload",
+      "DefaultValue": "false",
+      "Required": false
+    },
+    {
+      "Name": "ELASTICSEARCH_ADD_MESSAGE_METADATA",
+      "Type": "EnvironmentVariable",
+      "InputType": "FreeText",
+      "Description": "Boolean to include key, timestamp, and headers as '__{field}'",
+      "DefaultValue": "false",
+      "Required": false
+    },
+    {
+      "Name": "ELASTICSEARCH_ADD_TOPIC_METADATA",
+      "Type": "EnvironmentVariable",
+      "InputType": "FreeText",
+      "Description": "Boolean to include topic, partition, and offset as '__{field}'",
+      "DefaultValue": "false",
+      "Required": false
+    },
+    {
+      "Name": "CONSUMER_GROUP_NAME",
+      "Type": "EnvironmentVariable",
+      "InputType": "FreeText",
+      "Description": "The name of the consumer group to use when consuming from Kafka",
+      "DefaultValue": "quixstreams-mongodb-sink",
+      "Required": true
+    },
+    {
+      "Name": "BUFFER_SIZE",
+      "Type": "EnvironmentVariable",
+      "InputType": "FreeText",
+      "Description": "The number of records that sink waits before flushing data to Elasticsearch",
+      "DefaultValue": "1000",
+      "Required": false
+    },
+    {
+      "Name": "BUFFER_TIMEOUT",
+      "Type": "EnvironmentVariable",
+      "InputType": "FreeText",
+      "Description": "The number of seconds that sink waits before flushing data to Elasticsearch",
+      "DefaultValue": "1",
+      "Required": false
+    }
+  ],
+  "DeploySettings": {
+    "DeploymentType": "Service",
+    "CpuMillicores": 200,
+    "MemoryInMb": 500,
+    "Replicas": 1,
+    "PublicAccess": false,
+    "ValidateConnection": true
+  }
+}

@@ -1,0 +1,80 @@
+# ---------- base image ----------
+FROM python:3.11-slim
+
+WORKDIR /app
+ARG MAINAPPPATH=.
+
+# ---------- OS deps ----------
+RUN apt-get update && apt-get install -y \
+        build-essential \
+        git \
+    && rm -rf /var/lib/apt/lists/*
+
+# ---------- Python deps ----------
+COPY "${MAINAPPPATH}/requirements.txt" .
+RUN pip install --no-cache-dir -r requirements.txt \
+ && pip install --no-cache-dir jupyterlab   # <-- ensure Lab is present
+
+COPY "${MAINAPPPATH}/Notebook.ipynb" /app/Notebook.ipynb
+
+# ---------- ports & env ----------
+EXPOSE 8888
+
+ENV JUPYTER_CONFIG_DIR=/app/state/config \
+    JUPYTER_DATA_DIR=/app/state/data \
+    JUPYTER_RUNTIME_DIR=/app/state/runtime
+
+# ---------- launcher ----------
+RUN cat <<'JUPYTER_START_SH' > /jupyter_start.sh
+#!/bin/bash
+if [ -z "$(ls -A "/app/state")" ]; then
+    echo "Initializing Jupyter state at /app/state..."
+
+    mkdir -p \
+        /app/state/config \
+        /app/state/data \
+        /app/state/runtime \
+        /app/state/notebooks \
+        /app/state/config/lab/user-settings/@jupyterlab/apputils-extension \
+        /app/state/config/lab/user-settings/@jupyterlab/completer-extension
+
+    # Copy notebook if bundled (first run)
+    [ -f /app/Notebook.ipynb ] && cp /app/Notebook.ipynb /app/state/notebooks/Notebook.ipynb
+
+    # Write theme config
+    echo '{ "theme": "JupyterLab Dark" }' > \
+        /app/state/config/lab/user-settings/@jupyterlab/apputils-extension/themes.jupyterlab-settings
+
+    HASHED_PASSWORD=$(python -c "from jupyter_server.auth import passwd; import os; print(passwd(os.getenv('JUPYTER_PASSWORD', '')))")
+    cat <<CONFIG > "$JUPYTER_CONFIG_DIR/jupyter_notebook_config.py"
+c.ServerApp.identity_provider_class = "jupyter_server.auth.identity.PasswordIdentityProvider"
+c.PasswordIdentityProvider.hashed_password = '${HASHED_PASSWORD}'
+c.IdentityProvider.token = ""
+c.ServerApp.open_browser = False
+c.ServerApp.ip = "0.0.0.0"
+c.ServerApp.port = 8888
+CONFIG
+
+    # Autocomplete config
+    cat <<'COMPLETER_JSON' > "$JUPYTER_CONFIG_DIR/lab/user-settings/@jupyterlab/completer-extension/manager.jupyterlab-settings"
+{
+    "availableProviders": {
+        "CompletionProvider:context": 500,
+        "CompletionProvider:kernel": 550
+    },
+    "providerTimeout": 1000,
+    "showDocumentationPanel": false,
+    "autoCompletion": true,
+    "suppressIfInlineCompleterActive": true
+}
+COMPLETER_JSON
+
+else
+    echo "Using existing Jupyter state in /app/state"
+fi
+
+exec jupyter lab --no-browser --allow-root --notebook-dir=/app/state/notebooks
+JUPYTER_START_SH
+
+RUN chmod +x /jupyter_start.sh
+CMD ["/jupyter_start.sh"]
