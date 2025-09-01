@@ -222,7 +222,7 @@ config/*.local.yml
 human_prompts/
 reference/
 context_after*.json
-working_files/
+working_files/*
 venv12/
 resources/docs_content.md
 resources/library_search_results.json
@@ -230,7 +230,7 @@ resources/library_selection_debug.md
 resources/template_code.py
 resources/template_requirements.txt
 manual_backups/
-logging/
+logging/*
 claude_docs_archive/
 .claude
 quix-ai-sidekick-sidepanel/
