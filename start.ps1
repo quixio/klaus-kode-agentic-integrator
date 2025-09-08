@@ -17,11 +17,73 @@ Write-ColorOutput Cyan "║     Quix Coding Agent - Klaus Kode     ║"
 Write-ColorOutput Cyan "╚════════════════════════════════════════╝"
 Write-Host ""
 
+# Function to check Python version
+function Test-PythonVersion {
+    param($pythonCmd)
+    try {
+        $versionOutput = & $pythonCmd --version 2>&1
+        if ($versionOutput -match "Python (\d+)\.(\d+)\.(\d+)") {
+            $major = [int]$matches[1]
+            $minor = [int]$matches[2]
+            if ($major -eq 3 -and $minor -ge 12) {
+                return $true
+            }
+        }
+    } catch {
+        return $false
+    }
+    return $false
+}
+
+# Find suitable Python executable
+Write-ColorOutput Blue "🔍 Checking Python version..."
+$pythonCmd = $null
+
+# Check common Python commands
+$pythonCommands = @("python3.12", "python3.13", "python3.14", "python3", "python", "py")
+foreach ($cmd in $pythonCommands) {
+    $pythonExe = Get-Command $cmd -ErrorAction SilentlyContinue
+    if ($pythonExe) {
+        if (Test-PythonVersion $cmd) {
+            $pythonCmd = $cmd
+            break
+        }
+    }
+}
+
+if (-not $pythonCmd) {
+    Write-ColorOutput Red "❌ Python 3.12 or higher is required but not found!"
+    Write-ColorOutput Yellow "Current Python versions found:"
+    foreach ($cmd in @("python3", "python", "py")) {
+        $pythonExe = Get-Command $cmd -ErrorAction SilentlyContinue
+        if ($pythonExe) {
+            & $cmd --version 2>&1
+        }
+    }
+    Write-Host ""
+    Write-ColorOutput Yellow "Please install Python 3.12 or higher, or provide the path to a valid Python executable:"
+    $customPython = Read-Host "Python path (or press Enter to exit)"
+    if ([string]::IsNullOrEmpty($customPython)) {
+        Write-ColorOutput Red "Exiting..."
+        exit 1
+    }
+    if (Test-PythonVersion $customPython) {
+        $pythonCmd = $customPython
+    } else {
+        Write-ColorOutput Red "❌ The provided Python executable is not version 3.12 or higher"
+        & $customPython --version 2>&1
+        exit 1
+    }
+}
+
+$pythonVersion = & $pythonCmd --version 2>&1
+Write-ColorOutput Green "✅ Using $pythonVersion at: $(Get-Command $pythonCmd).Path"
+
 # Check if virtual environment exists
 if (-not (Test-Path ".venv")) {
     Write-ColorOutput Yellow "🔧 First-time setup detected..."
     Write-ColorOutput Green "📦 Creating virtual environment..."
-    python -m venv .venv
+    & $pythonCmd -m venv .venv
     
     # Activate virtual environment
     & .\.venv\Scripts\Activate.ps1
@@ -160,6 +222,6 @@ Write-Host "━━━━━━━━━━━━━━━━━━━━━━�
 Write-Host ""
 
 # Run the main application with any passed arguments
-python main.py $args
+& $pythonCmd main.py $args
 
 # Note: PowerShell automatically deactivates the virtual environment when the script ends

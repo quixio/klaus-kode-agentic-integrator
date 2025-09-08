@@ -17,11 +17,65 @@ echo -e "${BLUE}║     Quix Coding Agent - Klaus Kode     ║${NC}"
 echo -e "${BLUE}╚════════════════════════════════════════╝${NC}"
 echo ""
 
+# Function to check Python version
+check_python_version() {
+    local python_cmd=$1
+    if command -v "$python_cmd" &> /dev/null; then
+        local version=$($python_cmd -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')
+        local major=$(echo $version | cut -d. -f1)
+        local minor=$(echo $version | cut -d. -f2)
+        if [ "$major" -eq 3 ] && [ "$minor" -ge 12 ]; then
+            echo "$python_cmd"
+            return 0
+        fi
+    fi
+    return 1
+}
+
+# Find suitable Python executable
+echo -e "${BLUE}🔍 Checking Python version...${NC}"
+PYTHON_CMD=""
+
+# Check common Python commands
+for cmd in python3.12 python3.13 python3.14 python3 python; do
+    if check_python_version "$cmd"; then
+        PYTHON_CMD="$cmd"
+        break
+    fi
+done
+
+if [ -z "$PYTHON_CMD" ]; then
+    echo -e "${RED}❌ Python 3.12 or higher is required but not found!${NC}"
+    echo -e "${YELLOW}Current Python versions found:${NC}"
+    for cmd in python3 python; do
+        if command -v "$cmd" &> /dev/null; then
+            $cmd --version
+        fi
+    done
+    echo ""
+    echo -e "${YELLOW}Please install Python 3.12 or higher, or provide the path to a valid Python executable:${NC}"
+    read -p "Python path (or press Enter to exit): " custom_python
+    if [ -z "$custom_python" ]; then
+        echo -e "${RED}Exiting...${NC}"
+        exit 1
+    fi
+    if check_python_version "$custom_python"; then
+        PYTHON_CMD="$custom_python"
+    else
+        echo -e "${RED}❌ The provided Python executable is not version 3.12 or higher${NC}"
+        $custom_python --version 2>/dev/null || echo "Invalid Python path"
+        exit 1
+    fi
+fi
+
+PYTHON_VERSION=$($PYTHON_CMD --version 2>&1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')
+echo -e "${GREEN}✅ Using Python $PYTHON_VERSION at: $(which $PYTHON_CMD)${NC}"
+
 # Check if virtual environment exists
 if [ ! -d ".venv" ]; then
     echo -e "${YELLOW}🔧 First-time setup detected...${NC}"
     echo -e "${GREEN}📦 Creating virtual environment...${NC}"
-    python3 -m venv .venv
+    $PYTHON_CMD -m venv .venv
     
     # Activate virtual environment
     source .venv/bin/activate
@@ -151,7 +205,7 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 echo ""
 
 # Run the main application
-python main.py "$@"
+$PYTHON_CMD main.py "$@"
 
 # Deactivate virtual environment on exit
 deactivate 2>/dev/null || true

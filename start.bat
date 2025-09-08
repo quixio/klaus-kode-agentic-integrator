@@ -10,11 +10,72 @@ echo      Quix Coding Agent - Klaus Kode
 echo ============================================
 echo.
 
+REM Check Python version
+echo [CHECK] Checking Python version...
+set "PYTHON_CMD="
+set "PYTHON_FOUND=0"
+
+REM Try common Python commands
+for %%p in (python3.12 python3.13 python3.14 python3 python py) do (
+    where %%p >nul 2>&1
+    if !errorlevel! equ 0 (
+        REM Check if this Python meets version requirement
+        for /f "tokens=2" %%v in ('%%p --version 2^>^&1') do (
+            set "PY_VERSION=%%v"
+            REM Extract major and minor version
+            for /f "tokens=1,2 delims=." %%a in ("!PY_VERSION!") do (
+                set "PY_MAJOR=%%a"
+                set "PY_MINOR=%%b"
+            )
+            if !PY_MAJOR! equ 3 if !PY_MINOR! geq 12 (
+                set "PYTHON_CMD=%%p"
+                set "PYTHON_FOUND=1"
+                goto :python_found
+            )
+        )
+    )
+)
+
+:python_found
+if !PYTHON_FOUND! equ 0 (
+    echo [ERROR] Python 3.12 or higher is required but not found!
+    echo.
+    echo Current Python versions found:
+    where python >nul 2>&1 && python --version 2>&1
+    where python3 >nul 2>&1 && python3 --version 2>&1
+    where py >nul 2>&1 && py --version 2>&1
+    echo.
+    echo Please install Python 3.12 or higher, or provide the path to a valid Python executable:
+    set /p "CUSTOM_PYTHON=Python path (or press Enter to exit): "
+    if "!CUSTOM_PYTHON!"=="" (
+        echo [ERROR] Exiting...
+        exit /b 1
+    )
+    REM Check custom Python version
+    for /f "tokens=2" %%v in ('!CUSTOM_PYTHON! --version 2^>^&1') do (
+        set "PY_VERSION=%%v"
+        for /f "tokens=1,2 delims=." %%a in ("!PY_VERSION!") do (
+            set "PY_MAJOR=%%a"
+            set "PY_MINOR=%%b"
+        )
+        if !PY_MAJOR! equ 3 if !PY_MINOR! geq 12 (
+            set "PYTHON_CMD=!CUSTOM_PYTHON!"
+            set "PYTHON_FOUND=1"
+        ) else (
+            echo [ERROR] The provided Python executable is not version 3.12 or higher
+            !CUSTOM_PYTHON! --version 2>&1
+            exit /b 1
+        )
+    )
+)
+
+echo [OK] Using Python !PY_VERSION! at: !PYTHON_CMD!
+
 REM Check if virtual environment exists
 if not exist ".venv" (
     echo [SETUP] First-time setup detected...
     echo [SETUP] Creating virtual environment...
-    python -m venv .venv
+    !PYTHON_CMD! -m venv .venv
     
     REM Activate virtual environment
     call .venv\Scripts\activate.bat
@@ -145,7 +206,7 @@ echo ----------------------------------------
 echo.
 
 REM Run the main application with any passed arguments
-python main.py %*
+!PYTHON_CMD! main.py %*
 
 REM Deactivate virtual environment on exit
 call deactivate >nul 2>&1
