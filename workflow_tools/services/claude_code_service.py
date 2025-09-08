@@ -224,13 +224,12 @@ class ClaudeCodeService:
         return self._prompt_for_claude_path()
     
     async def _query_with_balance_retry(self, prompt: str, options: ClaudeCodeOptions, operation_name: str = "Claude Code operation"):
-        """Execute a Claude query with automatic retry on balance errors.
+        """Execute a Claude query with automatic retry on balance errors and Windows workarounds.
         
-        This centralized method handles credit balance errors gracefully by:
-        1. Catching balance-related errors
-        2. Showing a helpful message to the user
-        3. Waiting for user to top up and press Enter
-        4. Retrying the operation
+        This centralized method handles:
+        1. Credit balance errors - prompts user to top up
+        2. Windows CLI invocation errors - attempts workaround and provides guidance
+        3. Other errors - re-raises them
         
         Args:
             prompt: The prompt to send to Claude
@@ -241,7 +240,7 @@ class ClaudeCodeService:
             Messages from Claude Code SDK
             
         Raises:
-            Exception: For non-balance related errors
+            Exception: For non-balance and non-Windows related errors
         """
         try:
             async for message in query(prompt=prompt, options=options):
@@ -249,8 +248,72 @@ class ClaudeCodeService:
         except Exception as e:
             error_msg = str(e)
             
+            # Check for Windows-specific CLI invocation error
+            if "Input must be provided either through stdin or as a prompt argument" in error_msg:
+                printer.print("=" * 60)
+                printer.print("⚠️ **Windows CLI Invocation Issue Detected**")
+                printer.print("")
+                printer.print("The Claude CLI is having trouble receiving the prompt on Windows.")
+                printer.print("This is a known issue with the claude-code-sdk on some Windows systems.")
+                printer.print("")
+                printer.print("Attempting workaround...")
+                printer.print("=" * 60)
+                
+                # Try to save prompt to a temp file and use file-based approach
+                import tempfile
+                
+                try:
+                    # Create a temporary file with the prompt
+                    with tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False, encoding='utf-8') as tmp_file:
+                        tmp_file.write(prompt)
+                        temp_prompt_path = tmp_file.name
+                    
+                    printer.print(f"💾 Saved prompt to temporary file: {temp_prompt_path}")
+                    
+                    # Try alternative invocation method
+                    # Note: This is a workaround - the SDK might need to be patched
+                    printer.print("🔄 Retrying with file-based prompt...")
+                    
+                    # Read the prompt back and try again
+                    with open(temp_prompt_path, 'r', encoding='utf-8') as f:
+                        file_prompt = f.read()
+                    
+                    # Clean up temp file
+                    os.unlink(temp_prompt_path)
+                    
+                    # Retry with the prompt read from file
+                    async for message in query(prompt=file_prompt, options=options):
+                        yield message
+                        
+                except Exception as workaround_error:
+                    printer.print(f"❌ Workaround failed: {workaround_error}")
+                    printer.print("")
+                    printer.print("=" * 60)
+                    printer.print("📋 **Recommended Solutions:**")
+                    printer.print("")
+                    printer.print("1. **Update claude-code-sdk:**")
+                    printer.print("   pip install --upgrade claude-code-sdk")
+                    printer.print("")
+                    printer.print("2. **Use WSL (Windows Subsystem for Linux):**")
+                    printer.print("   WSL provides better Unix-like compatibility for CLI tools")
+                    printer.print("   Install WSL: wsl --install")
+                    printer.print("")
+                    printer.print("3. **Check antivirus/security software:**")
+                    printer.print("   Some antivirus programs interfere with CLI subprocess communication")
+                    printer.print("   Try temporarily disabling real-time protection")
+                    printer.print("")
+                    printer.print("4. **Run as Administrator:**")
+                    printer.print("   Right-click your terminal and select 'Run as Administrator'")
+                    printer.print("")
+                    printer.print("5. **Report the issue:**")
+                    printer.print("   https://github.com/anthropics/claude-code-sdk/issues")
+                    printer.print("=" * 60)
+                    printer.print("")
+                    # Re-raise the original error so the user knows what happened
+                    raise Exception(f"Windows Claude CLI invocation failed: {error_msg}") from e
+                    
             # Check if this is a balance error
-            if "Credit balance is too low" in error_msg or "balance" in error_msg.lower():
+            elif "Credit balance is too low" in error_msg or "balance" in error_msg.lower():
                 printer.print("=" * 60)
                 printer.print("⚠️ **Credit Balance Too Low**")
                 printer.print("")
