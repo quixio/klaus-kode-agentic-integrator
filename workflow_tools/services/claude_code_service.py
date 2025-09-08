@@ -19,8 +19,8 @@ from workflow_tools.common import printer, extract_python_code_from_llm_output
 from workflow_tools.core.config_loader import config
 
 
-def monkey_patch_claude_sdk_for_windows(cli_path: str):
-    """Monkey-patch the Claude SDK to use our configured CLI path on Windows.
+def override_claude_sdk_cli_path(cli_path: str):
+    """Override the Claude SDK's CLI path for Windows compatibility.
     
     This is necessary because the SDK doesn't properly support Windows paths
     and doesn't provide a way to override the CLI path through its public API.
@@ -31,18 +31,18 @@ def monkey_patch_claude_sdk_for_windows(cli_path: str):
         # Store the original method
         original_find_cli = subprocess_cli.SubprocessCLITransport._find_cli
         
-        # Create a patched version that returns our configured path
-        def patched_find_cli(self):
+        # Create an override that returns our configured path
+        def overridden_find_cli(self):
             """Return the configured CLI path directly."""
             return cli_path
         
         # Replace the method
-        subprocess_cli.SubprocessCLITransport._find_cli = patched_find_cli
+        subprocess_cli.SubprocessCLITransport._find_cli = overridden_find_cli
         
-        printer.print(f"🔧 Monkey-patched Claude SDK to use: {cli_path}")
+        printer.print(f"✅ Configured Claude SDK to use CLI path: {cli_path}")
         return True
     except Exception as e:
-        printer.print(f"⚠️ Failed to monkey-patch Claude SDK: {e}")
+        printer.print(f"⚠️ Failed to configure Claude SDK CLI path: {e}")
         return False
 
 
@@ -96,7 +96,7 @@ class ClaudeCodeService:
             if os.path.isfile(env_cli_path):
                 printer.print(f"✅ Using Claude CLI from environment variable: {env_cli_path}")
                 if platform.system() == "Windows":
-                    monkey_patch_claude_sdk_for_windows(env_cli_path)
+                    override_claude_sdk_cli_path(env_cli_path)
                 return env_cli_path
             elif self._verify_claude_cli(env_cli_path):
                 printer.print(f"✅ Using Claude CLI path from environment variable: {env_cli_path}")
@@ -105,7 +105,7 @@ class ClaudeCodeService:
                         claude_exe = os.path.join(env_cli_path, f"claude{ext}")
                         if os.path.exists(claude_exe):
                             printer.print(f"   Found executable: {claude_exe}")
-                            monkey_patch_claude_sdk_for_windows(claude_exe)
+                            override_claude_sdk_cli_path(claude_exe)
                             break
                 return env_cli_path
         
@@ -120,7 +120,7 @@ class ClaudeCodeService:
                         if os.path.isfile(local_cli_path):
                             printer.print(f"✅ Using Claude CLI from local config: {local_cli_path}")
                             if platform.system() == "Windows":
-                                monkey_patch_claude_sdk_for_windows(local_cli_path)
+                                override_claude_sdk_cli_path(local_cli_path)
                             return local_cli_path
                         elif self._verify_claude_cli(local_cli_path):
                             printer.print(f"✅ Using Claude CLI path from local config: {local_cli_path}")
@@ -129,7 +129,7 @@ class ClaudeCodeService:
                                     claude_exe = os.path.join(local_cli_path, f"claude{ext}")
                                     if os.path.exists(claude_exe):
                                         printer.print(f"   Found executable: {claude_exe}")
-                                        monkey_patch_claude_sdk_for_windows(claude_exe)
+                                        override_claude_sdk_cli_path(claude_exe)
                                         break
                             return local_cli_path
             except Exception:
@@ -143,7 +143,7 @@ class ClaudeCodeService:
                 printer.print(f"✅ Using configured Claude CLI executable: {configured_path}")
                 # Monkey-patch the SDK to use this exact path (necessary for Windows)
                 if platform.system() == "Windows":
-                    monkey_patch_claude_sdk_for_windows(configured_path)
+                    override_claude_sdk_cli_path(configured_path)
                 return configured_path
             # If it's a directory, verify the CLI exists there
             elif self._verify_claude_cli(configured_path):
@@ -155,7 +155,7 @@ class ClaudeCodeService:
                         claude_exe = os.path.join(configured_path, f"claude{ext}")
                         if os.path.exists(claude_exe):
                             printer.print(f"   Found executable: {claude_exe}")
-                            monkey_patch_claude_sdk_for_windows(claude_exe)
+                            override_claude_sdk_cli_path(claude_exe)
                             break
                 return configured_path
         
@@ -248,69 +248,79 @@ class ClaudeCodeService:
         except Exception as e:
             error_msg = str(e)
             
-            # Check for Windows-specific CLI invocation error
-            if "Input must be provided either through stdin or as a prompt argument" in error_msg:
+            # Check for various CLI errors and provide helpful guidance
+            # Common issues include PATH problems, version mismatches, and Windows-specific errors
+            
+            # Extract any stderr output if available
+            stderr_info = ""
+            if "stderr" in error_msg.lower() or "error output" in error_msg.lower():
+                stderr_info = error_msg
+            
+            # PATH not found error
+            if "[WinError 2]" in error_msg or "cannot find the file" in error_msg.lower():
                 printer.print("=" * 60)
-                printer.print("⚠️ **Windows CLI Invocation Issue Detected**")
+                printer.print("❌ **Claude CLI Not Found**")
                 printer.print("")
-                printer.print("The Claude CLI is having trouble receiving the prompt on Windows.")
-                printer.print("This is a known issue with the claude-code-sdk on some Windows systems.")
+                printer.print("The Claude CLI executable could not be found.")
+                printer.print("This usually means it's not installed or not in your PATH.")
                 printer.print("")
-                printer.print("Attempting workaround...")
+                printer.print("**Solutions:**")
+                printer.print("1. Install Claude Code SDK:")
+                printer.print("   npm install -g @anthropic-ai/claude-code")
+                printer.print("")
+                printer.print("2. Add to PATH if already installed")
+                printer.print("3. Restart your terminal after installation")
+                printer.print("=" * 60)
+                raise Exception(f"Claude CLI not found in PATH. {error_msg}") from e
+            
+            # Version/option mismatch error
+            elif "unknown option" in error_msg.lower() or "--max-thinking-tokens" in error_msg:
+                printer.print("=" * 60)
+                printer.print("⚠️ **Claude CLI Version Incompatibility**")
+                printer.print("")
+                printer.print("Your Claude CLI version doesn't support all the options being used.")
+                printer.print(f"Specific error: {error_msg}")
+                printer.print("")
+                printer.print("**Solutions:**")
+                printer.print("1. Update to the latest version:")
+                printer.print("   npm update -g @anthropic-ai/claude-code")
+                printer.print("")
+                printer.print("2. Or reinstall completely:")
+                printer.print("   npm uninstall -g @anthropic-ai/claude-code")
+                printer.print("   npm install -g @anthropic-ai/claude-code")
                 printer.print("=" * 60)
                 
-                # Try to save prompt to a temp file and use file-based approach
-                import tempfile
+                # Try to continue without the unsupported option
+                printer.print("")
+                printer.print("🔄 Attempting to retry without unsupported options...")
                 
-                try:
-                    # Create a temporary file with the prompt
-                    with tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False, encoding='utf-8') as tmp_file:
-                        tmp_file.write(prompt)
-                        temp_prompt_path = tmp_file.name
+                # Create modified options without thinking tokens
+                modified_options = ClaudeCodeOptions(
+                    model=options.model if hasattr(options, 'model') else None,
+                    max_tokens=options.max_tokens if hasattr(options, 'max_tokens') else None,
+                    allowed_tools=options.allowed_tools if hasattr(options, 'allowed_tools') else None,
+                    permission_mode=options.permission_mode if hasattr(options, 'permission_mode') else None,
+                    cwd=options.cwd if hasattr(options, 'cwd') else None
+                )
+                
+                # Retry without thinking tokens
+                async for message in query(prompt=prompt, options=modified_options):
+                    yield message
                     
-                    printer.print(f"💾 Saved prompt to temporary file: {temp_prompt_path}")
-                    
-                    # Try alternative invocation method
-                    # Note: This is a workaround - the SDK might need to be patched
-                    printer.print("🔄 Retrying with file-based prompt...")
-                    
-                    # Read the prompt back and try again
-                    with open(temp_prompt_path, 'r', encoding='utf-8') as f:
-                        file_prompt = f.read()
-                    
-                    # Clean up temp file
-                    os.unlink(temp_prompt_path)
-                    
-                    # Retry with the prompt read from file
-                    async for message in query(prompt=file_prompt, options=options):
-                        yield message
-                        
-                except Exception as workaround_error:
-                    printer.print(f"❌ Workaround failed: {workaround_error}")
-                    printer.print("")
-                    printer.print("=" * 60)
-                    printer.print("📋 **Recommended Solutions:**")
-                    printer.print("")
-                    printer.print("1. **Update claude-code-sdk:**")
-                    printer.print("   pip install --upgrade claude-code-sdk")
-                    printer.print("")
-                    printer.print("2. **Use WSL (Windows Subsystem for Linux):**")
-                    printer.print("   WSL provides better Unix-like compatibility for CLI tools")
-                    printer.print("   Install WSL: wsl --install")
-                    printer.print("")
-                    printer.print("3. **Check antivirus/security software:**")
-                    printer.print("   Some antivirus programs interfere with CLI subprocess communication")
-                    printer.print("   Try temporarily disabling real-time protection")
-                    printer.print("")
-                    printer.print("4. **Run as Administrator:**")
-                    printer.print("   Right-click your terminal and select 'Run as Administrator'")
-                    printer.print("")
-                    printer.print("5. **Report the issue:**")
-                    printer.print("   https://github.com/anthropics/claude-code-sdk/issues")
-                    printer.print("=" * 60)
-                    printer.print("")
-                    # Re-raise the original error so the user knows what happened
-                    raise Exception(f"Windows Claude CLI invocation failed: {error_msg}") from e
+            # Windows stdin error
+            elif "Input must be provided" in error_msg or ("exit code: 1" in error_msg.lower() and platform.system() == "Windows"):
+                printer.print("=" * 60)
+                printer.print("⚠️ **Windows CLI Communication Issue**")
+                printer.print("")
+                printer.print("The Claude CLI had trouble receiving input on Windows.")
+                printer.print("")
+                printer.print("**Solutions:**")
+                printer.print("1. Try using Windows Terminal or PowerShell instead of CMD")
+                printer.print("2. Run as Administrator")
+                printer.print("3. Use WSL (Windows Subsystem for Linux) for better compatibility")
+                printer.print("4. Check if antivirus is blocking subprocess communication")
+                printer.print("=" * 60)
+                raise Exception(f"Windows CLI communication error: {error_msg}") from e
                     
             # Check if this is a balance error
             elif "Credit balance is too low" in error_msg or "balance" in error_msg.lower():
