@@ -1,8 +1,8 @@
 """Claude Code SDK service for code generation and debugging.
 
 This service provides integration with Claude Code SDK for generating
-and debugging Quix applications, replacing the OpenAI-based code generation
-for the main application code while keeping OpenAI for workflow orchestration.
+and debugging Quix applications. All AI operations now use Anthropic's
+Claude models exclusively.
 """
 
 import os

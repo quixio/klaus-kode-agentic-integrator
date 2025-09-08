@@ -71,12 +71,11 @@ $ git clone https://github.com/quixio/klaus-kode-agentic-integrator
    
 
 ```py
-OPENAI_API_KEY=<your-openai-api-key> # "sk-proj..."
-ANTHROPIC_API_KEY=<your-anthropic-api-key> # "sk-ant-api..."
+ANTHROPIC_API_KEY=<your-anthropic-api-key> # "sk-ant-api..." - required for all AI operations
 QUIX_TOKEN=<your-quix-token> # "pat-..." 
 QUIX_BASE_URL=https://portal-api.cloud.quix.io/
 
-## OPTIONAL: If Klaus cannot autonmatically detect your Claude Code installation
+## OPTIONAL: If Klaus cannot automatically detect your Claude Code installation
 CLAUDE_CLI_PATH=/home/username/.claude/local/node_modules/.bin
 ```
 
@@ -253,7 +252,7 @@ Here's an excerpt from the sample schema analysis for the Wikipedia Change Event
 ...
 ```
 
-* **Approve Schema Analysis** Klaus Kode will show you the schema analysis and ask you if it looks OK. If you want changes, you can opt to prompt GPT to tweak its analysis and produce a new version of the document.
+* **Approve Schema Analysis** Klaus Kode will show you the schema analysis and ask you if it looks OK. If you want changes, you can opt to prompt Claude to tweak its analysis and produce a new version of the document.
 
 ---
 
@@ -308,7 +307,7 @@ Basically the same process as the first debug phase with the same options
 
 #### 8—DEPLOYMENT PHASE
 
-If Klaus Kode determines that that data is being produced correctly, it will offer to deploy it for you in Quix Cloud. You can fill out the deployment details and opt to monitor the deployment logs using AI (GPT4o or 5-mini)
+If Klaus Kode determines that that data is being produced correctly, it will offer to deploy it for you in Quix Cloud. You can fill out the deployment details and opt to monitor the deployment logs using AI (Claude 3.5 Haiku)
 
 Klaus Kode will deploy the code in a Docker container that will run continuously (Quix Cloud uses Kubernetes under the hood to run containers). 
 
@@ -392,7 +391,7 @@ Each message in the Kafka topic is a JSON object with the following high-level s
 ...
 ```
 
-* **Approve Schema Analysis** Klaus Kode will show you the schema analysis and ask you if it looks OK. If you want changes, you can opt to prompt GPT to tweak its analysis and produce a new version of the document.
+* **Approve Schema Analysis** Klaus Kode will show you the schema analysis and ask you if it looks OK. If you want changes, you can opt to prompt Claude to tweak its analysis and produce a new version of the document.
 
 ---
 
@@ -459,7 +458,7 @@ In this case, Claude will read the log analysis, fix it, upload it, run it again
 
 #### 7—DEPLOYMENT PHASE
 
-If Klaus Kode determines that that data is being produced correctly, it will offer to deploy it for you in Quix Cloud. You can fill out the deployment details and opt to monitor the deployment logs using AI (GPT4o or 5-mini)
+If Klaus Kode determines that that data is being produced correctly, it will offer to deploy it for you in Quix Cloud. You can fill out the deployment details and opt to monitor the deployment logs using AI (Claude 3.5 Haiku)
 
 Your full pipeline in Quix Cloud should now look like this:
 

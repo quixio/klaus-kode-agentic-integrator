@@ -39,7 +39,6 @@ if not exist ".env" (
         REM Create a basic .env file
         (
             echo # Required API Keys - Please fill these in
-            echo OPENAI_API_KEY=your_openai_api_key_here
             echo ANTHROPIC_API_KEY=your_anthropic_api_key_here
             echo QUIX_TOKEN=your_quix_token_here
             echo QUIX_BASE_URL=https://portal-api.cloud.quix.io
@@ -66,9 +65,6 @@ REM Check required environment variables
 echo [CHECK] Checking environment variables...
 set "MISSING_VARS="
 
-if "%OPENAI_API_KEY%"=="" set "MISSING_VARS=!MISSING_VARS! OPENAI_API_KEY"
-if "%OPENAI_API_KEY%"=="your_openai_api_key_here" set "MISSING_VARS=!MISSING_VARS! OPENAI_API_KEY"
-
 if "%ANTHROPIC_API_KEY%"=="" set "MISSING_VARS=!MISSING_VARS! ANTHROPIC_API_KEY"
 if "%ANTHROPIC_API_KEY%"=="your_anthropic_api_key_here" set "MISSING_VARS=!MISSING_VARS! ANTHROPIC_API_KEY"
 
@@ -83,7 +79,6 @@ if not "!MISSING_VARS!"=="" (
     echo    notepad .env  ^(or use your preferred editor^)
     echo.
     echo To get the required keys:
-    echo    - OpenAI API Key: https://platform.openai.com/api-keys
     echo    - Anthropic API Key: https://console.anthropic.com/account/keys
     echo    - Quix Token: https://portal.cloud.quix.io/settings/tokens
     echo.

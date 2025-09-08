@@ -74,8 +74,10 @@ def create_agent_with_model_config(agent_name: str,
     printer.print(f"🔧 Model config: provider={provider}, bypass_litellm={bypass_litellm}")
     
     if provider == "openai" and bypass_litellm:
-        # Direct OpenAI API call (e.g., for GPT-5)
-        printer.print(f"🚀 Using direct OpenAI API for {model_name}")
+        # Legacy path: Direct OpenAI API call (kept for backward compatibility)
+        # Note: This requires a real OPENAI_API_KEY which we no longer use
+        printer.print(f"⚠️ Warning: Legacy OpenAI direct API path for {model_name}")
+        printer.print(f"   Consider updating config to use provider: anthropic")
         
         # Create model settings with centralized temperature handling
         model_settings = create_model_settings(model_name, temperature)
@@ -128,15 +130,20 @@ def create_agent_with_model_config(agent_name: str,
             instructions=instructions,
         )
     else:
-        # Fallback to direct OpenAI for backward compatibility
-        printer.print(f"🔄 Fallback to direct OpenAI API for {model_name}")
+        # Fallback to Anthropic via LiteLLM for any unconfigured cases
+        printer.print(f"🔄 Fallback to Anthropic (claude-3-5-haiku-latest) for {model_name}")
         
         # Create model settings with centralized temperature handling
-        model_settings = create_model_settings(model_name, temperature)
+        model_settings = create_model_settings("claude-3-5-haiku-latest", temperature)
+        
+        api_key = os.getenv("ANTHROPIC_API_KEY")
         
         return Agent[context_type](
             name=agent_name,
-            model=model_name,
+            model=LitellmModel(
+                model="anthropic/claude-3-5-haiku-latest",
+                api_key=api_key,
+            ),
             model_settings=model_settings,
             instructions=instructions,
         )

@@ -29,39 +29,35 @@ models:
       bypass_litellm: false
   schema_analysis:
     sink:
-      provider: openai
-      model: gpt-4o
+      provider: anthropic
+      model: claude-3-5-haiku-latest
       bypass_litellm: false
     source:
-      provider: openai
-      model: gpt-4o
+      provider: anthropic
+      model: claude-3-5-haiku-latest
       bypass_litellm: false
   template_matching:
-    provider: openai
-    model: gpt-4o
+    provider: anthropic
+    model: claude-3-5-haiku-latest
     bypass_litellm: false
   debugging:
-    provider: openai
-    model: gpt-4o
-    fallback: gpt-4o
-    bypass_litellm: true
-    verbosity: high
-    reasoning: medium
+    provider: anthropic
+    model: claude-3-5-haiku-latest
+    fallback: claude-3-5-haiku-latest
+    bypass_litellm: false
   env_var_translation:
-    provider: openai
-    model: gpt-4o
+    provider: anthropic
+    model: claude-3-5-haiku-latest
     bypass_litellm: false
   tech_preparation:
-    provider: openai
-    model: gpt-4o
+    provider: anthropic
+    model: claude-3-5-haiku-latest
     bypass_litellm: false
   log_analysis:
-    provider: openai
-    model: gpt-4o
-    fallback: gpt-4o
-    bypass_litellm: true
-    verbosity: low
-    reasoning: minimal
+    provider: anthropic
+    model: claude-3-5-haiku-latest
+    fallback: claude-3-5-haiku-latest
+    bypass_litellm: false
 parameters:
   temperature:
     code_generation: 0.1
