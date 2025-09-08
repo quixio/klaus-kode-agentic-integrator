@@ -7,6 +7,7 @@ from agents import Agent, Runner, RunConfig
 from workflow_tools.common import WorkflowContext, printer, get_user_approval, get_user_approval_with_back
 from workflow_tools.exceptions import NavigationBackRequest
 from workflow_tools.phases.base.base_phase import BasePhase, PhaseResult
+from workflow_tools.services.model_utils import create_agent_with_model_config
 from workflow_tools.integrations import quix_tools
 
 class SourceSchemaPhase(BasePhase):
@@ -22,12 +23,13 @@ class SourceSchemaPhase(BasePhase):
         # Load agent instructions from external prompt file
         from workflow_tools.core.prompt_manager import load_agent_instructions
         
-        # Define schema analyzer agent with instructions from prompt file
-        self.schema_analyzer_agent = Agent[WorkflowContext](
-            name="SourceSchemaAnalyzerAgent",
-            model="gpt-4o",
+        # Define schema analyzer agent using model configuration
+        self.schema_analyzer_agent = create_agent_with_model_config(
+            agent_name="SourceSchemaAnalyzerAgent",
+            task_type="schema_analysis",
+            workflow_type="source",
             instructions=load_agent_instructions("SourceSchemaAnalyzerAgent"),
-            tools=[],
+            context_type=WorkflowContext
         )
     
     async def execute(self) -> PhaseResult:
