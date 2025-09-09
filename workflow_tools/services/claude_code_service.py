@@ -148,7 +148,7 @@ class ClaudeCodeService:
             # If it's a directory, verify the CLI exists there
             elif self._verify_claude_cli(configured_path):
                 printer.print(f"✅ Using configured Claude CLI path: {configured_path}")
-                # For directories, construct the full path and monkey-patch if on Windows
+                # For directories, construct the full path and override if on Windows
                 if platform.system() == "Windows":
                     # Find the actual executable in the directory
                     for ext in [".exe", ".cmd", ".bat", ""]:
@@ -242,11 +242,66 @@ class ClaudeCodeService:
         Raises:
             Exception: For non-balance and non-Windows related errors
         """
+        # Debug logging for Windows issue - intercept subprocess calls
+        original_popen = None
+        original_anyio_open_process = None
+        
+        if platform.system() == "Windows":
+            printer.print("🔍 DEBUG: Intercepting Claude CLI call on Windows")
+            
+            # Temporarily override subprocess and anyio to log commands
+            original_popen = subprocess.Popen
+            original_anyio_open_process = anyio.open_process
+            
+            def logged_popen(*args, **kwargs):
+                """Log subprocess calls for debugging."""
+                if args and len(args) > 0:
+                    cmd = args[0]
+                    if isinstance(cmd, list) and any('claude' in str(c).lower() for c in cmd):
+                        printer.print("📝 DEBUG: Claude CLI Command (subprocess.Popen):")
+                        # Log the command parts separately for clarity
+                        for i, part in enumerate(cmd):
+                            if len(part) > 100:
+                                printer.print(f"   [{i}]: {part[:100]}... (truncated, {len(part)} chars total)")
+                            else:
+                                printer.print(f"   [{i}]: {part}")
+                        printer.print(f"   Working dir: {kwargs.get('cwd', 'current')}")
+                return original_popen(*args, **kwargs)
+            
+            async def logged_anyio_open_process(cmd, *args, **kwargs):
+                """Log anyio subprocess calls for debugging."""
+                if isinstance(cmd, list) and any('claude' in str(c).lower() for c in cmd):
+                    printer.print("📝 DEBUG: Claude CLI Command (anyio.open_process):")
+                    # Log the command parts separately for clarity
+                    for i, part in enumerate(cmd):
+                        if len(part) > 100:
+                            printer.print(f"   [{i}]: {part[:100]}... (truncated, {len(part)} chars total)")
+                        else:
+                            printer.print(f"   [{i}]: {part}")
+                    printer.print(f"   Working dir: {kwargs.get('cwd', 'current')}")
+                    printer.print(f"   Stdin: {kwargs.get('stdin', 'not set')}")
+                return await original_anyio_open_process(cmd, *args, **kwargs)
+            
+            # Apply the overrides temporarily
+            subprocess.Popen = logged_popen
+            anyio.open_process = logged_anyio_open_process
+            
+        exception_to_handle = None
         try:
             async for message in query(prompt=prompt, options=options):
                 yield message
         except Exception as e:
-            error_msg = str(e)
+            exception_to_handle = e
+        finally:
+            # Restore original functions if we overrode them
+            if original_popen:
+                subprocess.Popen = original_popen
+            if original_anyio_open_process:
+                anyio.open_process = original_anyio_open_process
+                
+        # Handle the exception if one occurred
+        if exception_to_handle:
+            error_msg = str(exception_to_handle)
             
             # Check for various CLI errors and provide helpful guidance
             # Common issues include PATH problems, version mismatches, and Windows-specific errors
@@ -271,7 +326,7 @@ class ClaudeCodeService:
                 printer.print("2. Add to PATH if already installed")
                 printer.print("3. Restart your terminal after installation")
                 printer.print("=" * 60)
-                raise Exception(f"Claude CLI not found in PATH. {error_msg}") from e
+                raise Exception(f"Claude CLI not found in PATH. {error_msg}") from exception_to_handle
             
             # Version/option mismatch error
             elif "unknown option" in error_msg.lower() or "--max-thinking-tokens" in error_msg:
@@ -310,17 +365,47 @@ class ClaudeCodeService:
             # Windows stdin error
             elif "Input must be provided" in error_msg or ("exit code: 1" in error_msg.lower() and platform.system() == "Windows"):
                 printer.print("=" * 60)
-                printer.print("⚠️ **Windows CLI Communication Issue**")
+                printer.print("⚠️ **Windows CLI Input/Stdin Issue Detected**")
                 printer.print("")
-                printer.print("The Claude CLI had trouble receiving input on Windows.")
+                printer.print("The Claude CLI is not receiving the prompt correctly on Windows.")
+                printer.print(f"Error details: {error_msg[:500]}")  # Show more of the error for debugging
                 printer.print("")
-                printer.print("**Solutions:**")
-                printer.print("1. Try using Windows Terminal or PowerShell instead of CMD")
-                printer.print("2. Run as Administrator")
-                printer.print("3. Use WSL (Windows Subsystem for Linux) for better compatibility")
-                printer.print("4. Check if antivirus is blocking subprocess communication")
+                printer.print("This is a known Windows-specific issue where stdin doesn't work properly.")
+                printer.print("")
+                
+                # Log what we were trying to do
+                printer.print("🔍 DEBUG Information:")
+                printer.print(f"   Platform: {platform.system()} {platform.version()}")
+                printer.print(f"   Working directory: {options.cwd if hasattr(options, 'cwd') else 'default'}")
+                printer.print(f"   Prompt length: {len(prompt)} characters")
+                printer.print(f"   Prompt preview: {prompt[:100]}..." if len(prompt) > 100 else f"   Prompt: {prompt}")
+                printer.print("")
+                
+                # For now, we can't automatically fix this without modifying how the SDK calls the CLI
+                # The real fix would require either:
+                # 1. Saving the prompt to a temp file and using --prompt-file option
+                # 2. Passing the prompt as a command argument instead of stdin
+                # 3. Using a different method to invoke the CLI on Windows
+                
+                printer.print("**Unfortunately, this requires a fix in the claude-code-sdk itself.**")
+                printer.print("")
+                printer.print("**Workarounds to try:**")
+                printer.print("1. Use WSL (Windows Subsystem for Linux) - most reliable")
+                printer.print("2. Try Windows Terminal or PowerShell instead of CMD")
+                printer.print("3. Run as Administrator")
+                printer.print("4. Check if antivirus is interfering with subprocess communication")
+                printer.print("")
+                printer.print("**To help us fix this, please report:**")
+                printer.print("- Your Windows version")
+                printer.print("- Terminal type (CMD/PowerShell/Terminal)")
+                printer.print("- The full error message above")
+                printer.print("at: https://github.com/quixio/klaus-kode-agentic-integrator/issues")
                 printer.print("=" * 60)
-                raise Exception(f"Windows CLI communication error: {error_msg}") from e
+                
+                # TODO: In the future, we could override the SDK to use a temp file approach
+                # or modify how it invokes the subprocess on Windows
+                
+                raise Exception(f"Windows CLI stdin/input error: {error_msg}") from exception_to_handle
                     
             # Check if this is a balance error
             elif "Credit balance is too low" in error_msg or "balance" in error_msg.lower():
