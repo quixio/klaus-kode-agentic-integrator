@@ -165,7 +165,7 @@ fi
 # Check if QUIX_BASE_URL is missing and add it to .env if needed
 if [ -z "$QUIX_BASE_URL" ]; then
     echo -e "${YELLOW}⚠️  QUIX_BASE_URL not found. Adding default to .env...${NC}"
-    if echo "QUIX_BASE_URL=https://portal-api.cloud.quix.io" >> .env 2>/dev/null; then
+    if echo -e "\nQUIX_BASE_URL=https://portal-api.cloud.quix.io" >> .env 2>/dev/null; then
         echo -e "${GREEN}✅ Added QUIX_BASE_URL to .env${NC}"
         export QUIX_BASE_URL="https://portal-api.cloud.quix.io"
     else

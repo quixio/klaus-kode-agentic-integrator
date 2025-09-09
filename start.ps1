@@ -191,6 +191,7 @@ $quixBaseUrl = [System.Environment]::GetEnvironmentVariable("QUIX_BASE_URL", "Pr
 if ([string]::IsNullOrEmpty($quixBaseUrl)) {
     Write-ColorOutput Yellow "⚠️  QUIX_BASE_URL not found. Adding default to .env..."
     try {
+        Add-Content -Path ".env" -Value ""
         Add-Content -Path ".env" -Value "QUIX_BASE_URL=https://portal-api.cloud.quix.io"
         Write-ColorOutput Green "✅ Added QUIX_BASE_URL to .env"
         [System.Environment]::SetEnvironmentVariable("QUIX_BASE_URL", "https://portal-api.cloud.quix.io", "Process")

@@ -170,6 +170,7 @@ if "%QUIX_TOKEN%"=="your_quix_token_here" set "MISSING_VARS=!MISSING_VARS! QUIX_
 REM Check if QUIX_BASE_URL is missing and add it to .env if needed
 if "%QUIX_BASE_URL%"=="" (
     echo [WARNING] QUIX_BASE_URL not found. Adding default to .env...
+    echo. >> .env
     echo QUIX_BASE_URL=https://portal-api.cloud.quix.io >> .env 2>nul
     if !errorlevel! equ 0 (
         echo [OK] Added QUIX_BASE_URL to .env
