@@ -17,44 +17,143 @@ Write-ColorOutput Cyan "║     Quix Coding Agent - Klaus Kode     ║"
 Write-ColorOutput Cyan "╚════════════════════════════════════════╝"
 Write-Host ""
 
+# Function to check Python version
+function Test-PythonVersion {
+    param($pythonCmd)
+    try {
+        $versionOutput = & $pythonCmd --version 2>&1
+        if ($versionOutput -match "Python (\d+)\.(\d+)\.(\d+)") {
+            $major = [int]$matches[1]
+            $minor = [int]$matches[2]
+            if ($major -eq 3 -and $minor -ge 12) {
+                return $true
+            }
+        }
+    } catch {
+        return $false
+    }
+    return $false
+}
+
+# Find suitable Python executable
+Write-ColorOutput Blue "🔍 Checking Python version..."
+$pythonCmd = $null
+
+# Check common Python commands
+$pythonCommands = @("python3.12", "python3.13", "python3.14", "python3", "python", "py")
+foreach ($cmd in $pythonCommands) {
+    $pythonExe = Get-Command $cmd -ErrorAction SilentlyContinue
+    if ($pythonExe) {
+        if (Test-PythonVersion $cmd) {
+            $pythonCmd = $cmd
+            break
+        }
+    }
+}
+
+if (-not $pythonCmd) {
+    Write-ColorOutput Red "❌ Python 3.12 or higher is required but not found!"
+    Write-ColorOutput Yellow "Current Python versions found:"
+    foreach ($cmd in @("python3", "python", "py")) {
+        $pythonExe = Get-Command $cmd -ErrorAction SilentlyContinue
+        if ($pythonExe) {
+            & $cmd --version 2>&1
+        }
+    }
+    Write-Host ""
+    Write-ColorOutput Yellow "Please install Python 3.12 or higher, or provide the path to a valid Python executable:"
+    $customPython = Read-Host "Python path (or press Enter to exit)"
+    if ([string]::IsNullOrEmpty($customPython)) {
+        Write-ColorOutput Red "Exiting..."
+        exit 1
+    }
+    if (Test-PythonVersion $customPython) {
+        $pythonCmd = $customPython
+    } else {
+        Write-ColorOutput Red "❌ The provided Python executable is not version 3.12 or higher"
+        & $customPython --version 2>&1
+        exit 1
+    }
+}
+
+$pythonVersion = & $pythonCmd --version 2>&1
+$pythonPath = (Get-Command $pythonCmd -ErrorAction SilentlyContinue).Path
+if (-not $pythonPath) { $pythonPath = $pythonCmd }
+Write-ColorOutput Green "✅ Using $pythonVersion at: $pythonPath"
+
 # Check if virtual environment exists
 if (-not (Test-Path ".venv")) {
     Write-ColorOutput Yellow "🔧 First-time setup detected..."
     Write-ColorOutput Green "📦 Creating virtual environment..."
-    python -m venv .venv
+    & $pythonCmd -m venv .venv
     
     # Activate virtual environment
     & .\.venv\Scripts\Activate.ps1
     
     Write-ColorOutput Green "📥 Installing requirements..."
-    python -m pip install --upgrade pip | Out-Null
+    python -m pip install --upgrade pip
+    if ($LASTEXITCODE -ne 0) {
+        Write-ColorOutput Red "❌ Failed to upgrade pip"
+        exit 1
+    }
     pip install -r requirements.txt
+    if ($LASTEXITCODE -ne 0) {
+        Write-ColorOutput Red "❌ Failed to install requirements"
+        exit 1
+    }
     
     Write-ColorOutput Green "✅ Virtual environment created and packages installed"
 } else {
-    # Activate existing virtual environment
-    & .\.venv\Scripts\Activate.ps1
+    # Check Python version in existing virtual environment
+    Write-ColorOutput Blue "🔍 Checking existing virtual environment Python version..."
+    if (Test-Path ".venv\Scripts\python.exe") {
+        $venvVersion = & .venv\Scripts\python.exe -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')" 2>$null
+        if ($venvVersion -match "(\d+)\.(\d+)") {
+            $venvMajor = [int]$matches[1]
+            $venvMinor = [int]$matches[2]
+            
+            if ($venvMajor -ne 3 -or $venvMinor -lt 12) {
+                Write-ColorOutput Red "❌ Existing virtual environment uses Python $venvVersion"
+                Write-ColorOutput Yellow "Python 3.12+ is required. Recreating virtual environment..."
+                Remove-Item -Path ".venv" -Recurse -Force
+                & $pythonCmd -m venv .venv
+                & .\.venv\Scripts\Activate.ps1
+                Write-ColorOutput Green "📥 Installing requirements..."
+                python -m pip install --upgrade pip
+                if ($LASTEXITCODE -ne 0) {
+                    Write-ColorOutput Red "❌ Failed to upgrade pip"
+                    exit 1
+                }
+                pip install -r requirements.txt
+                if ($LASTEXITCODE -ne 0) {
+                    Write-ColorOutput Red "❌ Failed to install requirements"
+                    exit 1
+                }
+                Write-ColorOutput Green "✅ Virtual environment recreated with $pythonVersion"
+            } else {
+                Write-ColorOutput Green "✅ Existing virtual environment uses Python $venvVersion"
+                # Activate existing virtual environment
+                & .\.venv\Scripts\Activate.ps1
+            }
+        } else {
+            # Activate existing virtual environment
+            & .\.venv\Scripts\Activate.ps1
+        }
+    } else {
+        # Activate existing virtual environment
+        & .\.venv\Scripts\Activate.ps1
+    }
 }
 
 # Check for .env file
 if (-not (Test-Path ".env")) {
-    Write-ColorOutput Yellow "⚠️  No .env file found. Creating from template..."
-    if (Test-Path ".env.example") {
-        Copy-Item ".env.example" ".env"
-        Write-ColorOutput Green "✅ Created .env file from template"
-    } else {
-        # Create a basic .env file
-        @"
-# Required API Keys - Please fill these in
-ANTHROPIC_API_KEY=your_anthropic_api_key_here
-QUIX_TOKEN=your_quix_token_here
-QUIX_BASE_URL=https://portal-api.cloud.quix.io
-
-# Optional settings
-# VERBOSE_MODE=false
-"@ | Out-File -FilePath ".env" -Encoding UTF8
-        Write-ColorOutput Green "✅ Created .env template"
-    }
+    Write-ColorOutput Red "❌ No .env file found!"
+    Write-ColorOutput Yellow "Please create a .env file using .env.example as a guide:"
+    Write-ColorOutput Green "  Copy-Item .env.example .env"
+    Write-ColorOutput Yellow "Then edit the .env file and add your API keys."
+    Write-Host ""
+    Write-ColorOutput Red "Exiting..."
+    exit 1
 }
 
 # Load environment variables from .env file
@@ -82,6 +181,24 @@ if ([string]::IsNullOrEmpty($quixToken) -or $quixToken -like "*your_*") {
     $missingVars += "QUIX_TOKEN"
 }
 
+# Check if QUIX_BASE_URL is missing and add it to .env if needed
+$quixBaseUrl = [System.Environment]::GetEnvironmentVariable("QUIX_BASE_URL", "Process")
+if ([string]::IsNullOrEmpty($quixBaseUrl)) {
+    Write-ColorOutput Yellow "⚠️  QUIX_BASE_URL not found. Adding default to .env..."
+    try {
+        Add-Content -Path ".env" -Value ""
+        Add-Content -Path ".env" -Value "QUIX_BASE_URL=https://portal-api.cloud.quix.io"
+        Write-ColorOutput Green "✅ Added QUIX_BASE_URL to .env"
+        [System.Environment]::SetEnvironmentVariable("QUIX_BASE_URL", "https://portal-api.cloud.quix.io", "Process")
+    }
+    catch {
+        Write-ColorOutput Red "❌ Could not write to .env file"
+        Write-ColorOutput Yellow "Please manually add the following line to your .env file:"
+        Write-ColorOutput Green "QUIX_BASE_URL=https://portal-api.cloud.quix.io"
+        exit 1
+    }
+}
+
 if ($missingVars.Count -gt 0) {
     Write-ColorOutput Red "❌ Missing or invalid environment variables:"
     foreach ($var in $missingVars) {
@@ -95,12 +212,6 @@ if ($missingVars.Count -gt 0) {
     Write-Host "   • Anthropic API Key: https://console.anthropic.com/account/keys"
     Write-Host "   • Quix Token: https://portal.cloud.quix.io/settings/tokens"
     exit 1
-}
-
-# Set default QUIX_BASE_URL if not set
-$quixBaseUrl = [System.Environment]::GetEnvironmentVariable("QUIX_BASE_URL", "Process")
-if ([string]::IsNullOrEmpty($quixBaseUrl)) {
-    [System.Environment]::SetEnvironmentVariable("QUIX_BASE_URL", "https://portal-api.cloud.quix.io", "Process")
 }
 
 Write-ColorOutput Green "✅ All required environment variables are set"
