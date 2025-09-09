@@ -248,7 +248,7 @@ echo ----------------------------------------
 echo.
 
 REM Run the main application with any passed arguments
-!PYTHON_CMD! main.py %*
+python main.py %*
 
 REM Deactivate virtual environment on exit
 call deactivate >nul 2>&1

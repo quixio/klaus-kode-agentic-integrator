@@ -243,7 +243,7 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 echo ""
 
 # Run the main application
-$PYTHON_CMD main.py "$@"
+python main.py "$@"
 
 # Deactivate virtual environment on exit
 deactivate 2>/dev/null || true

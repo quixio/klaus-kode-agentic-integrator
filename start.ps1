@@ -269,6 +269,6 @@ Write-Host "━━━━━━━━━━━━━━━━━━━━━━�
 Write-Host ""
 
 # Run the main application with any passed arguments
-& $pythonCmd main.py $args
+python main.py $args
 
 # Note: PowerShell automatically deactivates the virtual environment when the script ends
