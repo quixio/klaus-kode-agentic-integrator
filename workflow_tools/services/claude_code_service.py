@@ -246,7 +246,11 @@ class ClaudeCodeService:
         original_popen = None
         original_anyio_open_process = None
         
-        if platform.system() == "Windows":
+        # Always log platform for debugging
+        current_platform = platform.system()
+        printer.print(f"🔍 DEBUG: Platform detected: {current_platform}")
+        
+        if current_platform == "Windows":
             printer.print("🔍 DEBUG: Intercepting Claude CLI call on Windows")
             
             # Temporarily override subprocess and anyio to log commands
