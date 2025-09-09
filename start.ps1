@@ -171,11 +171,6 @@ if (Test-Path ".env") {
 Write-ColorOutput Blue "🔍 Checking environment variables..."
 $missingVars = @()
 
-$openaiKey = [System.Environment]::GetEnvironmentVariable("OPENAI_API_KEY", "Process")
-if ([string]::IsNullOrEmpty($openaiKey) -or $openaiKey -like "*your_*") {
-    $missingVars += "OPENAI_API_KEY"
-}
-
 $anthropicKey = [System.Environment]::GetEnvironmentVariable("ANTHROPIC_API_KEY", "Process")
 if ([string]::IsNullOrEmpty($anthropicKey) -or $anthropicKey -like "*your_*") {
     $missingVars += "ANTHROPIC_API_KEY"
@@ -214,7 +209,6 @@ if ($missingVars.Count -gt 0) {
     Write-ColorOutput Yellow "   notepad .env  (or use your preferred editor)"
     Write-Host ""
     Write-ColorOutput Yellow "To get the required keys:"
-    Write-Host "   • OpenAI API Key: https://platform.openai.com/api-keys"
     Write-Host "   • Anthropic API Key: https://console.anthropic.com/account/keys"
     Write-Host "   • Quix Token: https://portal.cloud.quix.io/settings/tokens"
     exit 1

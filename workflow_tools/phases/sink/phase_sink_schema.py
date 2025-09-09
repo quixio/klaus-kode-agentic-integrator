@@ -7,6 +7,8 @@ from workflow_tools.common import WorkflowContext, printer, get_user_approval, g
 from workflow_tools.exceptions import NavigationBackRequest
 from workflow_tools.integrations import quix_tools
 from workflow_tools.phases.base.base_phase import BasePhase, PhaseResult
+from workflow_tools.services.model_utils import create_agent_with_model_config
+from workflow_tools.core.prompt_manager import load_agent_instructions
 
 class SinkSchemaPhase(BasePhase):
     """Handles schema analysis and approval."""
@@ -17,23 +19,13 @@ class SinkSchemaPhase(BasePhase):
     def __init__(self, context: WorkflowContext, debug_mode: bool = False):
         super().__init__(context, debug_mode)
         
-        # Define schema analyzer agent
-        self.schema_analyzer_agent = Agent[WorkflowContext](
-            name="SchemaAnalyzerAgent",
-            model="gpt-4o",
-            instructions=(
-                "You are an expert data analyst. Your task is to analyze a sample of messages from a Kafka topic "
-                "and describe the data structure in a clear, human-readable markdown format. "
-                "Your description should include: "
-                "- An overview of the general structure. "
-                "- A breakdown of each field, its likely data type (e.g., string, integer, float, boolean, ISO 8601 timestamp), and a brief description. "
-                "- Notes on any fields that appear to be optional or have inconsistent values. "
-                "- IMPORTANT: Pay special attention to where the actual data payload is located. Sometimes it's directly in the message, "
-                "sometimes it's nested in a 'value' field, and sometimes the 'value' field contains a JSON string that needs parsing. "
-                "Be very explicit about the message structure and how to access the actual data fields. "
-                "To be extra safe: Include a sample of one message in the schema analysis with the prefix: HERE IS A MESSAGE EXAMPLE: "
-                "Your output will be saved as documentation for the next step, so make it clear and well-structured."
-            )
+        # Define schema analyzer agent using model configuration and external prompts
+        self.schema_analyzer_agent = create_agent_with_model_config(
+            agent_name="SinkSchemaAnalyzerAgent",
+            task_type="schema_analysis",
+            workflow_type="sink",
+            instructions=load_agent_instructions("SinkSchemaAnalyzerAgent"),
+            context_type=WorkflowContext
         )
     
     async def execute(self) -> PhaseResult:

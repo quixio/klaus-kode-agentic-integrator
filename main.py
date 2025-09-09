@@ -3,10 +3,18 @@
 import os
 import sys
 import asyncio
+import logging
 from datetime import datetime
 from dotenv import load_dotenv
 from agents import RunConfig
 import argparse
+
+# Suppress LiteLLM's verbose logging about missing proxy dependencies
+# This must happen before any imports that might load LiteLLM
+logging.getLogger("LiteLLM").setLevel(logging.CRITICAL)
+logging.getLogger("litellm").setLevel(logging.CRITICAL)
+logging.getLogger("LiteLLM.litellm_logging").setLevel(logging.CRITICAL)
+logging.getLogger("litellm.litellm_logging").setLevel(logging.CRITICAL)
 
 # Import refactored components
 from workflow_tools import (
@@ -22,6 +30,16 @@ from workflow_tools import (
 )
 from workflow_tools.exceptions import NavigationBackRequest
 from workflow_tools.services.claude_code_service import ClaudeCodeService
+
+# Configure the agents SDK to not require OpenAI key
+# Since we're using Anthropic exclusively, we disable OpenAI tracing and provide a dummy key
+from agents import set_default_openai_key, set_tracing_disabled
+
+# Disable tracing completely so nothing tries to talk to OpenAI
+set_tracing_disabled(True)
+
+# Feed it a dummy key to silence any "missing key" checks inside the library
+set_default_openai_key("dummy-key-not-used", use_for_tracing=False)
 
 load_dotenv()
 
@@ -289,7 +307,7 @@ async def main():
         printer.print("=" * 80)
     
     # Check required environment variables
-    required_vars = ["OPENAI_API_KEY", "QUIX_TOKEN", "QUIX_BASE_URL", "ANTHROPIC_API_KEY"]
+    required_vars = ["ANTHROPIC_API_KEY", "QUIX_TOKEN", "QUIX_BASE_URL"]
     missing_vars = [var for var in required_vars if not os.environ.get(var)]
     
     if missing_vars:

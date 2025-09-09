@@ -150,10 +150,6 @@ fi
 echo -e "${BLUE}🔍 Checking environment variables...${NC}"
 MISSING_VARS=()
 
-if [ -z "$OPENAI_API_KEY" ] || [[ "$OPENAI_API_KEY" == *"your_"* ]]; then
-    MISSING_VARS+=("OPENAI_API_KEY")
-fi
-
 if [ -z "$ANTHROPIC_API_KEY" ] || [[ "$ANTHROPIC_API_KEY" == *"your_"* ]]; then
     MISSING_VARS+=("ANTHROPIC_API_KEY")
 fi
@@ -186,7 +182,6 @@ if [ ${#MISSING_VARS[@]} -ne 0 ]; then
     echo -e "${YELLOW}   nano .env  (or use your preferred editor)${NC}"
     echo ""
     echo -e "${YELLOW}To get the required keys:${NC}"
-    echo -e "   • OpenAI API Key: https://platform.openai.com/api-keys"
     echo -e "   • Anthropic API Key: https://console.anthropic.com/account/keys"
     echo -e "   • Quix Token: https://portal.cloud.quix.io/settings/tokens"
     exit 1
