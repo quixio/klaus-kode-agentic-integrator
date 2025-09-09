@@ -81,10 +81,18 @@ if not exist ".venv" (
     call .venv\Scripts\activate.bat
     
     echo [SETUP] Installing requirements...
-    python -m pip install --upgrade pip >nul 2>&1
+    python -m pip install --upgrade pip
+    if !errorlevel! neq 0 (
+        echo [ERROR] Failed to upgrade pip
+        exit /b 1
+    )
     pip install -r requirements.txt
+    if !errorlevel! neq 0 (
+        echo [ERROR] Failed to install requirements
+        exit /b 1
+    )
     
-    echo [SETUP] Virtual environment created and packages installed
+    echo [OK] Virtual environment created and packages installed
 ) else (
     REM Check Python version in existing virtual environment
     echo [CHECK] Checking existing virtual environment Python version...
@@ -106,8 +114,16 @@ if not exist ".venv" (
         !PYTHON_CMD! -m venv .venv
         call .venv\Scripts\activate.bat
         echo [SETUP] Installing requirements...
-        python -m pip install --upgrade pip >nul 2>&1
+        python -m pip install --upgrade pip
+        if !errorlevel! neq 0 (
+            echo [ERROR] Failed to upgrade pip
+            exit /b 1
+        )
         pip install -r requirements.txt
+        if !errorlevel! neq 0 (
+            echo [ERROR] Failed to install requirements
+            exit /b 1
+        )
         echo [OK] Virtual environment recreated with Python !PY_VERSION!
     ) else (
         echo [OK] Existing virtual environment uses Python !VENV_VERSION!

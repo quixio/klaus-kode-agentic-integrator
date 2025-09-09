@@ -91,8 +91,16 @@ if (-not (Test-Path ".venv")) {
     & .\.venv\Scripts\Activate.ps1
     
     Write-ColorOutput Green "📥 Installing requirements..."
-    python -m pip install --upgrade pip | Out-Null
+    python -m pip install --upgrade pip
+    if ($LASTEXITCODE -ne 0) {
+        Write-ColorOutput Red "❌ Failed to upgrade pip"
+        exit 1
+    }
     pip install -r requirements.txt
+    if ($LASTEXITCODE -ne 0) {
+        Write-ColorOutput Red "❌ Failed to install requirements"
+        exit 1
+    }
     
     Write-ColorOutput Green "✅ Virtual environment created and packages installed"
 } else {
@@ -111,8 +119,16 @@ if (-not (Test-Path ".venv")) {
                 & $pythonCmd -m venv .venv
                 & .\.venv\Scripts\Activate.ps1
                 Write-ColorOutput Green "📥 Installing requirements..."
-                python -m pip install --upgrade pip | Out-Null
+                python -m pip install --upgrade pip
+                if ($LASTEXITCODE -ne 0) {
+                    Write-ColorOutput Red "❌ Failed to upgrade pip"
+                    exit 1
+                }
                 pip install -r requirements.txt
+                if ($LASTEXITCODE -ne 0) {
+                    Write-ColorOutput Red "❌ Failed to install requirements"
+                    exit 1
+                }
                 Write-ColorOutput Green "✅ Virtual environment recreated with $pythonVersion"
             } else {
                 Write-ColorOutput Green "✅ Existing virtual environment uses Python $venvVersion"

@@ -81,8 +81,16 @@ if [ ! -d ".venv" ]; then
     source .venv/bin/activate
     
     echo -e "${GREEN}📥 Installing requirements...${NC}"
-    pip install --upgrade pip > /dev/null 2>&1
+    pip install --upgrade pip
+    if [ $? -ne 0 ]; then
+        echo -e "${RED}❌ Failed to upgrade pip${NC}"
+        exit 1
+    fi
     pip install -r requirements.txt
+    if [ $? -ne 0 ]; then
+        echo -e "${RED}❌ Failed to install requirements${NC}"
+        exit 1
+    fi
     
     echo -e "${GREEN}✅ Virtual environment created and packages installed${NC}"
 else
@@ -100,8 +108,16 @@ else
             $PYTHON_CMD -m venv .venv
             source .venv/bin/activate
             echo -e "${GREEN}📥 Installing requirements...${NC}"
-            pip install --upgrade pip > /dev/null 2>&1
+            pip install --upgrade pip
+            if [ $? -ne 0 ]; then
+                echo -e "${RED}❌ Failed to upgrade pip${NC}"
+                exit 1
+            fi
             pip install -r requirements.txt
+            if [ $? -ne 0 ]; then
+                echo -e "${RED}❌ Failed to install requirements${NC}"
+                exit 1
+            fi
             echo -e "${GREEN}✅ Virtual environment recreated with Python $PYTHON_VERSION${NC}"
         else
             echo -e "${GREEN}✅ Existing virtual environment uses Python $VENV_PYTHON_VERSION${NC}"
