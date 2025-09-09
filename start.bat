@@ -10,45 +10,137 @@ echo      Quix Coding Agent - Klaus Kode
 echo ============================================
 echo.
 
+REM Check Python version
+echo [CHECK] Checking Python version...
+set "PYTHON_CMD="
+set "PYTHON_FOUND=0"
+
+REM Try common Python commands
+for %%p in (python3.12 python3.13 python3.14 python3 python py) do (
+    where %%p >nul 2>&1
+    if !errorlevel! equ 0 (
+        REM Check if this Python meets version requirement
+        for /f "tokens=2" %%v in ('%%p --version 2^>^&1') do (
+            set "PY_VERSION=%%v"
+            REM Extract major and minor version
+            for /f "tokens=1,2 delims=." %%a in ("!PY_VERSION!") do (
+                set "PY_MAJOR=%%a"
+                set "PY_MINOR=%%b"
+            )
+            if !PY_MAJOR! equ 3 if !PY_MINOR! geq 12 (
+                set "PYTHON_CMD=%%p"
+                set "PYTHON_FOUND=1"
+                goto :python_found
+            )
+        )
+    )
+)
+
+:python_found
+if !PYTHON_FOUND! equ 0 (
+    echo [ERROR] Python 3.12 or higher is required but not found!
+    echo.
+    echo Current Python versions found:
+    where python >nul 2>&1 && python --version 2>&1
+    where python3 >nul 2>&1 && python3 --version 2>&1
+    where py >nul 2>&1 && py --version 2>&1
+    echo.
+    echo Please install Python 3.12 or higher, or provide the path to a valid Python executable:
+    set /p "CUSTOM_PYTHON=Python path (or press Enter to exit): "
+    if "!CUSTOM_PYTHON!"=="" (
+        echo [ERROR] Exiting...
+        exit /b 1
+    )
+    REM Check custom Python version
+    for /f "tokens=2" %%v in ('!CUSTOM_PYTHON! --version 2^>^&1') do (
+        set "PY_VERSION=%%v"
+        for /f "tokens=1,2 delims=." %%a in ("!PY_VERSION!") do (
+            set "PY_MAJOR=%%a"
+            set "PY_MINOR=%%b"
+        )
+        if !PY_MAJOR! equ 3 if !PY_MINOR! geq 12 (
+            set "PYTHON_CMD=!CUSTOM_PYTHON!"
+            set "PYTHON_FOUND=1"
+        ) else (
+            echo [ERROR] The provided Python executable is not version 3.12 or higher
+            !CUSTOM_PYTHON! --version 2>&1
+            exit /b 1
+        )
+    )
+)
+
+echo [OK] Using Python !PY_VERSION! at: !PYTHON_CMD!
+
 REM Check if virtual environment exists
 if not exist ".venv" (
     echo [SETUP] First-time setup detected...
     echo [SETUP] Creating virtual environment...
-    python -m venv .venv
+    !PYTHON_CMD! -m venv .venv
     
     REM Activate virtual environment
     call .venv\Scripts\activate.bat
     
     echo [SETUP] Installing requirements...
-    python -m pip install --upgrade pip >nul 2>&1
+    python -m pip install --upgrade pip
+    if !errorlevel! neq 0 (
+        echo [ERROR] Failed to upgrade pip
+        exit /b 1
+    )
     pip install -r requirements.txt
+    if !errorlevel! neq 0 (
+        echo [ERROR] Failed to install requirements
+        exit /b 1
+    )
     
-    echo [SETUP] Virtual environment created and packages installed
+    echo [OK] Virtual environment created and packages installed
 ) else (
-    REM Activate existing virtual environment
-    call .venv\Scripts\activate.bat
+    REM Check Python version in existing virtual environment
+    echo [CHECK] Checking existing virtual environment Python version...
+    set "VENV_VALID=1"
+    for /f "tokens=*" %%v in ('.venv\Scripts\python.exe -c "import sys; print(f\"{sys.version_info.major}.{sys.version_info.minor}\")" 2^>nul') do (
+        set "VENV_VERSION=%%v"
+        for /f "tokens=1,2 delims=." %%a in ("!VENV_VERSION!") do (
+            set "VENV_MAJOR=%%a"
+            set "VENV_MINOR=%%b"
+        )
+        if !VENV_MAJOR! neq 3 set "VENV_VALID=0"
+        if !VENV_MINOR! lss 12 set "VENV_VALID=0"
+    )
+    
+    if !VENV_VALID! equ 0 (
+        echo [ERROR] Existing virtual environment uses Python !VENV_VERSION!
+        echo [WARNING] Python 3.12+ is required. Recreating virtual environment...
+        rmdir /s /q .venv
+        !PYTHON_CMD! -m venv .venv
+        call .venv\Scripts\activate.bat
+        echo [SETUP] Installing requirements...
+        python -m pip install --upgrade pip
+        if !errorlevel! neq 0 (
+            echo [ERROR] Failed to upgrade pip
+            exit /b 1
+        )
+        pip install -r requirements.txt
+        if !errorlevel! neq 0 (
+            echo [ERROR] Failed to install requirements
+            exit /b 1
+        )
+        echo [OK] Virtual environment recreated with Python !PY_VERSION!
+    ) else (
+        echo [OK] Existing virtual environment uses Python !VENV_VERSION!
+        REM Activate existing virtual environment
+        call .venv\Scripts\activate.bat
+    )
 )
 
 REM Check for .env file
 if not exist ".env" (
-    echo [WARNING] No .env file found. Creating from template...
-    if exist ".env.example" (
-        copy .env.example .env >nul
-        echo [OK] Created .env file from template
-    ) else (
-        REM Create a basic .env file
-        (
-            echo # Required API Keys - Please fill these in
-            echo OPENAI_API_KEY=your_openai_api_key_here
-            echo ANTHROPIC_API_KEY=your_anthropic_api_key_here
-            echo QUIX_TOKEN=your_quix_token_here
-            echo QUIX_BASE_URL=https://portal-api.cloud.quix.io
-            echo.
-            echo # Optional settings
-            echo # VERBOSE_MODE=false
-        ) > .env
-        echo [OK] Created .env template
-    )
+    echo [ERROR] No .env file found!
+    echo Please create a .env file using .env.example as a guide:
+    echo    copy .env.example .env
+    echo Then edit the .env file and add your API keys.
+    echo.
+    echo [ERROR] Exiting...
+    exit /b 1
 )
 
 REM Load environment variables from .env file
@@ -75,6 +167,23 @@ if "%ANTHROPIC_API_KEY%"=="your_anthropic_api_key_here" set "MISSING_VARS=!MISSI
 if "%QUIX_TOKEN%"=="" set "MISSING_VARS=!MISSING_VARS! QUIX_TOKEN"
 if "%QUIX_TOKEN%"=="your_quix_token_here" set "MISSING_VARS=!MISSING_VARS! QUIX_TOKEN"
 
+REM Check if QUIX_BASE_URL is missing and add it to .env if needed
+if "%QUIX_BASE_URL%"=="" (
+    echo [WARNING] QUIX_BASE_URL not found. Adding default to .env...
+    echo. >> .env
+    echo QUIX_BASE_URL=https://portal-api.cloud.quix.io >> .env 2>nul
+    if !errorlevel! equ 0 (
+        echo [OK] Added QUIX_BASE_URL to .env
+        set "QUIX_BASE_URL=https://portal-api.cloud.quix.io"
+    ) else (
+        echo [ERROR] Could not write to .env file
+        echo Please manually add the following line to your .env file:
+        echo QUIX_BASE_URL=https://portal-api.cloud.quix.io
+        pause
+        exit /b 1
+    )
+)
+
 if not "!MISSING_VARS!"=="" (
     echo [ERROR] Missing or invalid environment variables:
     echo         !MISSING_VARS!
@@ -89,11 +198,6 @@ if not "!MISSING_VARS!"=="" (
     echo.
     pause
     exit /b 1
-)
-
-REM Set default QUIX_BASE_URL if not set
-if "%QUIX_BASE_URL%"=="" (
-    set "QUIX_BASE_URL=https://portal-api.cloud.quix.io"
 )
 
 echo [OK] All required environment variables are set
