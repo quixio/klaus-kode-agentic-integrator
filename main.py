@@ -3,10 +3,18 @@
 import os
 import sys
 import asyncio
+import logging
 from datetime import datetime
 from dotenv import load_dotenv
 from agents import RunConfig
 import argparse
+
+# Suppress LiteLLM's verbose logging about missing proxy dependencies
+# This must happen before any imports that might load LiteLLM
+logging.getLogger("LiteLLM").setLevel(logging.CRITICAL)
+logging.getLogger("litellm").setLevel(logging.CRITICAL)
+logging.getLogger("LiteLLM.litellm_logging").setLevel(logging.CRITICAL)
+logging.getLogger("litellm.litellm_logging").setLevel(logging.CRITICAL)
 
 # Import refactored components
 from workflow_tools import (

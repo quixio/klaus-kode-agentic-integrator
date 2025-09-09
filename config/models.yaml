@@ -55,8 +55,8 @@ models:
     bypass_litellm: false
   log_analysis:
     provider: anthropic
-    model: claude-3-5-haiku-latest
-    fallback: claude-3-5-haiku-latest
+    model: claude-sonnet-4-0
+    fallback: claude-sonnet-4-0
     bypass_litellm: false
 parameters:
   temperature:

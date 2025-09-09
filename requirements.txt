@@ -7,3 +7,4 @@ python-dotenv
 pyyaml
 requests
 anyio
+backoff
