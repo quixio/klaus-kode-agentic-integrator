@@ -92,24 +92,13 @@ fi
 
 # Check for .env file
 if [ ! -f ".env" ]; then
-    echo -e "${YELLOW}⚠️  No .env file found. Creating from template...${NC}"
-    if [ -f ".env.example" ]; then
-        cp .env.example .env
-        echo -e "${GREEN}✅ Created .env file from template${NC}"
-    else
-        # Create a basic .env file
-        cat > .env << 'EOF'
-# Required API Keys - Please fill these in
-OPENAI_API_KEY=your_openai_api_key_here
-ANTHROPIC_API_KEY=your_anthropic_api_key_here
-QUIX_TOKEN=your_quix_token_here
-QUIX_BASE_URL=https://portal-api.cloud.quix.io
-
-# Optional settings
-# VERBOSE_MODE=false
-EOF
-        echo -e "${GREEN}✅ Created .env template${NC}"
-    fi
+    echo -e "${RED}❌ No .env file found!${NC}"
+    echo -e "${YELLOW}Please create a .env file using .env.example as a guide:${NC}"
+    echo -e "${GREEN}  cp .env.example .env${NC}"
+    echo -e "${YELLOW}Then edit the .env file and add your API keys.${NC}"
+    echo ""
+    echo -e "${RED}Exiting...${NC}"
+    exit 1
 fi
 
 # Load environment variables
@@ -133,6 +122,20 @@ if [ -z "$QUIX_TOKEN" ] || [[ "$QUIX_TOKEN" == *"your_"* ]]; then
     MISSING_VARS+=("QUIX_TOKEN")
 fi
 
+# Check if QUIX_BASE_URL is missing and add it to .env if needed
+if [ -z "$QUIX_BASE_URL" ]; then
+    echo -e "${YELLOW}⚠️  QUIX_BASE_URL not found. Adding default to .env...${NC}"
+    if echo "QUIX_BASE_URL=https://portal-api.cloud.quix.io" >> .env 2>/dev/null; then
+        echo -e "${GREEN}✅ Added QUIX_BASE_URL to .env${NC}"
+        export QUIX_BASE_URL="https://portal-api.cloud.quix.io"
+    else
+        echo -e "${RED}❌ Could not write to .env file${NC}"
+        echo -e "${YELLOW}Please manually add the following line to your .env file:${NC}"
+        echo -e "${GREEN}QUIX_BASE_URL=https://portal-api.cloud.quix.io${NC}"
+        exit 1
+    fi
+fi
+
 if [ ${#MISSING_VARS[@]} -ne 0 ]; then
     echo -e "${RED}❌ Missing or invalid environment variables:${NC}"
     for var in "${MISSING_VARS[@]}"; do
@@ -147,11 +150,6 @@ if [ ${#MISSING_VARS[@]} -ne 0 ]; then
     echo -e "   • Anthropic API Key: https://console.anthropic.com/account/keys"
     echo -e "   • Quix Token: https://portal.cloud.quix.io/settings/tokens"
     exit 1
-fi
-
-# Set default QUIX_BASE_URL if not set
-if [ -z "$QUIX_BASE_URL" ]; then
-    export QUIX_BASE_URL="https://portal-api.cloud.quix.io"
 fi
 
 echo -e "${GREEN}✅ All required environment variables are set${NC}"

@@ -92,24 +92,13 @@ if not exist ".venv" (
 
 REM Check for .env file
 if not exist ".env" (
-    echo [WARNING] No .env file found. Creating from template...
-    if exist ".env.example" (
-        copy .env.example .env >nul
-        echo [OK] Created .env file from template
-    ) else (
-        REM Create a basic .env file
-        (
-            echo # Required API Keys - Please fill these in
-            echo OPENAI_API_KEY=your_openai_api_key_here
-            echo ANTHROPIC_API_KEY=your_anthropic_api_key_here
-            echo QUIX_TOKEN=your_quix_token_here
-            echo QUIX_BASE_URL=https://portal-api.cloud.quix.io
-            echo.
-            echo # Optional settings
-            echo # VERBOSE_MODE=false
-        ) > .env
-        echo [OK] Created .env template
-    )
+    echo [ERROR] No .env file found!
+    echo Please create a .env file using .env.example as a guide:
+    echo    copy .env.example .env
+    echo Then edit the .env file and add your API keys.
+    echo.
+    echo [ERROR] Exiting...
+    exit /b 1
 )
 
 REM Load environment variables from .env file
@@ -136,6 +125,22 @@ if "%ANTHROPIC_API_KEY%"=="your_anthropic_api_key_here" set "MISSING_VARS=!MISSI
 if "%QUIX_TOKEN%"=="" set "MISSING_VARS=!MISSING_VARS! QUIX_TOKEN"
 if "%QUIX_TOKEN%"=="your_quix_token_here" set "MISSING_VARS=!MISSING_VARS! QUIX_TOKEN"
 
+REM Check if QUIX_BASE_URL is missing and add it to .env if needed
+if "%QUIX_BASE_URL%"=="" (
+    echo [WARNING] QUIX_BASE_URL not found. Adding default to .env...
+    echo QUIX_BASE_URL=https://portal-api.cloud.quix.io >> .env 2>nul
+    if !errorlevel! equ 0 (
+        echo [OK] Added QUIX_BASE_URL to .env
+        set "QUIX_BASE_URL=https://portal-api.cloud.quix.io"
+    ) else (
+        echo [ERROR] Could not write to .env file
+        echo Please manually add the following line to your .env file:
+        echo QUIX_BASE_URL=https://portal-api.cloud.quix.io
+        pause
+        exit /b 1
+    )
+)
+
 if not "!MISSING_VARS!"=="" (
     echo [ERROR] Missing or invalid environment variables:
     echo         !MISSING_VARS!
@@ -150,11 +155,6 @@ if not "!MISSING_VARS!"=="" (
     echo.
     pause
     exit /b 1
-)
-
-REM Set default QUIX_BASE_URL if not set
-if "%QUIX_BASE_URL%"=="" (
-    set "QUIX_BASE_URL=https://portal-api.cloud.quix.io"
 )
 
 echo [OK] All required environment variables are set

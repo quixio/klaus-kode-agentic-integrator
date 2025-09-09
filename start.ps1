@@ -77,7 +77,9 @@ if (-not $pythonCmd) {
 }
 
 $pythonVersion = & $pythonCmd --version 2>&1
-Write-ColorOutput Green "✅ Using $pythonVersion at: $(Get-Command $pythonCmd).Path"
+$pythonPath = (Get-Command $pythonCmd -ErrorAction SilentlyContinue).Path
+if (-not $pythonPath) { $pythonPath = $pythonCmd }
+Write-ColorOutput Green "✅ Using $pythonVersion at: $pythonPath"
 
 # Check if virtual environment exists
 if (-not (Test-Path ".venv")) {
@@ -100,24 +102,13 @@ if (-not (Test-Path ".venv")) {
 
 # Check for .env file
 if (-not (Test-Path ".env")) {
-    Write-ColorOutput Yellow "⚠️  No .env file found. Creating from template..."
-    if (Test-Path ".env.example") {
-        Copy-Item ".env.example" ".env"
-        Write-ColorOutput Green "✅ Created .env file from template"
-    } else {
-        # Create a basic .env file
-        @"
-# Required API Keys - Please fill these in
-OPENAI_API_KEY=your_openai_api_key_here
-ANTHROPIC_API_KEY=your_anthropic_api_key_here
-QUIX_TOKEN=your_quix_token_here
-QUIX_BASE_URL=https://portal-api.cloud.quix.io
-
-# Optional settings
-# VERBOSE_MODE=false
-"@ | Out-File -FilePath ".env" -Encoding UTF8
-        Write-ColorOutput Green "✅ Created .env template"
-    }
+    Write-ColorOutput Red "❌ No .env file found!"
+    Write-ColorOutput Yellow "Please create a .env file using .env.example as a guide:"
+    Write-ColorOutput Green "  Copy-Item .env.example .env"
+    Write-ColorOutput Yellow "Then edit the .env file and add your API keys."
+    Write-Host ""
+    Write-ColorOutput Red "Exiting..."
+    exit 1
 }
 
 # Load environment variables from .env file
@@ -150,6 +141,23 @@ if ([string]::IsNullOrEmpty($quixToken) -or $quixToken -like "*your_*") {
     $missingVars += "QUIX_TOKEN"
 }
 
+# Check if QUIX_BASE_URL is missing and add it to .env if needed
+$quixBaseUrl = [System.Environment]::GetEnvironmentVariable("QUIX_BASE_URL", "Process")
+if ([string]::IsNullOrEmpty($quixBaseUrl)) {
+    Write-ColorOutput Yellow "⚠️  QUIX_BASE_URL not found. Adding default to .env..."
+    try {
+        Add-Content -Path ".env" -Value "QUIX_BASE_URL=https://portal-api.cloud.quix.io"
+        Write-ColorOutput Green "✅ Added QUIX_BASE_URL to .env"
+        [System.Environment]::SetEnvironmentVariable("QUIX_BASE_URL", "https://portal-api.cloud.quix.io", "Process")
+    }
+    catch {
+        Write-ColorOutput Red "❌ Could not write to .env file"
+        Write-ColorOutput Yellow "Please manually add the following line to your .env file:"
+        Write-ColorOutput Green "QUIX_BASE_URL=https://portal-api.cloud.quix.io"
+        exit 1
+    }
+}
+
 if ($missingVars.Count -gt 0) {
     Write-ColorOutput Red "❌ Missing or invalid environment variables:"
     foreach ($var in $missingVars) {
@@ -164,12 +172,6 @@ if ($missingVars.Count -gt 0) {
     Write-Host "   • Anthropic API Key: https://console.anthropic.com/account/keys"
     Write-Host "   • Quix Token: https://portal.cloud.quix.io/settings/tokens"
     exit 1
-}
-
-# Set default QUIX_BASE_URL if not set
-$quixBaseUrl = [System.Environment]::GetEnvironmentVariable("QUIX_BASE_URL", "Process")
-if ([string]::IsNullOrEmpty($quixBaseUrl)) {
-    [System.Environment]::SetEnvironmentVariable("QUIX_BASE_URL", "https://portal-api.cloud.quix.io", "Process")
 }
 
 Write-ColorOutput Green "✅ All required environment variables are set"
