@@ -125,7 +125,7 @@ CMD ["python", "main.py"]
         app_yaml_file = Path(code_dir) / "app.yaml"
         
         # Save as YAML (simplified format)
-        with open(app_yaml_file, 'w') as f:
+        with open(app_yaml_file, 'w', encoding='utf-8') as f:
             f.write("name: " + app_yaml["name"] + "\n")
             f.write("language: python\n")
             f.write("variables:\n")

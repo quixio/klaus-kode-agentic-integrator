@@ -169,12 +169,12 @@ class WorkflowContext:
     
     def save_to_file(self, filename: str = "workflow_context.json") -> None:
         """Save context to JSON file."""
-        with open(filename, 'w') as f:
+        with open(filename, 'w', encoding='utf-8') as f:
             json.dump(self.to_dict(), f, indent=2)
     
     @classmethod
     def load_from_file(cls, filename: str = "workflow_context.json") -> 'WorkflowContext':
         """Load context from JSON file."""
-        with open(filename, 'r') as f:
+        with open(filename, 'r', encoding='utf-8') as f:
             data = json.load(f)
         return cls.from_dict(data)
