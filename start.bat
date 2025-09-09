@@ -86,8 +86,34 @@ if not exist ".venv" (
     
     echo [SETUP] Virtual environment created and packages installed
 ) else (
-    REM Activate existing virtual environment
-    call .venv\Scripts\activate.bat
+    REM Check Python version in existing virtual environment
+    echo [CHECK] Checking existing virtual environment Python version...
+    set "VENV_VALID=1"
+    for /f "tokens=*" %%v in ('.venv\Scripts\python.exe -c "import sys; print(f\"{sys.version_info.major}.{sys.version_info.minor}\")" 2^>nul') do (
+        set "VENV_VERSION=%%v"
+        for /f "tokens=1,2 delims=." %%a in ("!VENV_VERSION!") do (
+            set "VENV_MAJOR=%%a"
+            set "VENV_MINOR=%%b"
+        )
+        if !VENV_MAJOR! neq 3 set "VENV_VALID=0"
+        if !VENV_MINOR! lss 12 set "VENV_VALID=0"
+    )
+    
+    if !VENV_VALID! equ 0 (
+        echo [ERROR] Existing virtual environment uses Python !VENV_VERSION!
+        echo [WARNING] Python 3.12+ is required. Recreating virtual environment...
+        rmdir /s /q .venv
+        !PYTHON_CMD! -m venv .venv
+        call .venv\Scripts\activate.bat
+        echo [SETUP] Installing requirements...
+        python -m pip install --upgrade pip >nul 2>&1
+        pip install -r requirements.txt
+        echo [OK] Virtual environment recreated with Python !PY_VERSION!
+    ) else (
+        echo [OK] Existing virtual environment uses Python !VENV_VERSION!
+        REM Activate existing virtual environment
+        call .venv\Scripts\activate.bat
+    )
 )
 
 REM Check for .env file

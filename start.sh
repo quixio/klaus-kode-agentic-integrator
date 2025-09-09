@@ -86,8 +86,32 @@ if [ ! -d ".venv" ]; then
     
     echo -e "${GREEN}✅ Virtual environment created and packages installed${NC}"
 else
-    # Activate existing virtual environment
-    source .venv/bin/activate
+    # Check Python version in existing virtual environment
+    echo -e "${BLUE}🔍 Checking existing virtual environment Python version...${NC}"
+    if [ -f ".venv/bin/python" ]; then
+        VENV_PYTHON_VERSION=$(.venv/bin/python -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")' 2>/dev/null)
+        VENV_MAJOR=$(echo $VENV_PYTHON_VERSION | cut -d. -f1)
+        VENV_MINOR=$(echo $VENV_PYTHON_VERSION | cut -d. -f2)
+        
+        if [ "$VENV_MAJOR" -ne 3 ] || [ "$VENV_MINOR" -lt 12 ]; then
+            echo -e "${RED}❌ Existing virtual environment uses Python $VENV_PYTHON_VERSION${NC}"
+            echo -e "${YELLOW}Python 3.12+ is required. Recreating virtual environment...${NC}"
+            rm -rf .venv
+            $PYTHON_CMD -m venv .venv
+            source .venv/bin/activate
+            echo -e "${GREEN}📥 Installing requirements...${NC}"
+            pip install --upgrade pip > /dev/null 2>&1
+            pip install -r requirements.txt
+            echo -e "${GREEN}✅ Virtual environment recreated with Python $PYTHON_VERSION${NC}"
+        else
+            echo -e "${GREEN}✅ Existing virtual environment uses Python $VENV_PYTHON_VERSION${NC}"
+            # Activate existing virtual environment
+            source .venv/bin/activate
+        fi
+    else
+        # Activate existing virtual environment
+        source .venv/bin/activate
+    fi
 fi
 
 # Check for .env file

@@ -96,8 +96,37 @@ if (-not (Test-Path ".venv")) {
     
     Write-ColorOutput Green "✅ Virtual environment created and packages installed"
 } else {
-    # Activate existing virtual environment
-    & .\.venv\Scripts\Activate.ps1
+    # Check Python version in existing virtual environment
+    Write-ColorOutput Blue "🔍 Checking existing virtual environment Python version..."
+    if (Test-Path ".venv\Scripts\python.exe") {
+        $venvVersion = & .venv\Scripts\python.exe -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')" 2>$null
+        if ($venvVersion -match "(\d+)\.(\d+)") {
+            $venvMajor = [int]$matches[1]
+            $venvMinor = [int]$matches[2]
+            
+            if ($venvMajor -ne 3 -or $venvMinor -lt 12) {
+                Write-ColorOutput Red "❌ Existing virtual environment uses Python $venvVersion"
+                Write-ColorOutput Yellow "Python 3.12+ is required. Recreating virtual environment..."
+                Remove-Item -Path ".venv" -Recurse -Force
+                & $pythonCmd -m venv .venv
+                & .\.venv\Scripts\Activate.ps1
+                Write-ColorOutput Green "📥 Installing requirements..."
+                python -m pip install --upgrade pip | Out-Null
+                pip install -r requirements.txt
+                Write-ColorOutput Green "✅ Virtual environment recreated with $pythonVersion"
+            } else {
+                Write-ColorOutput Green "✅ Existing virtual environment uses Python $venvVersion"
+                # Activate existing virtual environment
+                & .\.venv\Scripts\Activate.ps1
+            }
+        } else {
+            # Activate existing virtual environment
+            & .\.venv\Scripts\Activate.ps1
+        }
+    } else {
+        # Activate existing virtual environment
+        & .\.venv\Scripts\Activate.ps1
+    }
 }
 
 # Check for .env file
