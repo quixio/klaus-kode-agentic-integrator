@@ -184,7 +184,7 @@ class ConfigLoader:
             return {}
         
         try:
-            with open(file_path, 'r') as f:
+            with open(file_path, 'r', encoding='utf-8') as f:
                 return yaml.safe_load(f) or {}
         except yaml.YAMLError as e:
             print(f"Error parsing YAML file {filename}: {e}")

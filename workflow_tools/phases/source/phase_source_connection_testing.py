@@ -403,7 +403,7 @@ class SourceConnectionTestingPhase(BasePhase):
                     self.context.code_generation.connection_test_code = debug_feedback
                     # Save the fixed code to file
                     test_code_path = os.path.join(self.context.code_generation.app_extract_dir, "connection_test.py")
-                    with open(test_code_path, 'w') as file:
+                    with open(test_code_path, 'w', encoding='utf-8') as file:
                         file.write(debug_feedback)
                     # If we're in auto-debug mode, the loop will call us again
                     # Just return False to trigger the next iteration
@@ -504,7 +504,7 @@ class SourceConnectionTestingPhase(BasePhase):
                     
                     # Save the fixed code
                     test_code_path = f"{app_dir}/main.py"
-                    with open(test_code_path, 'w') as file:
+                    with open(test_code_path, 'w', encoding='utf-8') as file:
                         file.write(fixed_code)
                     printer.print(f"📝 Fixed code saved to {test_code_path}")
                     
@@ -599,7 +599,7 @@ class SourceConnectionTestingPhase(BasePhase):
                     self.context.code_generation.connection_test_code = debug_feedback
                     # Save the fixed code to file
                     test_code_path = os.path.join(self.context.code_generation.app_extract_dir, "connection_test.py")
-                    with open(test_code_path, 'w') as file:
+                    with open(test_code_path, 'w', encoding='utf-8') as file:
                         file.write(debug_feedback)
                     # If we're in auto-debug mode, the loop will call us again
                     # Just return False to trigger the next iteration
@@ -723,7 +723,7 @@ class SourceConnectionTestingPhase(BasePhase):
             # Save sample data to temp directory
             sample_data_path = WorkingDirectory.get_temp_sample_path()
             
-            with open(sample_data_path, 'w') as file:
+            with open(sample_data_path, 'w', encoding='utf-8') as file:
                 tech_name = getattr(self.context.technology, 'source_technology', None) or self.context.technology.destination_technology
                 file.write(f"Source Technology: {tech_name}\n")
                 file.write(f"Sample Data Collected: {datetime.now()}\n")

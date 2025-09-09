@@ -1100,7 +1100,7 @@ class CacheUtils:
             
             # If there's an existing main.py, back it up
             if os.path.exists(main_py_path):
-                with open(main_py_path, 'r') as f:
+                with open(main_py_path, 'r', encoding='utf-8') as f:
                     existing_main = f.read()
                 
                 if existing_main != connection_test_code:
@@ -1110,13 +1110,13 @@ class CacheUtils:
                     printer.print(f"📋 Backed up existing main.py to main_final.py.backup")
             
             # Write the connection test code as main.py for testing
-            with open(main_py_path, 'w') as f:
+            with open(main_py_path, 'w', encoding='utf-8') as f:
                 f.write(connection_test_code)
             printer.print(f"✅ Connection test code written to main.py for testing")
             
             # Also save as connection_test.py for reference
             test_code_path = os.path.join(app_dir, "connection_test.py")
-            with open(test_code_path, 'w') as f:
+            with open(test_code_path, 'w', encoding='utf-8') as f:
                 f.write(connection_test_code)
             
             return True
@@ -1147,7 +1147,7 @@ class CacheUtils:
                 import shutil
                 shutil.copy2(main_py_backup_path, main_py_path)
                 
-                with open(main_py_path, 'r') as f:
+                with open(main_py_path, 'r', encoding='utf-8') as f:
                     restored_code = f.read()
                 
                 printer.print("✅ Restored final code from backup")

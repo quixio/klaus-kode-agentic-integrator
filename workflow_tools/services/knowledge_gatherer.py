@@ -83,7 +83,7 @@ class KnowledgeGatheringService:
                         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
                         schema_file_path = WorkingDirectory.get_cached_schema_path("source", f"source_schema_{timestamp}")
                         
-                        with open(schema_file_path, 'w') as file:
+                        with open(schema_file_path, 'w', encoding='utf-8') as file:
                             file.write(cached_schema)
                         
                         # Set the schema doc path in context (required for code generation)

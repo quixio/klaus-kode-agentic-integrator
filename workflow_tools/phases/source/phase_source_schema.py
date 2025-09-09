@@ -75,7 +75,7 @@ class SourceSchemaPhase(BasePhase):
                 return False
             
             # Read sample data
-            with open(self.context.sample_data_file, 'r') as file:
+            with open(self.context.sample_data_file, 'r', encoding='utf-8') as file:
                 sample_data = file.read()
             
             # Prepare prompt for schema analysis
@@ -166,7 +166,7 @@ Focus on providing actionable insights for code generation.
             
             os.makedirs("working_files", exist_ok=True)
             
-            with open(schema_file_path, 'w') as file:
+            with open(schema_file_path, 'w', encoding='utf-8') as file:
                 file.write(schema_doc)
             
             self.context.code_generation.source_schema_doc_path = schema_file_path
@@ -267,7 +267,7 @@ Focus on providing actionable insights for code generation.
             # Read sample data again if available
             sample_data = ""
             if hasattr(self.context, 'sample_data_file') and os.path.exists(self.context.sample_data_file):
-                with open(self.context.sample_data_file, 'r') as file:
+                with open(self.context.sample_data_file, 'r', encoding='utf-8') as file:
                     sample_data = file.read()
             
             # Prepare enhanced prompt with feedback

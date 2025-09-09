@@ -113,7 +113,7 @@ class ClaudeCodeService:
         local_config_path = Path("config/local.yaml")
         if local_config_path.exists():
             try:
-                with open(local_config_path, 'r') as f:
+                with open(local_config_path, 'r', encoding='utf-8') as f:
                     local_config = yaml.safe_load(f) or {}
                     local_cli_path = local_config.get("claude_cli_path")
                     if local_cli_path:
@@ -390,7 +390,7 @@ class ClaudeCodeService:
             
             # Load existing local config or create new
             if local_config_path.exists():
-                with open(local_config_path, 'r') as f:
+                with open(local_config_path, 'r', encoding='utf-8') as f:
                     local_config = yaml.safe_load(f) or {}
             else:
                 local_config = {}
@@ -402,7 +402,7 @@ class ClaudeCodeService:
             local_config_path.parent.mkdir(parents=True, exist_ok=True)
             
             # Write local config
-            with open(local_config_path, 'w') as f:
+            with open(local_config_path, 'w', encoding='utf-8') as f:
                 yaml.dump(local_config, f, default_flow_style=False, sort_keys=False)
             
             printer.print(f"💾 Saved Claude CLI path to config/local.yaml (not in version control)")
@@ -773,14 +773,14 @@ class ClaudeCodeService:
                 from workflow_tools.core.working_directory import WorkingDirectory
                 schema_path = WorkingDirectory.get_cached_schema_path("sink", "schema_analysis")
                 try:
-                    with open(schema_path, "r") as f:
+                    with open(schema_path, "r", encoding='utf-8') as f:
                         schema_analysis = f.read()
                 except:
                     pass
         else:  # source
             if hasattr(self.context.code_generation, 'source_schema_doc_path'):
                 try:
-                    with open(self.context.code_generation.source_schema_doc_path, 'r') as f:
+                    with open(self.context.code_generation.source_schema_doc_path, 'r', encoding='utf-8') as f:
                         schema_analysis = f.read()
                 except:
                     pass
