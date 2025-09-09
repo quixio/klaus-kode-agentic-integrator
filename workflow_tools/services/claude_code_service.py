@@ -249,6 +249,13 @@ class ClaudeCodeService:
         # Always log platform for debugging
         current_platform = platform.system()
         printer.print(f"🔍 DEBUG: Platform detected: {current_platform}")
+        printer.print(f"🔍 DEBUG: Python version: {sys.version}")
+        printer.print(f"🔍 DEBUG: Prompt length: {len(prompt)} characters")
+        
+        # Check for potential Windows command line length issue
+        if current_platform == "Windows" and len(prompt) > 4000:
+            printer.print("⚠️ WARNING: Long prompt on Windows (>4000 chars) may cause issues")
+            printer.print("   Windows has command line limits that vary by shell and configuration")
         
         if current_platform == "Windows":
             printer.print("🔍 DEBUG: Intercepting Claude CLI call on Windows")
@@ -306,6 +313,11 @@ class ClaudeCodeService:
         # Handle the exception if one occurred
         if exception_to_handle:
             error_msg = str(exception_to_handle)
+            
+            # Try to extract more details from the exception
+            printer.print("🔍 DEBUG: Exception details:")
+            printer.print(f"   Exception type: {type(exception_to_handle).__name__}")
+            printer.print(f"   Exception args: {exception_to_handle.args if hasattr(exception_to_handle, 'args') else 'N/A'}")
             
             # Check for various CLI errors and provide helpful guidance
             # Common issues include PATH problems, version mismatches, and Windows-specific errors
