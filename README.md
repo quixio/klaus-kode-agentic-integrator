@@ -152,4 +152,4 @@ Here's an overview of the steps in each workflow:
 **SINK WORKFLOW**  
 ![Sink Workflow Steps](./docs/images/sink_workflow_steps.png)
 
-For more details on the full workflows, check out this [Example Workflow Walkthrough](docs/example_workflow.md). It shows you how to read from the Wikipedia "Change Event Stream" and sink the incoming page edit metadata into a Clickhouse Database (with a Kafka topic in the middle).
+For more details, check out this [End-to-end Tutorial](docs/example_workflow.md). It shows you how to read from the Wikipedia "Change Event Stream" and sink the incoming page edit metadata into a Clickhouse Database (with a Kafka topic in the middle).
