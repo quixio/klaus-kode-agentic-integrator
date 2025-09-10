@@ -120,7 +120,7 @@ QUIX_BASE_URL=https://portal-api.cloud.quix.io/
 CLAUDE_CLI_PATH=/home/username/.claude/local/node_modules/.bin
 ```
 
-3) Run the startup script, which creates a virtual environment, activates it, and installs the dependencies from `requirements.txt` (assuming Linux/Mac):
+3) Run the startup script, which creates a virtual environment, activates it, and installs the dependencies from `requirements.txt`:
 
 **Linux/Mac**
 ```shell
