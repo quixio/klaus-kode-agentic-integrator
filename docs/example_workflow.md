@@ -1,4 +1,4 @@
-# Example Scenario: Read the Wikipedia Event Stream and Sink to Clickhouse
+# End-to-end Tutorial: Subscribe to the Wikipedia Change Event Stream and Sink Metadata to Clickhouse
 
 To understand the Klaus Kode workflows better, let's look at an example scenario and break down how you would implement it in Klaus Kode.
 
