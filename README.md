@@ -1,6 +1,22 @@
-# Klaus Kode Quick Start
+# Klaus Kode — the Agentic Data Integrator
 
-If you just want to get going ASAP, here are the major steps:
+![Klaus Kode Splash Screen](./docs/images/klauskode_splashscreen.png)
+
+## What is Klaus Kode?
+Klaus Kode is a Python-based Agentic Data Integrator that helps you [vibe code](https://en.wikipedia.org/wiki/Vibe_coding) your data integrations so you can connect to more systems, faster. You run it in your terminal as a workflow wizard. 
+* It uses AI agents (primarily Claude Code) to generate connector code, run and test that code, analyze logs, as well as manage dependencies and environment variables.
+* It uses the [Quix Cloud](https://quix.io/quix-cloud) platform as a sandbox for running code in isolated containers and storing data. 
+
+## Why use Klaus Kode?
+To save time. A huge part of software and data engineering is simply about wrangling data. You need to get data out of one system and pipe it into another system, while preventing data loss. This usually requires writing custom “glue” code which is a lot of busywork. The data ecosystem is sprawling with pre-built connectors for a patchwork of different systems—some well-maintained, others barely touched. But instead of hunting down the right connector, why not get AI to help you build and test your own connectors?
+
+## Who is Klaus Kode for?
+Klaus Kode is for engineers and other technical roles who need to build data pipelines but lack the required data engineering skills. The focus is on pipelines that require _high throughput_. If you’re dealing with a very small number of events (such as emails and chat messages from a handful of users), you might be better off with [make.com](http://make.com) or [n8n.io](https://n8n.io/). 
+
+Klaus Kode is best suited for scenarios where you need to integrate high-fidelity data sources — this could be continuous telemetry streams, blockchain transaction feeds, or large static datasets that need to be ingested and processed in a distributed manner.
+
+# Klaus Kode Quick Start
+Here are the major steps:
 
 1. **Install the Claude Code CLI**: if you don't have it already  
    * **Windows** users, you must install Claude using this command:  
@@ -19,23 +35,20 @@ If you just want to get going ASAP, here are the major steps:
 
 3. **Create a `.env` file**: by copying the `.env.example` and adding your Quix PAT token and Anthropic API key.
 
-4. **Run the startup script**: `bash start.sh` (Linux/Mac) or `start.bat` (Windows)
+   ```bash
+   cp .env.example .env
+   ```
 
-5. **Follow the on-screen prompts**.
+5. **Run the startup script**: `bash start.sh` (Linux/Mac) or `start.bat` (Windows)
 
-![Klaus Kode Splash Screen](./docs/images/klauskode_splashscreen.png)
+6. **Follow the on-screen prompts**.
 
-For a more detailed explanation of what Klaus Kode is for and how to get started, see the next section: 
+For a more detailed explanation of what Klaus Kode is for and how to get started, see the following Getting Started guide: 
 
 ---
 
-# Getting Started with Klaus Kode — the Agentic Data Integrator
+# Getting Started with Klaus Kode
 
-Klaus Kode is a Python-based Agentic Data Integrator that helps you [vibe code](https://en.wikipedia.org/wiki/Vibe_coding) your data integrations so you can connect to more systems, faster. You run it in your terminal as a workflow wizard. It uses AI agents to generate connector code, run and test that code, analyze logs, as well as manage dependencies and environment variables. It uses the [Quix Cloud](https://quix.io/quix-cloud) platform as a sandbox for running code in isolated containers and storing data. 
-
-Note that Klaus Kode is designed to help build pipelines that need *high throughput*. If you’re dealing with a very small number of events (such as emails and chat messages from a handful of users), you might be better off with [make.com](http://make.com) or [n8n.io](https://n8n.io/). 
-
-Klaus Kode is best suited for scenarios where you need to integrate high-fidelity data sources — this could be continuous telemetry streams, blockchain transaction feeds, or large static datasets that need to be ingested and processed in a distributed manner.
 
 ## **Prerequisites**
 
