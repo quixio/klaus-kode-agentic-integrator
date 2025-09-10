@@ -15,7 +15,7 @@ Klaus Kode is for engineers and other technical roles who need to build data pip
 
 Klaus Kode is best suited for scenarios where you need to integrate high-fidelity data sources — this could be continuous telemetry streams, blockchain transaction feeds, or large static datasets that need to be ingested and processed in a distributed manner.
 
-# Klaus Kode Quick Start
+# Quick Start
 Here are the major steps:
 
 1. **Install the Claude Code CLI**: if you don't have it already  
