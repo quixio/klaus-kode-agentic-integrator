@@ -8,6 +8,7 @@ from enum import Enum
 from typing import Optional, Dict, Any, Tuple
 from agents import Agent, Runner
 from workflow_tools.common import WorkflowContext, printer, workflow_logger
+from workflow_tools.services.model_utils import create_agent_with_model_config
 
 class DeploymentStatus(Enum):
     """Deployment status enum based on Quix API documentation."""
@@ -51,22 +52,26 @@ class DeploymentMonitor:
     def _create_log_analysis_agent(self) -> Agent:
         """Create log analysis agent for analyzing deployment logs."""
         if self.log_analysis_agent is None:
-            self.log_analysis_agent = Agent[WorkflowContext](
-                name="LogAnalysisAgent",
-                model="o3",
-                instructions=(
-                    "You are an expert DevOps engineer and log analyst. Your task is to analyze deployment logs "
-                    "and provide clear assessments of application health and issues. "
-                    "When analyzing logs: "
-                    "1. For healthy/running applications: Provide 10 sample log lines and confirm everything looks normal "
-                    "2. For error conditions: Identify the root cause and provide specific fix recommendations "
-                    "3. Focus on common deployment issues like: connection errors, missing dependencies, "
-                    "configuration problems, resource limits, authentication failures, and runtime exceptions "
-                    "4. Always provide actionable next steps for any issues found "
-                    "Structure your response clearly with sections for Assessment, Sample Logs (if healthy), "
-                    "or Error Analysis and Recommendations (if problematic)."
-                ),
-                tools=[],
+            instructions = (
+                "You are an expert DevOps engineer and log analyst. Your task is to analyze deployment logs "
+                "and provide clear assessments of application health and issues. "
+                "When analyzing logs: "
+                "1. For healthy/running applications: Provide 10 sample log lines and confirm everything looks normal "
+                "2. For error conditions: Identify the root cause and provide specific fix recommendations "
+                "3. Focus on common deployment issues like: connection errors, missing dependencies, "
+                "configuration problems, resource limits, authentication failures, and runtime exceptions "
+                "4. Always provide actionable next steps for any issues found "
+                "Structure your response clearly with sections for Assessment, Sample Logs (if healthy), "
+                "or Error Analysis and Recommendations (if problematic)."
+            )
+            
+            # Use centralized agent creation with model configuration from models.yaml
+            self.log_analysis_agent = create_agent_with_model_config(
+                agent_name="DeploymentLogAnalysisAgent",
+                task_type="log_analysis",
+                workflow_type=None,  # log_analysis doesn't have workflow-specific configs
+                instructions=instructions,
+                context_type=WorkflowContext
             )
         return self.log_analysis_agent
     

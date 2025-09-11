@@ -56,8 +56,8 @@ class LogAnalyzer:
         Returns:
             LogAnalysisResult with success determination and reasoning
         """
-        # Create the log analyzer agent using GPT-5 for its large context window
-        # Using a more powerful model as requested in the issue
+        # Create the log analyzer agent using claude-sonnet-4-0 from models.yaml config
+        # Using Claude Sonnet for reliable log analysis
         agent = self._create_log_analyzer_agent()
         
         # Get the original generation prompt from context
@@ -111,11 +111,11 @@ class LogAnalyzer:
         # Load the agent prompt from external file
         instructions = PromptManager().load_agent_instructions("LogAnalyzerAgent")
         
-        # Use centralized agent creation with GPT-5 configuration
+        # Use centralized agent creation with model configuration from models.yaml
         return create_agent_with_model_config(
             agent_name="LogAnalyzerAgent",
             task_type="log_analysis",
-            workflow_type="both",  # Log analysis is used by both sink and source
+            workflow_type=None,  # log_analysis doesn't have workflow-specific configs
             instructions=instructions,
             context_type=WorkflowContext
         )
