@@ -35,8 +35,8 @@ class WorkflowInfo:
         WorkflowType.DIAGNOSE: {
             "name": "Diagnose and Update",
             "description": "Diagnose and update an existing application",
-            "status": "TBD",
-            "implemented": False
+            "status": "IMPLEMENTED",
+            "implemented": True
         }
     }
     

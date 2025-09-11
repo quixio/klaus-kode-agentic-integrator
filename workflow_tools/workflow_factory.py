@@ -22,6 +22,13 @@ from .phases.source.phase_source_generation import SourceGenerationPhase
 from .phases.source.phase_source_sandbox import SourceSandboxPhase
 from .phases.shared.phase_deployment import DeploymentPhase
 from .phases.shared.phase_monitoring import MonitoringPhase
+from .phases.diagnose import (
+    DiagnoseAppSelectionPhase,
+    DiagnoseAppDownloadPhase,
+    DiagnoseEditPhase,
+    DiagnoseSandboxPhase,
+    DiagnoseDeploymentSyncPhase
+)
 
 
 class WorkflowFactory:
@@ -110,6 +117,32 @@ class WorkflowFactory:
             lambda c: MonitoringPhase(
                 c.get('context'), c.get('run_config'), c.get('debug_mode')
             ), singleton=False)
+        
+        # Register diagnose workflow phases (non-singletons for proper navigation)
+        container.register('diagnose_app_selection_phase',
+            lambda c: DiagnoseAppSelectionPhase(
+                c.get('context'), c.get('run_config'), c.get('debug_mode')
+            ), singleton=False)
+        
+        container.register('diagnose_app_download_phase',
+            lambda c: DiagnoseAppDownloadPhase(
+                c.get('context'), c.get('run_config'), c.get('debug_mode')
+            ), singleton=False)
+        
+        container.register('diagnose_edit_phase',
+            lambda c: DiagnoseEditPhase(
+                c.get('context'), c.get('run_config'), c.get('debug_mode')
+            ), singleton=False)
+        
+        container.register('diagnose_sandbox_phase',
+            lambda c: DiagnoseSandboxPhase(
+                c.get('context'), c.get('debug_mode')
+            ), singleton=False)
+        
+        container.register('diagnose_deployment_sync_phase',
+            lambda c: DiagnoseDeploymentSyncPhase(
+                c.get('context'), c.get('debug_mode')
+            ), singleton=False)
     
     @staticmethod
     def create_sink_workflow(container: ServiceContainer) -> List[BasePhase]:
@@ -153,6 +186,25 @@ class WorkflowFactory:
         ]
     
     @staticmethod
+    def create_diagnose_workflow(container: ServiceContainer) -> List[BasePhase]:
+        """Create diagnose workflow phases.
+        
+        Args:
+            container: Service container with registered services
+            
+        Returns:
+            List of phases for diagnose workflow
+        """
+        return [
+            container.get('diagnose_app_selection_phase'),
+            container.get('diagnose_app_download_phase'),
+            container.get('diagnose_edit_phase'),
+            container.get('diagnose_sandbox_phase'),
+            container.get('diagnose_deployment_sync_phase'),
+            container.get('monitoring_phase')
+        ]
+    
+    @staticmethod
     def create_workflow(workflow_type: WorkflowType, container: ServiceContainer) -> List[BasePhase]:
         """Create workflow phases based on type.
         
@@ -170,6 +222,8 @@ class WorkflowFactory:
             return WorkflowFactory.create_sink_workflow(container)
         elif workflow_type == WorkflowType.SOURCE:
             return WorkflowFactory.create_source_workflow(container)
+        elif workflow_type == WorkflowType.DIAGNOSE:
+            return WorkflowFactory.create_diagnose_workflow(container)
         else:
             raise ValueError(f"Unsupported workflow type: {workflow_type}")
     
