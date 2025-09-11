@@ -3,7 +3,6 @@
 from typing import Optional
 from workflow_tools.common import WorkflowContext, printer
 from workflow_tools.workflow_types import WorkflowType, WorkflowInfo
-from workflow_tools.core.interactive_menu import InteractiveMenu
 
 class TriageAgent:
     """Agent for selecting the appropriate workflow based on user choice."""
@@ -51,24 +50,29 @@ class TriageAgent:
         header_lines.append("")
         header_content = "\n".join(header_lines)
         
-        # Create menu and get selection with the header content
-        menu = InteractiveMenu(title="Select Workflow Type", show_instructions=True, header_content=header_content)
+        from workflow_tools.core.questionary_utils import select
         
-        # Format function for display
-        def format_workflow(option):
-            return option['display']
+        # Print header content
+        printer.print(header_content)
         
-        selected, index = menu.select_option(
-            workflow_options,
-            display_formatter=format_workflow,
-            allow_back=False  # No back option at top level
-        )
+        # Create choices for questionary
+        choices = []
+        workflow_map = {}
+        for option in workflow_options:
+            choices.append({'name': option['display'], 'value': option['workflow_type']})
+            workflow_map[option['workflow_type']] = option
         
-        if selected is None:
+        # Add quit option
+        choices.append({'name': '❌ Quit', 'value': 'QUIT'})
+        
+        selected_type = select("Select Workflow Type", choices, show_border=True)
+        
+        if selected_type == 'QUIT':
             printer.print("👋 Goodbye!")
             return None
         
-        workflow_type = selected['workflow_type']
+        workflow_type = selected_type
+        selected = workflow_map[workflow_type]
         
         # Check if workflow is implemented
         if not selected['implemented']:

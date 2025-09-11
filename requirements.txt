@@ -8,3 +8,6 @@ pyyaml
 requests
 anyio
 backoff
+rich>=13.0.0
+questionary>=2.0.0
+nest-asyncio>=1.5.0

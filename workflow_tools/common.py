@@ -15,6 +15,15 @@ from datetime import datetime
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
+# Enable nested event loops to allow questionary to work in async contexts
+import nest_asyncio
+nest_asyncio.apply()
+
+# Rich imports for syntax highlighting
+from rich.console import Console
+from rich.syntax import Syntax
+from rich.panel import Panel
+
 # --- Logging Setup ---
 def setup_logging() -> logging.Logger:
     """Set up logging to both console and timestamped file."""
@@ -147,6 +156,8 @@ class WorkflowPrinter:
 
     def input(self, prompt: str) -> str:
         """Get user input and log both prompt and response."""
+        from workflow_tools.core.enhanced_input import get_enhanced_input
+        
         # Log the prompt to file only
         if self.file_handler:
             safe_prompt = self._sanitize_for_logging(prompt)
@@ -162,7 +173,7 @@ class WorkflowPrinter:
             self.file_handler.emit(prompt_record)
         
         try:
-            response = input(prompt)
+            response = get_enhanced_input(prompt=prompt)
             # Sanitize the actual response to prevent encoding issues downstream
             clean_response = response.encode('utf-8', errors='replace').decode('utf-8')
             
@@ -251,6 +262,53 @@ class WorkflowPrinter:
                 )
                 self.file_handler.emit(interrupt_record)
             raise
+    
+    def print_code(self, code: str, language: str = "python", title: Optional[str] = None, 
+                   line_numbers: bool = False, theme: str = "monokai"):
+        """Print code with syntax highlighting using Rich.
+        
+        Args:
+            code: The code to display
+            language: Programming language for syntax highlighting (default: "python")
+            title: Optional title for the code block
+            line_numbers: Whether to show line numbers (default: False)
+            theme: Color theme for syntax highlighting (default: "monokai")
+        """
+        # Create a console instance
+        console = Console()
+        
+        # Create syntax object with the code
+        syntax = Syntax(
+            code,
+            language,
+            theme=theme,
+            line_numbers=line_numbers,
+            word_wrap=True
+        )
+        
+        # If a title is provided, wrap in a panel
+        if title:
+            panel = Panel(syntax, title=title, border_style="blue")
+            console.print(panel)
+        else:
+            console.print(syntax)
+        
+        # Also log to file (without colors)
+        if self.file_handler:
+            safe_code = self._sanitize_for_logging(code)
+            log_msg = f"Code block ({language}):\n{safe_code}"
+            if title:
+                log_msg = f"{title}\n{log_msg}"
+            record = logging.LogRecord(
+                name=self.logger.name,
+                level=logging.INFO,
+                pathname="",
+                lineno=0,
+                msg=log_msg,
+                args=(),
+                exc_info=None
+            )
+            self.file_handler.emit(record)
     
     def print_verbose(self, message: str = "", end: str = "\n"):
         """Print message only in verbose mode. Always logs to file."""
@@ -439,23 +497,31 @@ def clear_screen():
     """Clear the terminal screen."""
     os.system('clear' if os.name == 'posix' else 'cls')
 
-def get_user_approval(prompt: str, clear_before: bool = False) -> bool:
+def get_user_approval(prompt: str, clear_before: bool = False, default: str = 'yes') -> bool:
     """Get user approval for an action.
+    
+    Uses questionary select for arrow key navigation.
     
     Args:
         prompt: The prompt to display to the user
         clear_before: Whether to clear screen before showing prompt
+        default: Default selection ('yes' or 'no'), defaults to 'yes' for better UX
     """
+    from workflow_tools.core.questionary_utils import select_yes_no
+    
     if clear_before:
         clear_screen()
-    while True:
-        response = printer.input(f"\nACTION REQUIRED: {prompt} [y/n]: ").lower().strip()
-        if response in ['y', 'yes']: return True
-        if response in ['n', 'no']: return False
-        printer.print("Invalid input. Please enter 'y' or 'n'.")
+    
+    # Add "ACTION REQUIRED:" prefix for consistency
+    full_prompt = f"ACTION REQUIRED: {prompt}"
+    
+    response = select_yes_no(full_prompt, default=default, show_border=True)
+    return response == 'yes'
 
 def get_user_approval_with_back(prompt: str, allow_back: bool = True, clear_before: bool = False) -> str:
     """Get user approval for an action with optional 'go back' support.
+    
+    Uses questionary select for arrow key navigation instead of text input.
     
     Args:
         prompt: The prompt to display to the user
@@ -465,32 +531,19 @@ def get_user_approval_with_back(prompt: str, allow_back: bool = True, clear_befo
     Returns:
         'yes', 'no', or 'back'
     """
+    from workflow_tools.core.questionary_utils import select_yes_no_back, select_yes_no
+    
     if clear_before:
         clear_screen()
     
-    if allow_back:
-        options = "[y/n/b (go back)]"
-        valid_yes = ['y', 'yes']
-        valid_no = ['n', 'no']
-        valid_back = ['b', 'back']
-    else:
-        options = "[y/n]"
-        valid_yes = ['y', 'yes']
-        valid_no = ['n', 'no']
-        valid_back = []
+    # Add "ACTION REQUIRED:" prefix for consistency
+    full_prompt = f"ACTION REQUIRED: {prompt}"
     
-    while True:
-        response = printer.input(f"\nACTION REQUIRED: {prompt} {options}: ").lower().strip()
-        if response in valid_yes: 
-            return 'yes'
-        if response in valid_no: 
-            return 'no'
-        if allow_back and response in valid_back:
-            return 'back'
-        if allow_back:
-            printer.print("Invalid input. Please enter 'y' for yes, 'n' for no, or 'b' to go back.")
-        else:
-            printer.print("Invalid input. Please enter 'y' or 'n'.")
+    if allow_back:
+        return select_yes_no_back(full_prompt, show_border=True)
+    else:
+        result = select_yes_no(full_prompt, show_border=True)
+        return result  # Returns 'yes' or 'no'
 
 
 async def run_agent_with_retry(agent_runner_func, max_retries: int = 3, delay_seconds: float = 2.0):
