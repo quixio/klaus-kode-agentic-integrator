@@ -45,8 +45,10 @@ class SinkSchemaPhase(BasePhase):
                 cached_schema = f.read()
             
             printer.print("\n--- Cached Schema Analysis ---")
-            printer.print(cached_schema)
-            printer.print("------------------------------")
+            printer.print_markdown(
+                cached_schema,
+                title="📊 Cached Schema Analysis"
+            )
             
             response = get_user_approval_with_back("Would you like to use this cached schema analysis instead of re-analyzing?", allow_back=True)
             if response == 'back':
@@ -136,9 +138,11 @@ class SinkSchemaPhase(BasePhase):
             return PhaseResult(success=False, message="Schema analysis timed out")
         
         schema_description = result.final_output
-        printer.print("\n--- AI Schema Analysis ---")
-        printer.print(schema_description)
-        printer.print("--------------------------")
+        # Display schema analysis with Rich markdown formatting
+        printer.print_markdown(
+            schema_description,
+            title="🤖 AI Schema Analysis"
+        )
         
         # Loop to allow retry with feedback
         retry_count = 0
@@ -207,8 +211,10 @@ class SinkSchemaPhase(BasePhase):
                         current_schema_description = result.final_output
                         
                         printer.print("\n--- Updated Schema Analysis ---")
-                        printer.print(current_schema_description)
-                        printer.print("-------------------------------")
+                        printer.print_markdown(
+                            current_schema_description,
+                            title="🔄 Updated Schema Analysis"
+                        )
                         
                         retry_count += 1
                         

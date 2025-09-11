@@ -192,8 +192,11 @@ Focus on providing actionable insights for code generation.
         
         try:
             while retry_count <= max_retries:
-                # Display the schema analysis
-                printer.print(self.context.source_schema_analysis)
+                # Display the schema analysis with Rich markdown formatting
+                printer.print_markdown(
+                    self.context.source_schema_analysis,
+                    title="📊 Schema Analysis Summary"
+                )
                 printer.print("")
                 
                 # Get user approval
@@ -323,9 +326,11 @@ Focus on addressing the user's feedback while providing actionable insights for 
                 # Update the schema analysis
                 self.context.source_schema_analysis = result.final_output
                 
-                printer.print("\n--- Updated Schema Analysis ---")
-                printer.print(self.context.source_schema_analysis)
-                printer.print("-------------------------------")
+                # Display updated schema analysis with Rich markdown formatting
+                printer.print_markdown(
+                    self.context.source_schema_analysis,
+                    title="📊 Updated Schema Analysis"
+                )
                 
                 # Recreate the documentation with updated analysis
                 return self._create_schema_documentation()

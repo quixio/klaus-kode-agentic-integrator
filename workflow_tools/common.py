@@ -311,6 +311,46 @@ class WorkflowPrinter:
             )
             self.file_handler.emit(record)
     
+    def print_markdown(self, markdown_text: str, title: Optional[str] = None):
+        """Print markdown content with Rich formatting.
+        
+        Args:
+            markdown_text: The markdown text to display
+            title: Optional title for the markdown block
+        """
+        from rich.console import Console
+        from rich.markdown import Markdown
+        from rich.panel import Panel
+        
+        console = Console()
+        
+        # Create markdown object
+        md = Markdown(markdown_text)
+        
+        # If a title is provided, wrap in a panel
+        if title:
+            panel = Panel(md, title=title, border_style="cyan", padding=(1, 2))
+            console.print(panel)
+        else:
+            console.print(md)
+        
+        # Also log to file (without colors)
+        if self.file_handler:
+            safe_text = self._sanitize_for_logging(markdown_text)
+            log_msg = f"Markdown content:\n{safe_text}"
+            if title:
+                log_msg = f"{title}\n{log_msg}"
+            record = logging.LogRecord(
+                name=self.logger.name,
+                level=logging.INFO,
+                pathname="",
+                lineno=0,
+                msg=log_msg,
+                args=(),
+                exc_info=None
+            )
+            self.file_handler.emit(record)
+    
     def print_verbose(self, message: str = "", end: str = "\n"):
         """Print message only in verbose mode. Always logs to file."""
         # Log to file regardless of verbose mode
