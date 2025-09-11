@@ -249,17 +249,20 @@ class DebugAnalyzer:
             
             printer.print("⚠️ Errors detected in the logs!")
             
-            printer.print("\nChoose debugging approach:")
+            # Use questionary for better menu selection
+            from workflow_tools.core.questionary_utils import select
             
-            printer.print("1. Let Claude Code SDK fix the error directly")
-            printer.print("2. Provide manual feedback yourself")
-            printer.print("3. Retry with manual code fix (fix directly in IDE without regeneration)")
-            printer.print("4. Continue anyway (the error is not serious or you have fixed it in the IDE)")
-            printer.print("5. Abort the workflow")
-            printer.print("6. ⬅️ Go back to previous phase")
-            printer.print(f"7. 🚀 Auto-debug (keep retrying with Claude until fixed or {max_auto_attempts} attempts)")
+            choices = [
+                {'name': '🤖 Let Claude Code SDK fix the error directly', 'value': '1'},
+                {'name': '✏️ Provide manual feedback yourself', 'value': '2'},
+                {'name': '🔧 Retry with manual code fix (fix directly in IDE)', 'value': '3'},
+                {'name': '➡️ Continue anyway (error not serious/already fixed)', 'value': '4'},
+                {'name': '❌ Abort the workflow', 'value': '5'},
+                {'name': '⬅️ Go back to previous phase', 'value': '6'},
+                {'name': f'🚀 Auto-debug (keep retrying until fixed or {max_auto_attempts} attempts)', 'value': '7'}
+            ]
             
-            choice = printer.input("Enter choice (1-7): ").strip()
+            choice = select("Choose debugging approach:", choices, show_border=True)
             
         # Process the choice
         if choice == '6':

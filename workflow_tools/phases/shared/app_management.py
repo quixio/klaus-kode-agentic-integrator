@@ -135,18 +135,17 @@ class AppManager:
             existing_app = exact_matches[0]
             printer.print(f"\n⚠️  Found existing application '{app_name}' (ID: {existing_app['applicationId']})")
             printer.print("   This application already exists in your workspace.")
-            printer.print("\n   What would you like to do?")
-            printer.print("   1) Delete the existing application and create a fresh one with the same name")
-            printer.print("   2) Keep the existing application and create a new one with a different name")
             
-            # Get user choice
-            while True:
-                choice = printer.input("\nACTION REQUIRED: Please enter your choice (1 or 2): ").strip()
-                if choice in ['1', '2']:
-                    break
-                printer.print("Invalid input. Please enter '1' or '2'.")
+            from workflow_tools.core.questionary_utils import select
             
-            delete_existing = (choice == '1')
+            choices = [
+                {'name': '🗑️  Delete the existing application and create a fresh one with the same name', 'value': 'delete'},
+                {'name': '📝 Keep the existing application and create a new one with a different name', 'value': 'keep'}
+            ]
+            
+            choice = select("What would you like to do?", choices, show_border=True)
+            
+            delete_existing = (choice == 'delete')
             
             if delete_existing:
                 printer.print(f"🗑️  Deleting existing application '{app_name}'...")
