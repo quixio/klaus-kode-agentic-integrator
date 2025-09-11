@@ -3,6 +3,10 @@
 from typing import Optional
 from workflow_tools.common import WorkflowContext, printer
 from workflow_tools.workflow_types import WorkflowType, WorkflowInfo
+from rich.console import Console
+from rich.panel import Panel
+from rich.text import Text
+from rich.align import Align
 
 class TriageAgent:
     """Agent for selecting the appropriate workflow based on user choice."""
@@ -13,6 +17,8 @@ class TriageAgent:
     
     def get_user_choice(self) -> Optional[WorkflowType]:
         """Get user's workflow choice using interactive menu."""
+        console = Console()
+        
         # Build workflow options list
         workflow_options = []
         workflows = list(WorkflowInfo.WORKFLOW_DETAILS.keys())
@@ -27,32 +33,51 @@ class TriageAgent:
                 'implemented': info['implemented']
             })
         
-        # Build header content that should be preserved on menu updates
-        header_lines = []
-        header_lines.append("\n")  # Add extra spacing at top
-        header_lines.append(" ██╗  ██╗██╗      █████╗ ██╗   ██╗███████╗    ██╗  ██╗ ██████╗ ██████╗ ███████╗")
-        header_lines.append(" ██║ ██╔╝██║     ██╔══██╗██║   ██║██╔════╝    ██║ ██╔╝██╔═══██╗██╔══██╗██╔════╝")
-        header_lines.append(" █████╔╝ ██║     ███████║██║   ██║███████╗    █████╔╝ ██║   ██║██║  ██║█████╗  ")
-        header_lines.append(" ██╔═██╗ ██║     ██╔══██║██║   ██║╚════██║    ██╔═██╗ ██║   ██║██║  ██║██╔══╝  ")
-        header_lines.append(" ██║  ██╗███████╗██║  ██║╚██████╔╝███████║    ██║  ██╗╚██████╔╝██████╔╝███████╗")
-        header_lines.append(" ╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝ ╚═════╝ ╚══════╝    ╚═╝  ╚═╝ ╚═════╝ ╚═════╝ ╚══════╝")
-        header_lines.append("")
-        header_lines.append("                    Klaus Kode—agentic data integrator")
-        header_lines.append("\n")  # Extra spacing after title
-        header_lines.append("=" * 80)
-        header_lines.append("\n")  # Extra spacing after divider
-        header_lines.append("Please choose the type of workflow you'd like to create:")
-        header_lines.append("\n")  # Add extra spacing before account info
-        header_lines.append("You need a Quix Cloud account to use this workflow.")
-        header_lines.append("If you don't have one yet, sign up for a free account here:")
-        header_lines.append("https://portal.cloud.quix.io/signup?utm_campaign=ai-data-integrator")
-        header_lines.append("\n")  # Add extra spacing before menu
-        header_content = "\n".join(header_lines)
+        # Build Klaus Kode banner
+        banner_lines = []
+        banner_lines.append("\n")  # Add extra spacing at top
+        banner_lines.append(" ██╗  ██╗██╗      █████╗ ██╗   ██╗███████╗    ██╗  ██╗ ██████╗ ██████╗ ███████╗")
+        banner_lines.append(" ██║ ██╔╝██║     ██╔══██╗██║   ██║██╔════╝    ██║ ██╔╝██╔═══██╗██╔══██╗██╔════╝")
+        banner_lines.append(" █████╔╝ ██║     ███████║██║   ██║███████╗    █████╔╝ ██║   ██║██║  ██║█████╗  ")
+        banner_lines.append(" ██╔═██╗ ██║     ██╔══██║██║   ██║╚════██║    ██╔═██╗ ██║   ██║██║  ██║██╔══╝  ")
+        banner_lines.append(" ██║  ██╗███████╗██║  ██║╚██████╔╝███████║    ██║  ██╗╚██████╔╝██████╔╝███████╗")
+        banner_lines.append(" ╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝ ╚═════╝ ╚══════╝    ╚═╝  ╚═╝ ╚═════╝ ╚═════╝ ╚══════╝")
+        banner_lines.append("")
+        banner_lines.append("                    Klaus Kode—agentic data integrator")
+        banner_content = "\n".join(banner_lines)
+        
+        # Print the banner first
+        printer.print(banner_content)
+        printer.print("\n" + "=" * 80 + "\n")
+        
+        # Build the info content
+        info_lines = []
+        info_lines.append("Please choose the type of workflow you'd like to create:")
+        info_lines.append("")
+        info_lines.append("You need a Quix Cloud account to use this workflow.")
+        info_lines.append("If you don't have one yet, sign up for a free account here:")
+        info_lines.append("https://portal.cloud.quix.io/signup?utm_campaign=ai-data-integrator")
+        info_content = "\n".join(info_lines)
+        
+        # Create a Rich panel for the information
+        info_panel = Panel(
+            Text(info_content, justify="center"),
+            border_style="cyan",
+            padding=(1, 2),
+            expand=False
+        )
+        
+        # Print the info panel
+        console.print(info_panel)
+        console.print("")  # Add spacing
+        
+        # Print a horizontal divider before the menu
+        console.rule("[bold cyan]Workflow Selection[/bold cyan]", style="cyan")
+        console.print("")
+        console.print("[dim cyan]Use ↑↓ arrow keys to navigate, Enter to select[/dim cyan]", justify="center")
+        console.print("")
         
         from workflow_tools.core.questionary_utils import select
-        
-        # Print header content
-        printer.print(header_content)
         
         # Create choices for questionary with newlines for spacing
         choices = []
@@ -66,7 +91,8 @@ class TriageAgent:
         # Add quit option with newline spacing
         choices.append({'name': '❌ Quit\n', 'value': 'QUIT'})
         
-        selected_type = select("Select Workflow Type", choices, show_border=True)
+        # Show the menu without any prompt text
+        selected_type = select("", choices, show_border=False)
         
         if selected_type == 'QUIT':
             printer.print("👋 Goodbye!")

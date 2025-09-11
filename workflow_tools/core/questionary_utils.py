@@ -53,6 +53,14 @@ def show_bordered_prompt(prompt_text: str) -> None:
         )
         console.print(prompt_panel)
 
+def show_menu_border_top():
+    """Display the top part of a menu border."""
+    console.print("╭" + "─" * 78 + "╮", style="cyan")
+
+def show_menu_border_bottom():
+    """Display the bottom part of a menu border."""
+    console.print("╰" + "─" * 78 + "╯", style="cyan")
+
 
 # === ASYNC VERSIONS (for use in async contexts) ===
 
