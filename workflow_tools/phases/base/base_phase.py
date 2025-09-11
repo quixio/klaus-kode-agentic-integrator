@@ -6,10 +6,11 @@ from dataclasses import dataclass
 import time
 import traceback
 
-from workflow_tools.common import printer
+from workflow_tools.common import printer, get_enhanced_input
 from workflow_tools.contexts import WorkflowContext
 from workflow_tools.core.config_loader import config
 from workflow_tools.exceptions import NavigationBackRequest
+from workflow_tools.core.questionary_utils import select_yes_no
 
 
 @dataclass
@@ -206,7 +207,7 @@ class BasePhase(ABC):
             else:
                 full_prompt = f"{prompt}: "
             
-            user_input = input(full_prompt).strip()
+            user_input = get_enhanced_input(full_prompt).strip()
             
             # Use default if no input
             if not user_input and default:
@@ -239,21 +240,7 @@ class BasePhase(ABC):
         Returns:
             True for yes, False for no
         """
-        default_str = "Y/n" if default else "y/N"
-        prompt = f"{message} [{default_str}]: "
-        
-        while True:
-            response = input(prompt).strip().lower()
-            
-            if not response:
-                return default
-            
-            if response in ('y', 'yes', '1', 'true'):
-                return True
-            elif response in ('n', 'no', '0', 'false'):
-                return False
-            else:
-                printer.print("Please enter 'y' for yes or 'n' for no.")
+        return select_yes_no(message, default=default)
     
     def _get_duration(self) -> float:
         """Get the duration since phase started.
