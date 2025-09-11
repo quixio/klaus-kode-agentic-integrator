@@ -7,6 +7,7 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.text import Text
 from rich.align import Align
+from rich.rule import Rule
 
 class TriageAgent:
     """Agent for selecting the appropriate workflow based on user choice."""
@@ -17,7 +18,9 @@ class TriageAgent:
     
     def get_user_choice(self) -> Optional[WorkflowType]:
         """Get user's workflow choice using interactive menu."""
-        console = Console()
+        # Set a fixed width for consistent display
+        panel_width = 74
+        console = Console(width=panel_width)
         
         # Build workflow options list
         workflow_options = []
@@ -46,7 +49,7 @@ class TriageAgent:
         banner_lines.append("                    Klaus Kode—agentic data integrator")
         banner_content = "\n".join(banner_lines)
         
-        # Print the banner first
+        # Print the banner first (using regular printer for full width)
         printer.print(banner_content)
         printer.print("\n" + "=" * 80 + "\n")
         
@@ -67,11 +70,11 @@ class TriageAgent:
             expand=False
         )
         
-        # Print the info panel
+        # Print the info panel using the width-constrained console
         console.print(info_panel)
         console.print("")  # Add spacing
         
-        # Print a horizontal divider before the menu
+        # Print a horizontal divider with the same width as the panel
         console.rule("[bold cyan]Workflow Selection[/bold cyan]", style="cyan")
         console.print("")
         console.print("[dim cyan]Use ↑↓ arrow keys to navigate, Enter to select[/dim cyan]", justify="center")
