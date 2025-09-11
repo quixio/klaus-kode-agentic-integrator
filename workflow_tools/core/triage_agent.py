@@ -29,7 +29,7 @@ class TriageAgent:
         
         # Build header content that should be preserved on menu updates
         header_lines = []
-        header_lines.append("")
+        header_lines.append("\n")  # Add extra spacing at top
         header_lines.append(" ██╗  ██╗██╗      █████╗ ██╗   ██╗███████╗    ██╗  ██╗ ██████╗ ██████╗ ███████╗")
         header_lines.append(" ██║ ██╔╝██║     ██╔══██╗██║   ██║██╔════╝    ██║ ██╔╝██╔═══██╗██╔══██╗██╔════╝")
         header_lines.append(" █████╔╝ ██║     ███████║██║   ██║███████╗    █████╔╝ ██║   ██║██║  ██║█████╗  ")
@@ -38,16 +38,15 @@ class TriageAgent:
         header_lines.append(" ╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝ ╚═════╝ ╚══════╝    ╚═╝  ╚═╝ ╚═════╝ ╚═════╝ ╚══════╝")
         header_lines.append("")
         header_lines.append("                    Klaus Kode—agentic data integrator")
-        header_lines.append("")
+        header_lines.append("\n")  # Extra spacing after title
         header_lines.append("=" * 80)
-        header_lines.append("")
+        header_lines.append("\n")  # Extra spacing after divider
         header_lines.append("Please choose the type of workflow you'd like to create:")
-        header_lines.append("")
-        header_lines.append("")
+        header_lines.append("\n")  # Add extra spacing before account info
         header_lines.append("You need a Quix Cloud account to use this workflow.")
         header_lines.append("If you don't have one yet, sign up for a free account here:")
         header_lines.append("https://portal.cloud.quix.io/signup?utm_campaign=ai-data-integrator")
-        header_lines.append("")
+        header_lines.append("\n")  # Add extra spacing before menu
         header_content = "\n".join(header_lines)
         
         from workflow_tools.core.questionary_utils import select
@@ -55,15 +54,17 @@ class TriageAgent:
         # Print header content
         printer.print(header_content)
         
-        # Create choices for questionary
+        # Create choices for questionary with newlines for spacing
         choices = []
         workflow_map = {}
         for option in workflow_options:
-            choices.append({'name': option['display'], 'value': option['workflow_type']})
+            # Add newline at the end of each option for vertical spacing
+            display_with_spacing = option['display'] + '\n'
+            choices.append({'name': display_with_spacing, 'value': option['workflow_type']})
             workflow_map[option['workflow_type']] = option
         
-        # Add quit option
-        choices.append({'name': '❌ Quit', 'value': 'QUIT'})
+        # Add quit option with newline spacing
+        choices.append({'name': '❌ Quit\n', 'value': 'QUIT'})
         
         selected_type = select("Select Workflow Type", choices, show_border=True)
         

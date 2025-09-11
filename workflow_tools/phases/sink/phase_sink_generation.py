@@ -20,7 +20,8 @@ class SinkGenerationPhase(BasePhase):
     
     async def execute(self) -> PhaseResult:
         """Generates code using Claude Code SDK with centralized caching."""
-        printer.print("\n--- Phase: Sink Code Generation ---")
+        # Phase header is already shown by base_phase
+        # No need for additional header here
         
         # Initialize cache utils
         from workflow_tools.phases.shared.cache_utils import CacheUtils

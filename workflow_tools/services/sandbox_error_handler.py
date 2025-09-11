@@ -193,8 +193,7 @@ class SandboxErrorHandler:
             has_error: Whether an error was detected
             max_chars: Maximum characters to display
         """
-        printer.print("\n--- Execution Logs ---")
-        printer.print("=" * 50)
+        printer.print_section_header("Execution Logs", icon="📝", style="yellow")
         
         # Always show the last N characters (more relevant for debugging)
         if len(logs) > max_chars:
@@ -202,8 +201,8 @@ class SandboxErrorHandler:
             printer.print(logs[-max_chars:])
         else:
             printer.print(logs)
-            
-        printer.print("=" * 50)
+        
+        printer.print_divider()
     
     @staticmethod
     def get_error_handling_choice(is_timeout_error: bool) -> str:

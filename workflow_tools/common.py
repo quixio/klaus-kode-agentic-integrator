@@ -19,10 +19,15 @@ from typing import Any, Dict, List, Optional
 import nest_asyncio
 nest_asyncio.apply()
 
-# Rich imports for syntax highlighting
+# Rich imports for syntax highlighting and formatting
 from rich.console import Console
 from rich.syntax import Syntax
 from rich.panel import Panel
+from rich.table import Table
+from rich.text import Text
+from rich.align import Align
+from rich.rule import Rule
+from rich.markdown import Markdown
 
 # --- Logging Setup ---
 def setup_logging() -> logging.Logger:
@@ -318,10 +323,6 @@ class WorkflowPrinter:
             markdown_text: The markdown text to display
             title: Optional title for the markdown block
         """
-        from rich.console import Console
-        from rich.markdown import Markdown
-        from rich.panel import Panel
-        
         console = Console()
         
         # Create markdown object
@@ -385,6 +386,248 @@ class WorkflowPrinter:
                 pathname="",
                 lineno=0,
                 msg=safe_message,
+                args=(),
+                exc_info=None
+            )
+            self.file_handler.emit(record)
+    
+    def print_cache_panel(self, title: str, cache_file: str, content_dict: dict, 
+                         border_style: str = "cyan", title_style: str = "bold cyan"):
+        """Print a beautiful cache panel using Rich.
+        
+        Args:
+            title: Title for the cache panel (e.g., "Cached Sink Prerequisites")
+            cache_file: Path to the cache file
+            content_dict: Dictionary of key-value pairs to display
+            border_style: Rich style for the panel border
+            title_style: Rich style for the title
+        """
+        console = Console()
+        
+        # Create a table for the cache content
+        table = Table(show_header=False, box=None, padding=(0, 1))
+        table.add_column("Key", style="bold yellow", no_wrap=True)
+        table.add_column("Value", style="white")
+        
+        # Add cache file path as first row
+        table.add_row("📁 Cache File", cache_file)
+        table.add_row("", "")  # Empty row for spacing
+        
+        # Add all content items
+        for key, value in content_dict.items():
+            # Format the key nicely
+            formatted_key = key.replace('_', ' ').title()
+            table.add_row(f"▸ {formatted_key}", str(value))
+        
+        # Create the panel with the table
+        panel = Panel(
+            table,
+            title=f"✨ {title} ✨",
+            border_style=border_style,
+            padding=(1, 2),
+            expand=False
+        )
+        
+        console.print(panel)
+        
+        # Also log to file (without colors)
+        if self.file_handler:
+            log_lines = [f"--- {title} ---", f"Cache file: {cache_file}"]
+            for key, value in content_dict.items():
+                log_lines.append(f"{key}: {value}")
+            log_lines.append("---")
+            
+            safe_text = self._sanitize_for_logging('\n'.join(log_lines))
+            record = logging.LogRecord(
+                name=self.logger.name,
+                level=logging.INFO,
+                pathname="",
+                lineno=0,
+                msg=safe_text,
+                args=(),
+                exc_info=None
+            )
+            self.file_handler.emit(record)
+    
+    def print_phase_header(self, phase_name: str, icon: str = "🚀", 
+                          border_style: str = "bold cyan", width: int = 80):
+        """Print a beautiful phase header using Rich.
+        
+        Args:
+            phase_name: Name of the phase being started
+            icon: Icon to display (default: rocket)
+            border_style: Rich style for the panel border
+            width: Width of the panel
+        """
+        console = Console()
+        
+        # Create centered text for the phase name
+        phase_text = Text(f"{icon} {phase_name} {icon}", style="bold white")
+        centered_text = Align.center(phase_text)
+        
+        # Create the panel
+        panel = Panel(
+            centered_text,
+            title="[bold yellow]◆ PHASE START ◆[/bold yellow]",
+            border_style=border_style,
+            padding=(1, 2),
+            width=width,
+            expand=False
+        )
+        
+        console.print("\n")
+        console.print(panel)
+        console.print("")
+        
+        # Also log to file (without colors)
+        if self.file_handler:
+            safe_text = self._sanitize_for_logging(f"\n{'='*50}\nStarting {phase_name}\n{'='*50}\n")
+            record = logging.LogRecord(
+                name=self.logger.name,
+                level=logging.INFO,
+                pathname="",
+                lineno=0,
+                msg=safe_text,
+                args=(),
+                exc_info=None
+            )
+            self.file_handler.emit(record)
+    
+    def print_section_header(self, title: str, subtitle: str = None, 
+                           icon: str = "📋", style: str = "cyan"):
+        """Print a beautiful section header using Rich.
+        
+        Args:
+            title: Main section title
+            subtitle: Optional subtitle
+            icon: Icon to display
+            style: Rich color style
+        """
+        console = Console()
+        
+        # Create the title text
+        if subtitle:
+            content = Text()
+            content.append(f"{icon} {title}\n", style=f"bold {style}")
+            content.append(subtitle, style=f"dim {style}")
+            aligned_content = Align.center(content)
+        else:
+            content = Text(f"{icon} {title}", style=f"bold {style}")
+            aligned_content = Align.center(content)
+        
+        # Create a lighter panel for sections
+        panel = Panel(
+            aligned_content,
+            border_style=style,
+            padding=(0, 2),
+            expand=False
+        )
+        
+        console.print(panel)
+        
+        # Also log to file
+        if self.file_handler:
+            log_text = f"\n--- {title} ---"
+            if subtitle:
+                log_text += f"\n{subtitle}"
+            safe_text = self._sanitize_for_logging(log_text)
+            record = logging.LogRecord(
+                name=self.logger.name,
+                level=logging.INFO,
+                pathname="",
+                lineno=0,
+                msg=safe_text,
+                args=(),
+                exc_info=None
+            )
+            self.file_handler.emit(record)
+    
+    def print_spaced(self, message: str, spacing_before: int = 1, spacing_after: int = 0):
+        """Print a message with configurable spacing before and after.
+        
+        Args:
+            message: The message to print
+            spacing_before: Number of blank lines before message (default: 1)
+            spacing_after: Number of blank lines after message (default: 0)
+        """
+        for _ in range(spacing_before):
+            self.print("")
+        self.print(message)
+        for _ in range(spacing_after):
+            self.print("")
+    
+    def print_divider(self, style: str = "dim cyan", width: int = 80):
+        """Print a beautiful divider line using Rich.
+        
+        Args:
+            style: Rich style for the divider
+            width: Width of the divider
+        """
+        console = Console()
+        console.print(Rule(style=style, characters="─"))
+        
+        # Also log to file
+        if self.file_handler:
+            safe_text = self._sanitize_for_logging("-" * 50)
+            record = logging.LogRecord(
+                name=self.logger.name,
+                level=logging.DEBUG,
+                pathname="",
+                lineno=0,
+                msg=safe_text,
+                args=(),
+                exc_info=None
+            )
+            self.file_handler.emit(record)
+    
+    def print_markdown_preview(self, content: str, max_length: int = 500, 
+                              title: str = "Content Preview", style: str = "dim"):
+        """Display a preview of markdown content in a formatted panel.
+        
+        Args:
+            content: The markdown content to preview
+            max_length: Maximum characters to show
+            title: Title for the preview panel
+            style: Rich style for the panel
+        """
+        console = Console()
+        
+        # Truncate content if needed
+        if len(content) > max_length:
+            preview = content[:max_length]
+            truncated = True
+        else:
+            preview = content
+            truncated = False
+        
+        # Parse the markdown content
+        md = Markdown(preview)
+        
+        # Create a panel for the preview
+        panel = Panel(
+            md,
+            title=f"[bold]{title}[/bold]",
+            border_style=style,
+            padding=(1, 2),
+            expand=False
+        )
+        
+        console.print(panel)
+        
+        if truncated:
+            console.print(f"[dim]... (showing first {max_length} characters of {len(content)} total)[/dim]")
+        
+        # Also log to file
+        if self.file_handler:
+            safe_text = self._sanitize_for_logging(f"{title}:\n{preview}")
+            if truncated:
+                safe_text += f"\n... (truncated from {len(content)} characters)"
+            record = logging.LogRecord(
+                name=self.logger.name,
+                level=logging.INFO,
+                pathname="",
+                lineno=0,
+                msg=safe_text,
                 args=(),
                 exc_info=None
             )

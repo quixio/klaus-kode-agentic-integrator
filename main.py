@@ -135,7 +135,7 @@ class WorkflowOrchestrator:
             printer.print("   Sandbox testing completed successfully. Deployment was skipped.")
         
         # Ask if user wants to run another workflow
-        printer.print("\n" + "="*50)
+        printer.print_divider()
         from workflow_tools.common import get_user_approval
         run_another = get_user_approval("Would you like to run another workflow?")
         if run_another:
@@ -218,7 +218,7 @@ class WorkflowOrchestrator:
             printer.print("   Sandbox testing completed successfully. Deployment was skipped.")
         
         # Ask if user wants to run another workflow
-        printer.print("\n" + "="*50)
+        printer.print_divider()
         from workflow_tools.common import get_user_approval
         run_another = get_user_approval("Would you like to run another workflow?")
         if run_another:
@@ -375,7 +375,7 @@ async def main():
             workflow_logger.info(f"End time: {datetime.now()}")
             workflow_logger.info("=" * 60)
             
-            printer.print("\n" + "="*50)
+            printer.print_divider()
             from workflow_tools.common import get_user_approval
             if not get_user_approval("Would you like to run another workflow?"):
                 break
@@ -390,7 +390,7 @@ async def main():
             workflow_logger.error("=" * 60)
             
             printer.print(f"\n❌ An error occurred: {e}")
-            printer.print("\n" + "="*50)
+            printer.print_divider()
             from workflow_tools.common import get_user_approval
             if not get_user_approval("Would you like to run another workflow?"):
                 break

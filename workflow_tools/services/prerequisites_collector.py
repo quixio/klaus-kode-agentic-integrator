@@ -71,8 +71,13 @@ class PrerequisitesCollector:
         Returns:
             Dictionary containing collected prerequisites
         """
-        printer.print(f"\n🔧 **Phase 1: {workflow_type.capitalize()} Prerequisites Collection**")
-        printer.print("")
+        # Don't print a phase header here - base_phase already does that
+        # Just show what we're collecting
+        printer.print("")  # Add spacing after phase header
+        printer.print_section_header(f"{workflow_type.capitalize()} Prerequisites", 
+                                   subtitle="Collecting workspace, topic, and technology settings",
+                                   icon="🔧", style="cyan")
+        printer.print("")  # Add spacing after section header
         
         # First, collect app name so it can be used for caching
         # MOVED FROM knowledge_gatherer.py lines 41-91
@@ -240,20 +245,27 @@ class PrerequisitesCollector:
             with open(newest_cache, "r", encoding="utf-8") as f:
                 cached_data = json.load(f)
             
-            printer.print(f"\n--- Cached {workflow_type.capitalize()} Prerequisites ---")
-            printer.print(f"📁 Prerequisites cache file: {newest_cache}")
-            printer.print("-------------------------------")
-            printer.print(f"**Workspace ID:** {cached_data.get('workspace_id', 'N/A')}")
+            # Use the new beautiful cache panel display
+            content_dict = {
+                "Workspace ID": cached_data.get('workspace_id', 'N/A')
+            }
             
             if workflow_type == "source":
-                printer.print(f"**Output Topic ID:** {cached_data.get('topic_id', 'N/A')}")
-                printer.print(f"**Output Topic Name:** {cached_data.get('topic_name', 'N/A')}")
+                content_dict["Output Topic ID"] = cached_data.get('topic_id', 'N/A')
+                content_dict["Output Topic Name"] = cached_data.get('topic_name', 'N/A')
             else:
-                printer.print(f"**Topic ID:** {cached_data.get('topic_id', 'N/A')}")
-                printer.print(f"**Topic Name:** {cached_data.get('topic_name', 'N/A')}")
+                content_dict["Topic ID"] = cached_data.get('topic_id', 'N/A')
+                content_dict["Topic Name"] = cached_data.get('topic_name', 'N/A')
             
-            printer.print(f"**Branch Name:** {cached_data.get('branch_name', 'main')}")
-            printer.print("-------------------------------")
+            content_dict["Branch Name"] = cached_data.get('branch_name', 'main')
+            
+            # Display the beautiful cache panel
+            printer.print_cache_panel(
+                title=f"Cached {workflow_type.capitalize()} Prerequisites",
+                cache_file=newest_cache,
+                content_dict=content_dict,
+                border_style="bright_cyan"
+            )
             
             # Mark that cache was displayed
             self._cache_was_displayed = True
@@ -301,7 +313,7 @@ class PrerequisitesCollector:
         Returns:
             True if successful, False otherwise
         """
-        printer.print("\n🏢 **Step 1: Workspace Selection**")
+        printer.print_section_header("Step 1: Workspace Selection", icon="🏢", style="cyan")
         
         try:
             # Get list of workspaces
@@ -356,7 +368,7 @@ class PrerequisitesCollector:
             except Exception as e:
                 printer.print(f"⚠️ Warning: Could not get workspace details: {e}")
             
-            printer.print(f"✅ Selected workspace: **{selected_workspace['Workspace Name']}**")
+            printer.print(f"✅ Selected workspace: {selected_workspace['Workspace Name']}")
             printer.print("")  # Add blank line for spacing
             return True
             
@@ -380,7 +392,7 @@ class PrerequisitesCollector:
             True if successful, False otherwise
         """
         topic_label = "output topic" if workflow_type == "source" else "source topic"
-        printer.print(f"\n📊 **Step 2: {topic_label.title()} Selection**")
+        printer.print_section_header(f"Step 2: {topic_label.title()} Selection", icon="📊", style="cyan")
         
         try:
             # Get list of topics
@@ -439,7 +451,7 @@ class PrerequisitesCollector:
             self.context.workspace.topic_id = selected_topic['Topic ID']
             self.context.workspace.topic_name = selected_topic['Topic Name']
             
-            printer.print(f"✅ Selected {topic_label}: **{selected_topic['Topic Name']}**")
+            printer.print(f"✅ Selected {topic_label}: {selected_topic['Topic Name']}")
             printer.print("")  # Add blank line for spacing
             
             # Log the topic URL
@@ -464,7 +476,7 @@ class PrerequisitesCollector:
         Returns:
             True if successful, False otherwise
         """
-        printer.print("\n🆕 **Creating New Topic**")
+        printer.print_section_header("Creating New Topic", icon="🆕", style="yellow")
         
         topic_name = printer.input("Enter name for the new topic: ").strip()
         if not topic_name:
@@ -518,7 +530,7 @@ class PrerequisitesCollector:
             True if successful, False otherwise
         """
         tech_label = "source technology" if workflow_type == "source" else "destination technology"
-        printer.print(f"\n🔧 **Step 3: {tech_label.title()} Selection**")
+        printer.print_section_header(f"Step 3: {tech_label.title()} Selection", icon="🔧", style="cyan")
         
         # Get technology patterns for this workflow type
         tech_patterns = self.TECHNOLOGY_PATTERNS[workflow_type]

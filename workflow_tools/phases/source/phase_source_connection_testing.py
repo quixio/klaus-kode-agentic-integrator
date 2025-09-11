@@ -33,8 +33,8 @@ class SourceConnectionTestingPhase(BasePhase):
     
     async def execute(self) -> PhaseResult:
         """Execute the connection testing workflow."""
-        printer.print("🔌 **Phase 4: Source Connection Testing**")
-        printer.print("")
+        # Phase header is already shown by base_phase
+        # No need for additional header here
         
         try:
             # Initialize cache utils
@@ -43,8 +43,7 @@ class SourceConnectionTestingPhase(BasePhase):
             cache_utils = CacheUtils(self.context, self.debug_mode)
             
             # Step 0: Check for cached connection requirements or ask user
-            printer.print("📝 **Connection Test Requirements**")
-            printer.print("-" * 40)
+            printer.print_section_header("Connection Test Requirements", icon="📝", style="cyan")
             
             # Check for cached user prompt (connection requirements)
             cached_prompt = cache_utils.check_cached_user_prompt()
@@ -487,7 +486,7 @@ class SourceConnectionTestingPhase(BasePhase):
                     self.context.connection_test_output = logs
                 else:
                     return False
-                printer.print("📊 **Sample Data Output:**")
+                printer.print_section_header("Sample Data Output", icon="📊", style="blue")
                 printer.print(logs[:2000] + "..." if len(logs) > 2000 else logs)
                 return True
 
@@ -590,10 +589,9 @@ class SourceConnectionTestingPhase(BasePhase):
                 "main.py"
             )
             
-            printer.print("📊 **Connection Test Output:**")
-            printer.print("=" * 50)
+            printer.print_section_header("Connection Test Output", icon="📊", style="blue")
             printer.print(logs[:2000] + "..." if len(logs) > 2000 else logs)
-            printer.print("=" * 50)
+            printer.print_divider()
             
             # Check for errors using centralized error handler
             has_error, is_timeout_error, has_success = self.error_handler.analyze_logs(logs, workflow_type="source")
@@ -690,7 +688,7 @@ class SourceConnectionTestingPhase(BasePhase):
                     self.context.connection_test_output = logs
                 else:
                     return False
-                printer.print("📊 **Sample Data Output:**")
+                printer.print_section_header("Sample Data Output", icon="📊", style="blue")
                 printer.print(logs[:2000] + "..." if len(logs) > 2000 else logs)
                 return True
                 

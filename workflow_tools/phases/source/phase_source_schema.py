@@ -34,8 +34,8 @@ class SourceSchemaPhase(BasePhase):
     
     async def execute(self) -> PhaseResult:
         """Execute the source schema analysis workflow."""
-        printer.print("📊 **Phase 5: Source Schema Analysis**")
-        printer.print("")
+        # Phase header is already shown by base_phase
+        # No need for additional header here
         
         try:
             # Create working_files directory
@@ -184,7 +184,7 @@ Focus on providing actionable insights for code generation.
     
     async def _get_schema_approval(self) -> bool:
         """Get user approval for the schema analysis."""
-        printer.print("👀 **Schema Analysis Results:**")
+        printer.print_section_header("Schema Analysis Results", icon="👀", style="green")
         printer.print("")
         
         retry_count = 0

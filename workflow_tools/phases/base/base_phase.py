@@ -6,11 +6,12 @@ from dataclasses import dataclass
 import time
 import traceback
 
-from workflow_tools.common import printer, get_enhanced_input
+from workflow_tools.common import printer
 from workflow_tools.contexts import WorkflowContext
 from workflow_tools.core.config_loader import config
 from workflow_tools.exceptions import NavigationBackRequest
 from workflow_tools.core.questionary_utils import select_yes_no
+from workflow_tools.core.enhanced_input import get_enhanced_input
 
 
 @dataclass
@@ -69,10 +70,8 @@ class BasePhase(ABC):
             from workflow_tools.common import clear_screen
             clear_screen()
             
-            # Execute main phase logic
-            printer.print(f"\n{'='*50}")
-            printer.print(f"Starting {self.phase_description}")
-            printer.print(f"{'='*50}\n")
+            # Execute main phase logic with beautiful header
+            printer.print_phase_header(self.phase_description)
             
             result = await self.execute()
             

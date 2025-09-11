@@ -17,7 +17,8 @@ from claude_code_sdk import query, ClaudeCodeOptions, AssistantMessage, TextBloc
 from rich.console import Console
 from rich.panel import Panel
 from workflow_tools.contexts import WorkflowContext
-from workflow_tools.common import printer, extract_python_code_from_llm_output, get_enhanced_input_async
+from workflow_tools.common import printer, extract_python_code_from_llm_output
+from workflow_tools.core.enhanced_input import get_enhanced_input_async
 from workflow_tools.core.config_loader import config
 from workflow_tools.core.questionary_utils import text
 
@@ -254,8 +255,7 @@ class ClaudeCodeService:
             
             # Check if this is a balance error
             if "Credit balance is too low" in error_msg or "balance" in error_msg.lower():
-                printer.print("=" * 60)
-                printer.print("⚠️ **Credit Balance Too Low**")
+                printer.print_section_header("Credit Balance Too Low", icon="⚠️", style="red")
                 printer.print("")
                 printer.print(f"Your Claude credit balance is insufficient for {operation_name}.")
                 printer.print("Please top up your balance and then press Enter to retry.")

@@ -82,17 +82,28 @@ class CacheUtils:
         with open(cache_file, 'r', encoding='utf-8') as f:
             cached_content = f.read()
         
-        printer.print(f"\n--- Cached Technology and Template Selection ---")
-        printer.print(f"📁 Template cache file: {cache_file}")
+        # Parse the cached content to extract key-value pairs
+        content_dict = {}
+        for line in cached_content.split('\n'):
+            if line.strip() and ':' in line and not line.startswith('#'):
+                if '**' in line:
+                    # Parse markdown-style bold entries
+                    key = line.split('**')[1] if '**' in line else line.split(':')[0]
+                    value = line.split(':')[-1].strip() if ':' in line else ''
+                    content_dict[key] = value
         
-        # Show tech prep file if it exists in the cache
+        # Show tech prep file if it exists
         tech_prep_file = cached_selection.get('tech_prep_file')
         if tech_prep_file and os.path.exists(tech_prep_file):
-            printer.print(f"📚 Technology preparation advice: {tech_prep_file}")
+            content_dict["Tech Prep Advice"] = tech_prep_file
         
-        printer.print("-------------------------------")
-        printer.print(cached_content)
-        printer.print("-------------------------------")
+        # Display the beautiful cache panel
+        printer.print_cache_panel(
+            title="Cached Technology and Template Selection",
+            cache_file=cache_file,
+            content_dict=content_dict,
+            border_style="green"
+        )
         
         response = get_user_approval_with_back("Would you like to use this cached template selection instead of re-selecting?", allow_back=True)
         if response == 'back':
@@ -189,21 +200,24 @@ class CacheUtils:
         """Show cached environment variables to user and ask for confirmation."""
         cache_file = self._get_cached_env_vars_filename()
         
-        printer.print(f"\n--- Cached Environment Variables ---")
-        printer.print(f"📁 Environment cache file: {cache_file}")
-        printer.print("------------------------------------")
-        
-        # Display the cached variables in a nice format
+        # Prepare content dict with masked secrets
+        content_dict = {}
         if cached_env_vars:
             for var_name, var_value in cached_env_vars.items():
                 if any(secret_term in var_name.lower() for secret_term in ['password', 'secret', 'token', 'key']):
-                    printer.print(f"  {var_name}={var_value} 🔐")  # Show secret key name
+                    content_dict[var_name] = f"{var_value} 🔐"
                 else:
-                    printer.print(f"  {var_name}={var_value}")
+                    content_dict[var_name] = var_value
         else:
-            printer.print("  (No cached variables found)")
+            content_dict["Status"] = "No cached variables found"
         
-        printer.print("------------------------------------")
+        # Display the beautiful cache panel
+        printer.print_cache_panel(
+            title="Cached Environment Variables",
+            cache_file=cache_file,
+            content_dict=content_dict,
+            border_style="yellow"
+        )
         
         response = get_user_approval_with_back("Would you like to use these cached environment variables instead of re-entering them?", allow_back=True)
         if response == 'back':
@@ -370,17 +384,28 @@ class CacheUtils:
         """
         cache_file = self._get_cached_code_filename(code_type)
         
-        printer.print(f"\n--- Cached {code_type.replace('_', ' ').title()} Code ---")
-        printer.print(f"📁 Code cache file: {cache_file}")
+        # Prepare content dict
+        content_dict = {}
         
         # Get file modification time for context
         try:
             mod_time = datetime.fromtimestamp(os.path.getmtime(cache_file))
-            printer.print(f"📅 Last modified: {mod_time.strftime('%Y-%m-%d %H:%M:%S')}")
+            content_dict["Last Modified"] = mod_time.strftime('%Y-%m-%d %H:%M:%S')
         except:
             pass
         
-        printer.print("-------------------------------")
+        # Add code stats
+        code_lines = cached_code.split('\n')
+        content_dict["Total Lines"] = str(len(code_lines))
+        content_dict["File Size"] = f"{len(cached_code)} characters"
+        
+        # Display the beautiful cache panel
+        printer.print_cache_panel(
+            title=f"Cached {code_type.replace('_', ' ').title()} Code",
+            cache_file=cache_file,
+            content_dict=content_dict,
+            border_style="magenta"
+        )
         
         # Show first 30 lines of cached code as preview
         code_lines = cached_code.split('\n')
@@ -395,7 +420,7 @@ class CacheUtils:
             title=f"Code Preview (first {preview_lines} lines)",
             line_numbers=True
         )
-        printer.print("-------------------------------")
+        printer.print_divider()
         
         question = f"Would you like to use this cached {code_type.replace('_', ' ')} code instead of generating new code via AI?"
         response = get_user_approval_with_back(question, allow_back=True)
@@ -493,17 +518,28 @@ class CacheUtils:
         """Show cached Claude Code SDK code to user and ask for confirmation."""
         cache_file = self._get_cached_claude_code_filename()
         
-        printer.print(f"\n--- Cached Claude Code SDK Generated Code ---")
-        printer.print(f"📁 Code cache file: {cache_file}")
+        # Prepare content dict
+        content_dict = {}
         
         # Get file modification time for context
         try:
             mod_time = datetime.fromtimestamp(os.path.getmtime(cache_file))
-            printer.print(f"📅 Last modified: {mod_time.strftime('%Y-%m-%d %H:%M:%S')}")
+            content_dict["Last Modified"] = mod_time.strftime('%Y-%m-%d %H:%M:%S')
         except:
             pass
         
-        printer.print("-------------------------------")
+        # Add code stats
+        code_lines = cached_code.split('\n')
+        content_dict["Total Lines"] = str(len(code_lines))
+        content_dict["Generated By"] = "Claude Code SDK"
+        
+        # Display the beautiful cache panel
+        printer.print_cache_panel(
+            title="Cached Claude Code SDK Generated Code",
+            cache_file=cache_file,
+            content_dict=content_dict,
+            border_style="blue"
+        )
         
         # Show first 30 lines of cached code as preview
         code_lines = cached_code.split('\n')
@@ -518,7 +554,7 @@ class CacheUtils:
             title=f"Code Preview (first {preview_lines} lines)",
             line_numbers=True
         )
-        printer.print("-------------------------------")
+        printer.print_divider()
         
         question = "Would you like to use this cached Claude Code SDK generated code instead of generating new code?"
         response = get_user_approval_with_back(question, allow_back=True)
@@ -611,20 +647,31 @@ class CacheUtils:
         cache_file = self._get_cached_user_prompt_filename()
         
         # Don't clear screen here - we want to preserve the app creation logging
-        printer.print(f"\n--- Cached App Requirements ---")
-        printer.print(f"📁 Cache file: {cache_file}")
+        # Prepare content dict
+        content_dict = {}
         
         # Get file modification time for context
         try:
             mod_time = datetime.fromtimestamp(os.path.getmtime(cache_file))
-            printer.print(f"📅 Last modified: {mod_time.strftime('%Y-%m-%d %H:%M:%S')}")
+            content_dict["Last Modified"] = mod_time.strftime('%Y-%m-%d %H:%M:%S')
         except:
             pass
         
-        printer.print("-------------------------------")
-        printer.print("Cached requirements:")
+        # Add requirements info
+        content_dict["Requirements"] = cached_prompt[:100] + "..." if len(cached_prompt) > 100 else cached_prompt
+        content_dict["Length"] = f"{len(cached_prompt)} characters"
+        
+        # Display the beautiful cache panel
+        printer.print_cache_panel(
+            title="Cached App Requirements",
+            cache_file=cache_file,
+            content_dict=content_dict,
+            border_style="cyan"
+        )
+        
+        # Show full requirements separately
+        printer.print("\nFull cached requirements:")
         printer.print(f'"{cached_prompt}"')
-        printer.print("-------------------------------")
         
         question = "Would you like to use these cached app requirements instead of entering new ones?"
         response = get_user_approval_with_back(question, allow_back=True)
@@ -723,19 +770,25 @@ class CacheUtils:
         cache_file = self._get_cached_app_name_filename()
         
         # Don't clear screen here - we want to preserve any previous output
-        printer.print(f"\n--- Cached App Name ---")
-        printer.print(f"📁 Cache file: {cache_file}")
+        # Prepare content dict
+        content_dict = {}
         
         # Get file modification time for context
         try:
             mod_time = datetime.fromtimestamp(os.path.getmtime(cache_file))
-            printer.print(f"📅 Last modified: {mod_time.strftime('%Y-%m-%d %H:%M:%S')}")
+            content_dict["Last Modified"] = mod_time.strftime('%Y-%m-%d %H:%M:%S')
         except:
             pass
         
-        printer.print("-------------------------------")
-        printer.print(f"Cached app name: '{cached_name}'")
-        printer.print("-------------------------------")
+        content_dict["App Name"] = cached_name
+        
+        # Display the beautiful cache panel
+        printer.print_cache_panel(
+            title="Cached App Name",
+            cache_file=cache_file,
+            content_dict=content_dict,
+            border_style="bright_green"
+        )
         
         question = "Would you like to use this cached app name instead of entering a new one?"
         response = get_user_approval_with_back(question, allow_back=True)
@@ -827,7 +880,9 @@ class CacheUtils:
             # Get app name for display
             app_name = self.context.deployment.application_name or "unknown-app"
             
-            printer.print(f"\n📂 Found cached application directory for app '{app_name}'")
+            # Display in a nice section header
+            printer.print_section_header(f"Cached Application Found: {app_name}", 
+                                       icon="📂", style="green")
             return cache_dir
             
         except Exception as e:
@@ -853,15 +908,28 @@ class CacheUtils:
         # List the files in the cached directory for user information
         try:
             cached_files = os.listdir(cached_app_dir)
-            printer.print(f"   Cached app '{app_name}' contains: {', '.join(cached_files)}")
             
-            # Show the modification time of the cache
+            # Get the modification time of the cache
             cache_mtime = os.path.getmtime(cached_app_dir)
             cache_time = datetime.fromtimestamp(cache_mtime).strftime('%Y-%m-%d %H:%M:%S')
-            printer.print(f"   Last modified: {cache_time}")
+            
+            # Display cache info in a nice panel
+            cache_info = {
+                "Application": app_name,
+                "Files": ', '.join(cached_files),
+                "Last Modified": cache_time,
+                "Location": cached_app_dir
+            }
+            
+            printer.print_cache_panel(
+                title="Cached Application Details",
+                cache_file=cached_app_dir,
+                content_dict=cache_info,
+                border_style="green"
+            )
             
         except Exception as e:
-            printer.print(f"   Error reading cache details: {e}")
+            printer.print(f"⚠️ Error reading cache details: {e}")
         
         # Show a preview of the cached main.py code
         try:
@@ -891,27 +959,25 @@ class CacheUtils:
                     title=f"Cached Code Preview for '{app_name}'",
                     line_numbers=True
                 )
-                printer.print("-" * 50)
+                printer.print_divider()
                 
         except Exception as e:
             printer.print(f"   Could not read code preview: {e}")
         
-        try:
-            # Ask user for approval with specific app name
-            response = printer.input(f"\nACTION REQUIRED: Would you like to use this cached application '{app_name}' (all files: main.py, app.yaml, requirements.txt) instead of generating new code? [y/n/b (go back)]: ")
-            
-            if response.lower() == 'b':
-                raise NavigationBackRequest("User requested to go back from cached app selection")
-            elif response.lower() == 'y':
-                return True
-            else:
-                printer.print("📝 Will generate fresh application code and files.")
-                return False
-                
-        except KeyboardInterrupt:
-            print()  # Add newline for clean output
-            printer.print("❌ Aborted by user.")
-            raise NavigationBackRequest("User cancelled cached app selection")
+        # Use the proper approval function with back option
+        from workflow_tools.common import get_user_approval_with_back
+        
+        question = f"Would you like to use this cached application '{app_name}' (all files: main.py, app.yaml, requirements.txt) instead of generating new code?"
+        response = get_user_approval_with_back(question, allow_back=True)
+        
+        if response == 'back':
+            raise NavigationBackRequest("User requested to go back from cached app selection")
+        elif response == 'yes':
+            printer.print("✅ Using cached application")
+            return True
+        else:
+            printer.print("📝 Will generate fresh application code and files.")
+            return False
     
     def save_app_directory_to_cache(self, app_dir: str, is_connection_test: bool = False) -> bool:
         """Save entire application directory to cache for future runs.
@@ -1063,7 +1129,7 @@ class CacheUtils:
                     title="Cached Connection Test Code Preview",
                     line_numbers=False
                 )
-                printer.print("-" * 50)
+                printer.print_divider()
             
             # Ask user if they want to use the entire cached app (not just code)
             if get_user_approval(f"Use this cached connection test application '{app_name}' (includes all files: main.py, app.yaml, requirements.txt, connection_test.py)?"):
@@ -1240,25 +1306,34 @@ class CacheUtils:
         """
         cache_file = self._get_cached_schema_analysis_filename(app_name)
         
-        printer.print(f"\n--- Cached Schema Analysis for '{app_name}' ---")
-        printer.print(f"📁 Cache file: {cache_file}")
+        # Prepare content dict
+        content_dict = {}
         
         # Get file modification time for context
         try:
             mod_time = datetime.fromtimestamp(os.path.getmtime(cache_file))
-            printer.print(f"📅 Last modified: {mod_time.strftime('%Y-%m-%d %H:%M:%S')}")
+            content_dict["Last Modified"] = mod_time.strftime('%Y-%m-%d %H:%M:%S')
         except:
             pass
         
-        printer.print("-------------------------------")
+        content_dict["App Name"] = app_name
+        content_dict["Schema Size"] = f"{len(cached_schema)} characters"
         
-        # Show first 500 characters of cached schema as preview
-        preview_text = cached_schema[:500]
-        printer.print("Schema preview:")
-        printer.print(preview_text)
-        if len(cached_schema) > 500:
-            printer.print("... (truncated for display)")
-        printer.print("-------------------------------")
+        # Display the beautiful cache panel
+        printer.print_cache_panel(
+            title=f"Cached Schema Analysis for '{app_name}'",
+            cache_file=cache_file,
+            content_dict=content_dict,
+            border_style="bright_magenta"
+        )
+        
+        # Show the cached schema as a formatted markdown preview
+        printer.print_markdown_preview(
+            cached_schema,
+            max_length=500,
+            title="Schema Preview",
+            style="bright_magenta"
+        )
         
         question = f"Would you like to use this cached schema analysis for app '{app_name}' instead of running connection test and fresh analysis?"
         response = get_user_approval_with_back(question, allow_back=True)

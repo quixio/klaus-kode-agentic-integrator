@@ -23,8 +23,8 @@ class SourceGenerationPhase(BasePhase):
     
     async def execute(self) -> PhaseResult:
         """Execute the source code generation using Claude Code SDK with centralized caching."""
-        printer.print("🧠 **Phase 6: Source Code Generation**")
-        printer.print("")
+        # Phase header is already shown by base_phase
+        # No need for additional header here
         
         try:
             # Initialize cache utils

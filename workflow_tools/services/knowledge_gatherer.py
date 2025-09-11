@@ -34,7 +34,11 @@ class KnowledgeGatheringService:
         Returns:
             PhaseResult indicating success or failure
         """
-        printer.print(f"\n--- Starting {workflow_type.capitalize()} Knowledge Gathering ---")
+        # Phase header is already shown by base_phase
+        # Just show what we're doing
+        printer.print("\n")  # Add spacing after phase header
+        printer.print("📦 Setting up application and workspace...")
+        printer.print("")  # Add spacing between sections
         
         # Use fixed starter templates
         if workflow_type == "sink":
@@ -52,14 +56,15 @@ class KnowledgeGatheringService:
         
         # App name should already be set by prerequisites phase
         if not hasattr(self.context.deployment, 'application_name') or not self.context.deployment.application_name:
-            printer.print("❌ Application name not set. This should have been collected in prerequisites phase.")
+            printer.print("\n❌ Application name not set. This should have been collected in prerequisites phase.")
             return PhaseResult(success=False, message="Application name not set")
         
         sanitized_name = self.context.deployment.application_name
         printer.print(f"✅ Using application name: {sanitized_name}")
+        printer.print("")  # Add spacing before next section
         
         # Create application from the starter template
-        printer.print(f"\n🔨 Creating application from starter template...")
+        printer.print("🔨 Creating application from starter template...")
         if not await self.app_manager.create_application():
             return PhaseResult(success=False, message="Failed to create application")
         
