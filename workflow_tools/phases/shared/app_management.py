@@ -390,8 +390,12 @@ class AppManager:
         
         return True
     
-    async def create_ide_session(self) -> bool:
-        """Create IDE session without overwriting already loaded template context."""
+    async def create_ide_session(self, use_app_variables: bool = False) -> bool:
+        """Create IDE session without overwriting already loaded template context.
+        
+        Args:
+            use_app_variables: If True, fetch and use the app's existing environment variables
+        """
         printer.print("Creating IDE session.")
         
         # Log the application URL for reference
@@ -404,11 +408,45 @@ class AppManager:
         )
         printer.print(f"🔗 Running session in application: {app_url}")
         
+        # Prepare environment variables and secrets if requested
+        environment_variables = None
+        secrets = None
+        
+        if use_app_variables:
+            # Fetch application's existing variables for diagnose workflow
+            printer.print("📋 Fetching application's existing environment variables...")
+            app_details = await quix_tools.get_application_details(
+                self.context.workspace.workspace_id,
+                self.context.deployment.application_id
+            )
+            
+            if app_details and 'variables' in app_details:
+                environment_variables = {}
+                secrets = {}
+                
+                for var in app_details.get('variables', []):
+                    var_name = var.get('name')
+                    default_value = var.get('defaultValue')
+                    input_type = var.get('inputType')
+                    
+                    if var_name and default_value is not None:
+                        if input_type == 'Secret':
+                            # For secrets, the defaultValue is the secret key name
+                            secrets[var_name] = default_value
+                        else:
+                            # For regular variables, use the default value
+                            environment_variables[var_name] = default_value
+                
+                if environment_variables or secrets:
+                    printer.print(f"✅ Found {len(environment_variables)} variables and {len(secrets)} secrets")
+        
         session_data = await quix_tools.manage_session(
             quix_tools.SessionAction.start, 
             self.context.workspace.workspace_id, 
             self.context.deployment.application_id,
-            branch_name=self.context.workspace.branch_name
+            branch_name=self.context.workspace.branch_name,
+            environment_variables=environment_variables,
+            secrets=secrets
         )
         if not session_data or not session_data.get('sessionId'):
             printer.print(f"🛑 Failed to start IDE session. Aborting.")

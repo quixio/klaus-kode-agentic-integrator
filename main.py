@@ -8,6 +8,7 @@ from datetime import datetime
 from dotenv import load_dotenv
 from agents import RunConfig
 import argparse
+from typing import Optional
 
 # Suppress LiteLLM's verbose logging about missing proxy dependencies
 # This must happen before any imports that might load LiteLLM
@@ -231,11 +232,104 @@ class WorkflowOrchestrator:
         
         return True
     
-    async def run(self):
+    async def run_diagnose_workflow(self):
+        """Execute the diagnose workflow using factory-created phases."""
+        # Start diagnose workflow directly
+        
+        # Execute phases in sequence with back navigation support
+        phase_index = 0
+        total_phases = 6  # Total number of phases in diagnose workflow
+        while phase_index < total_phases - 1:  # All phases except monitoring
+            try:
+                # Create fresh phase instances for each run (important for navigation)
+                phases = WorkflowFactory.create_diagnose_workflow(self.container)
+                phase = phases[phase_index]
+                if not await phase.run():
+                    return False
+                phase_index += 1  # Move to next phase on success
+            except NavigationBackRequest:
+                # User requested to go back
+                if phase_index > 0:
+                    phase_index -= 1  # Go back to previous phase
+                    printer.print("\n⬅️ Going back to previous phase...\n")
+                else:
+                    # At first phase - go back to workflow selection
+                    printer.print("\n⬅️ Going back to workflow selection...\n")
+                    return 'back_to_triage'  # Special return value to signal going back to triage
+        
+        # Handle deployment monitoring separately (it's optional)
+        # Create fresh instance for the monitoring phase
+        final_phases = WorkflowFactory.create_diagnose_workflow(self.container)
+        monitoring_phase = final_phases[-1]
+        
+        if self.context.deployment.deployment_id:
+            printer.print(f"\n🔍 Deployment initiated successfully!")
+            printer.print(f"   Deployment ID: {self.context.deployment.deployment_id}")
+            printer.print(f"   Deployment Name: {self.context.deployment.deployment_name}")
+            printer.print("")
+            
+            # Ask user if they want to monitor the deployment
+            monitor_choice = printer.input("Would you like to monitor the deployment status and logs? (y/n): ").strip().lower()
+            
+            if monitor_choice in ['y', 'yes']:
+                if not await monitoring_phase.run():
+                    printer.print("⚠️  Deployment monitoring encountered issues, but the deployment may still be functional.")
+                    printer.print("   Check the Quix Portal for more details.")
+            else:
+                printer.print("✅ Deployment monitoring skipped.")
+                printer.print("   You can monitor the deployment manually in the Quix Portal under Deployments.")
+        
+        # Workflow completion
+        deployment_status = getattr(self.context.deployment, 'deployment_status', None)
+        
+        if deployment_status in ["BuildFailed", "RuntimeError"]:
+            printer.print("\n⚠️  Workflow completed with deployment issues.")
+            printer.print(f"   Deployment '{self.context.deployment.deployment_name}' encountered problems.")
+            printer.print(f"   Status: {deployment_status}")
+            printer.print("   Please review the error analysis and fix the issues before redeploying.")
+        elif self.context.deployment.deployment_id:
+            printer.print("\n🎉 Complete diagnose workflow finished successfully!")
+            printer.print(f"   Your updated deployment: {self.context.deployment.deployment_name}")
+            if deployment_status == "Running":
+                printer.print("   Status: Running ✅")
+            printer.print(f"   Monitor it in the Quix Portal under Deployments.")
+        else:
+            printer.print("\n✅ Diagnose workflow completed.")
+            printer.print("   Application was fixed and tested successfully. Deployment was skipped.")
+        
+        # Ask if user wants to run another workflow
+        printer.print("\n" + "="*50)
+        response = printer.input("Would you like to run another workflow? (y/n): ").strip().lower()
+        if response in ['y', 'yes']:
+            # Reset context for new workflow
+            self.context = WorkflowContext()
+            # Re-register services with fresh context
+            WorkflowFactory.register_services(
+                self.container, 
+                self.context, 
+                self.run_config, 
+                self.debug_mode
+            )
+            return 'back_to_triage'
+        
+        return True
+    
+    async def run(self, preset_workflow: Optional[int] = None):
         """Execute the workflow with triage agent for workflow selection."""
         while True:
-            # Run triage to select workflow
-            selected_workflow = self.triage_agent.run_triage()
+            # Use preset workflow if provided, otherwise run triage
+            if preset_workflow:
+                workflow_map = {
+                    1: WorkflowType.SOURCE,
+                    2: WorkflowType.SINK,
+                    3: WorkflowType.TRANSFORM,
+                    4: WorkflowType.DIAGNOSE
+                }
+                selected_workflow = workflow_map.get(preset_workflow)
+                preset_workflow = None  # Only use preset for first iteration
+            else:
+                # Run triage to select workflow
+                selected_workflow = self.triage_agent.run_triage()
             
             if selected_workflow is None:
                 # User chose to quit
@@ -255,6 +349,13 @@ class WorkflowOrchestrator:
             elif selected_workflow == WorkflowType.SOURCE:
                 # Run the implemented source workflow
                 result = await self.run_source_workflow()
+                if result == 'back_to_triage':
+                    continue  # Go back to workflow selection
+                return result
+            
+            elif selected_workflow == WorkflowType.DIAGNOSE:
+                # Run the implemented diagnose workflow
+                result = await self.run_diagnose_workflow()
                 if result == 'back_to_triage':
                     continue  # Go back to workflow selection
                 return result
@@ -280,7 +381,7 @@ class WorkflowOrchestrator:
                     printer.print("🛑 Unexpected response from workflow.")
                     return
 
-async def main():
+async def main(workflow_choice: Optional[int] = None):
     """Main entry point for the application."""
     # Check verbose mode
     verbose_mode = os.environ.get('VERBOSE_MODE', 'false').lower() == 'true'
@@ -350,7 +451,8 @@ async def main():
         workflow = WorkflowOrchestrator(debug_mode=debug_mode)
         
         try:
-            success = await workflow.run()
+            success = await workflow.run(preset_workflow=workflow_choice)
+            workflow_choice = None  # Only use preset for first iteration
             workflow_logger.info("=" * 60)
             if success:
                 workflow_logger.info("KLAUS KODE COMPLETED")
@@ -402,6 +504,8 @@ if __name__ == "__main__":
                         help='Enable verbose logging (shows detailed API calls and debug info)')
     parser.add_argument('--debug', '-d', action='store_true',
                         help='Enable debug mode (saves intermediate files and shows additional info)')
+    parser.add_argument('--workflow', '-w', type=int, choices=[1, 2, 3, 4],
+                        help='Select workflow directly: 1=Source, 2=Sink, 3=Transform, 4=Diagnose')
     args = parser.parse_args()
     
     # Set environment variables based on arguments
@@ -410,5 +514,5 @@ if __name__ == "__main__":
     if args.debug:
         os.environ['DEBUG_MODE'] = 'true'
     
-    # Run the main async function
-    asyncio.run(main())
+    # Run the main async function with workflow choice if provided
+    asyncio.run(main(workflow_choice=args.workflow))
