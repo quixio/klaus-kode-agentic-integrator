@@ -507,51 +507,61 @@ class EnvVarManager:
                 # Fall back to manual input
                 return None
             
-            # Use interactive menu for topic selection
-            menu_title = f"Select topic for '{var_name}' ({var_type})"
-            if current_value:
-                menu_title += f"\n   Press ENTER to use default: {current_value}"
-            menu = InteractiveMenu(title=menu_title)
+            # Use questionary for topic selection
+            from workflow_tools.core.questionary_utils import select
             
-            # Prepare options list
-            options_list = topics_df.to_dict('records')
+            # Prepare choices for questionary
+            choices = []
             
             # Add "Use default" option at the beginning if there's a default value
             if current_value:
-                options_list.insert(0, {'Topic Name': f'Use default: {current_value}', 'is_default': True})
+                choices.append(f"✅ Use default: {current_value}")
             
-            # Define display formatter for topics
-            def format_topic(row):
-                if row.get('is_default'):
-                    return row['Topic Name']
-                topic_name = row['Topic Name']
+            # Add all topics
+            for topic in topics_df.to_dict('records'):
+                topic_name = topic['Topic Name']
+                partitions = topic.get('Partitions', 'N/A')
+                retention = topic.get('Retention (hours)', 'N/A')
+                
                 # Show current value indicator if it matches
                 if topic_name == current_value:
-                    return f"{topic_name} (current) - Partitions: {row.get('Partitions', 'N/A')}, Retention: {row.get('Retention (hours)', 'N/A')}h"
-                return f"{topic_name} - Partitions: {row.get('Partitions', 'N/A')}, Retention: {row.get('Retention (hours)', 'N/A')}h"
+                    choice_text = f"📌 {topic_name} (current) - Partitions: {partitions}, Retention: {retention}h"
+                else:
+                    choice_text = f"📊 {topic_name} - Partitions: {partitions}, Retention: {retention}h"
+                
+                choices.append(choice_text)
             
             # Add manual input option at the end
-            options_list.append({'Topic Name': '✏️ Enter topic name manually', 'is_manual': True})
+            choices.append("✏️ Enter topic name manually")
             
-            selected_topic, selected_index = menu.select_option(
-                options_list,
-                display_formatter=format_topic,
-                allow_back=False  # Don't allow back in the middle of env var collection
+            # Display menu
+            printer.print(f"\nSelect topic for '{var_name}' ({var_type})")
+            if current_value:
+                printer.print(f"   Current value: {current_value}")
+            
+            selected = select(
+                "Choose a topic:",
+                choices=choices
             )
             
-            # Check if user selected "Use default"
-            if selected_topic and selected_topic.get('is_default'):
+            # Parse the selection
+            if selected.startswith("✅ Use default:"):
                 return 'USE_DEFAULT'
-            
-            # Check if user wants to enter manually
-            if selected_topic and selected_topic.get('is_manual'):
+            elif selected == "✏️ Enter topic name manually":
                 return None  # Fall back to manual input
-            
-            # Return the selected topic name
-            if selected_topic:
-                return selected_topic['Topic Name']
-            
-            return None
+            else:
+                # Extract topic name from the selection
+                # Remove icon and metadata
+                if selected.startswith("📌 "):
+                    # Current topic
+                    topic_name = selected[2:].split(" (current)")[0].strip()
+                elif selected.startswith("📊 "):
+                    # Regular topic
+                    topic_name = selected[2:].split(" - Partitions:")[0].strip()
+                else:
+                    topic_name = selected
+                
+                return topic_name
             
         except Exception as e:
             printer.print(f"   ⚠️ Could not fetch topics: {e}")
