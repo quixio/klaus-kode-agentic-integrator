@@ -12,11 +12,10 @@ from datetime import datetime
 from typing import Dict, Optional, Literal, List, Tuple
 from agents import RunConfig
 from workflow_tools.contexts import WorkflowContext
-from workflow_tools.common import printer, sanitize_name, get_user_approval, get_user_approval_with_back
+from workflow_tools.common import printer, sanitize_name, get_user_approval, get_user_approval_with_back, clear_screen
 from workflow_tools.exceptions import NavigationBackRequest
 from workflow_tools.integrations import quix_tools
 from workflow_tools.integrations.quix_tools import QuixApiError
-from workflow_tools.core.interactive_menu import InteractiveMenu
 from workflow_tools.core.prompt_manager import load_task_prompt
 from workflow_tools.core.url_builder import QuixPortalURLBuilder
 
@@ -95,7 +94,6 @@ class PrerequisitesCollector:
                 # Note: Deletion of existing app happens in create_application() in knowledge phase
             else:
                 # User wants to enter fresh app name
-                from workflow_tools.common import clear_screen
                 clear_screen()
                 printer.print(f"\n📝 What would you like to name your {workflow_type} application?")
                 printer.print("   (This will be the name shown in the Quix portal)")
@@ -109,7 +107,6 @@ class PrerequisitesCollector:
                 cache_utils.save_app_name_to_cache(app_name)
         else:
             # No cached app name, ask user
-            from workflow_tools.common import clear_screen
             clear_screen()
             printer.print(f"\n📝 What would you like to name your {workflow_type} application?")
             printer.print("   (This will be the name shown in the Quix portal)")
@@ -128,6 +125,9 @@ class PrerequisitesCollector:
         self.context.deployment.application_name = sanitized_name
         
         printer.print(f"✅ Application name: {sanitized_name}")
+        
+        # Clear screen before showing cached prerequisites
+        clear_screen()
         
         # Track current step for internal navigation
         # Steps: 0=check_cache, 1=workspace, 2=topic
@@ -312,28 +312,32 @@ class PrerequisitesCollector:
                 printer.print("❌ No workspaces found.")
                 return False
             
+            from workflow_tools.core.questionary_utils import select, clear_screen
+            
             # Clear screen before showing workspace menu
-            InteractiveMenu.clear_terminal()
+            clear_screen()
             
-            # Use interactive menu for workspace selection
-            menu = InteractiveMenu(title="📋 Available Workspaces")
+            # Use questionary for workspace selection
+            # Convert dataframe to choices for questionary
+            choices = []
+            workspace_map = {}
+            for _, row in workspaces_df.iterrows():
+                display_name = f"{row['Workspace Name']}\n      {row['Workspace ID']}"
+                value = row['Workspace ID']
+                choices.append({'name': display_name, 'value': value})
+                workspace_map[value] = row.to_dict()
             
-            # Convert dataframe to list of dicts for custom formatting
-            workspace_options = workspaces_df.to_dict('records')
+            # Add back option
+            choices.append({'name': '← Go back', 'value': 'back'})
             
-            # Format workspace display with line break instead of pipe
-            def format_workspace(row):
-                return f"{row['Workspace Name']}\n      {row['Workspace ID']}"
+            selected_id = select("📋 Available Workspaces", choices, show_border=True)
             
-            selected_workspace, selected_index = menu.select_option(
-                workspace_options,
-                display_formatter=format_workspace,
-                allow_back=True
-            )
-            
-            # Check if user wants to go back or quit
-            if selected_workspace is None:
+            # Check if user wants to go back
+            if selected_id == 'back':
                 raise NavigationBackRequest("User requested to go back")
+            
+            # Get the full workspace data from the map
+            selected_workspace = workspace_map[selected_id]
             
             # Store workspace info directly from selected dict
             self.context.workspace.workspace_id = selected_workspace['Workspace ID']
@@ -395,39 +399,41 @@ class PrerequisitesCollector:
                         return await self._create_new_topic()
                 return False
             
+            from workflow_tools.core.questionary_utils import select, clear_screen
+            
             # Clear screen before showing topic menu
-            InteractiveMenu.clear_terminal()
+            clear_screen()
             
-            # Use interactive menu for topic selection
-            menu = InteractiveMenu(title=f"📋 Available Topics for {topic_label}")
+            # Use questionary for topic selection
+            # Convert dataframe to choices for questionary
+            choices = []
+            topic_map = {}
             
-            # Prepare options list - topics plus optional "Create new" for source
-            options_list = topics_df.to_dict('records')
+            for _, row in topics_df.iterrows():
+                topic_name = row['Topic Name']
+                display_name = f"{topic_name} (Partitions: {row.get('Partitions', 'N/A')}, Retention: {row.get('Retention (hours)', 'N/A')}h)"
+                choices.append({'name': display_name, 'value': topic_name})
+                topic_map[topic_name] = row.to_dict()
             
             # Add create new option for source workflows
             if workflow_type == "source":
-                # Add a special marker for create new option
-                options_list.append({'Topic Name': '🆕 Create a new topic', 'is_create_new': True})
+                choices.append({'name': '🆕 Create a new topic', 'value': 'CREATE_NEW'})
             
-            # Define display formatter for topics
-            def format_topic(row):
-                if isinstance(row, dict) and row.get('is_create_new'):
-                    return row['Topic Name']
-                return f"{row['Topic Name']} (Partitions: {row.get('Partitions', 'N/A')}, Retention: {row.get('Retention (hours)', 'N/A')}h)"
+            # Add back option
+            choices.append({'name': '← Go back', 'value': 'back'})
             
-            selected_topic, selected_index = menu.select_option(
-                options_list,
-                display_formatter=format_topic,
-                allow_back=True
-            )
+            selected = select(f"📋 Available Topics for {topic_label}", choices, show_border=True)
             
-            # Check if user wants to go back or quit
-            if selected_topic is None:
+            # Check if user wants to go back
+            if selected == 'back':
                 raise NavigationBackRequest("User requested to go back")
             
             # Check if user wants to create a new topic
-            if isinstance(selected_topic, dict) and selected_topic.get('is_create_new'):
+            if selected == 'CREATE_NEW':
                 return await self._create_new_topic()
+            
+            # Get the full topic data from the map
+            selected_topic = topic_map[selected]
             
             # Store topic info using the selected topic dict
             self.context.workspace.topic_id = selected_topic['Topic ID']
