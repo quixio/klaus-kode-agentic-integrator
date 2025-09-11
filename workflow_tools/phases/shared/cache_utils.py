@@ -385,13 +385,16 @@ class CacheUtils:
         # Show first 30 lines of cached code as preview
         code_lines = cached_code.split('\n')
         preview_lines = min(30, len(code_lines))
-        printer.print(f"Code preview (first {preview_lines} lines):")
-        printer.print("```python")
-        for line in code_lines[:preview_lines]:
-            printer.print(line)
+        preview_code = '\n'.join(code_lines[:preview_lines])
         if len(code_lines) > preview_lines:
-            printer.print(f"... ({len(code_lines) - preview_lines} more lines)")
-        printer.print("```")
+            preview_code += f"\n\n# ... ({len(code_lines) - preview_lines} more lines)"
+        
+        printer.print_code(
+            preview_code,
+            language="python",
+            title=f"Code Preview (first {preview_lines} lines)",
+            line_numbers=True
+        )
         printer.print("-------------------------------")
         
         question = f"Would you like to use this cached {code_type.replace('_', ' ')} code instead of generating new code via AI?"
@@ -505,13 +508,16 @@ class CacheUtils:
         # Show first 30 lines of cached code as preview
         code_lines = cached_code.split('\n')
         preview_lines = min(30, len(code_lines))
-        printer.print(f"Code preview (first {preview_lines} lines):")
-        printer.print("```python")
-        for line in code_lines[:preview_lines]:
-            printer.print(line)
+        preview_code = '\n'.join(code_lines[:preview_lines])
         if len(code_lines) > preview_lines:
-            printer.print(f"... ({len(code_lines) - preview_lines} more lines)")
-        printer.print("```")
+            preview_code += f"\n\n# ... ({len(code_lines) - preview_lines} more lines)"
+        
+        printer.print_code(
+            preview_code,
+            language="python",
+            title=f"Code Preview (first {preview_lines} lines)",
+            line_numbers=True
+        )
         printer.print("-------------------------------")
         
         question = "Would you like to use this cached Claude Code SDK generated code instead of generating new code?"
@@ -864,23 +870,27 @@ class CacheUtils:
                 with open(main_py_path, 'r', encoding='utf-8') as f:
                     code_content = f.read()
                 
-                printer.print(f"\n--- Cached Code Preview for '{app_name}' ---")
-                printer.print("```python")
-                
                 # Show first 15 lines of code (skip empty lines and comments at the start)
                 code_lines = code_content.split('\n')
                 displayed_lines = 0
+                preview_lines = []
                 for line in code_lines:
                     if displayed_lines >= 15:
                         break
-                    printer.print(line)
+                    preview_lines.append(line)
                     if line.strip():  # Count non-empty lines
                         displayed_lines += 1
                 
+                preview_code = '\n'.join(preview_lines)
                 if len(code_lines) > 15:
-                    printer.print("# ... (more code)")
+                    preview_code += "\n# ... (more code)"
                 
-                printer.print("```")
+                printer.print_code(
+                    preview_code,
+                    language="python",
+                    title=f"Cached Code Preview for '{app_name}'",
+                    line_numbers=True
+                )
                 printer.print("-" * 50)
                 
         except Exception as e:
@@ -1045,10 +1055,14 @@ class CacheUtils:
                 with open(connection_test_path, 'r', encoding='utf-8') as f:
                     connection_code = f.read()
                 
-                printer.print(f"\n--- Cached Connection Test Code Preview ---")
-                printer.print("```python")
-                printer.print(connection_code[:400] + "..." if len(connection_code) > 400 else connection_code)
-                printer.print("```")
+                # Show preview of connection test code
+                preview_code = connection_code[:400] + "\n# ..." if len(connection_code) > 400 else connection_code
+                printer.print_code(
+                    preview_code,
+                    language="python",
+                    title="Cached Connection Test Code Preview",
+                    line_numbers=False
+                )
                 printer.print("-" * 50)
             
             # Ask user if they want to use the entire cached app (not just code)

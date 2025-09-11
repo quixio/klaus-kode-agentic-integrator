@@ -200,25 +200,45 @@ class SourceConnectionTestingPhase(BasePhase):
                 printer.print("❌ Failed to generate connection test code with Claude Code SDK.")
                 return None
             
-            # Display the code
-            printer.print(f"\n--- Generated Connection Test Code ---")
-            printer.print("```python")
-            printer.print(connection_code)
-            printer.print("```")
+            # Display the code with syntax highlighting
+            printer.print("")  # Add blank line for spacing
+            printer.print_code(
+                connection_code,
+                language="python",
+                title="Generated Connection Test Code",
+                line_numbers=True
+            )
             printer.print("-" * 50)
             
-            # Get user approval
-            if get_user_approval("Does the generated connection test code look correct?"):
+            # Get user approval with back option
+            from workflow_tools.common import get_user_approval_with_back
+            response = get_user_approval_with_back(
+                "Does the generated connection test code look correct?",
+                allow_back=True
+            )
+            
+            if response == 'yes':
                 printer.print("✅ Connection test code approved by user.")
                 return connection_code
-            
-            # Get feedback for regeneration
-            feedback = printer.input("Please provide feedback on what to change: ").strip()
-            if not feedback:
-                printer.print("No feedback provided. Aborting connection test generation.")
-                return None
-            
-            printer.print("🔄 Regenerating code based on your feedback.")
+            elif response == 'back':
+                printer.print("⬅️ Going back to re-generate code...")
+                continue  # This will loop back to generate new code
+            else:  # response == 'no'
+                # Get feedback for regeneration with ability to cancel
+                printer.print("\n📝 Please provide feedback to improve the code generation.")
+                printer.print("   (Press Ctrl+C or leave empty to go back)")
+                
+                try:
+                    feedback = printer.input("Feedback: ").strip()
+                    if not feedback:
+                        printer.print("⬅️ No feedback provided. Going back...")
+                        continue  # Go back to show the code again
+                    
+                    printer.print("🔄 Regenerating code based on your feedback.")
+                    # The feedback will be used in the next iteration of the loop
+                except KeyboardInterrupt:
+                    printer.print("\n⬅️ Cancelled. Going back...")
+                    continue
     
 
     async def _run_connection_test(self, auto_debug_attempt: int = 0) -> bool:
@@ -413,10 +433,17 @@ class SourceConnectionTestingPhase(BasePhase):
                         return await self._run_connection_test()
                 elif action == 'manual_feedback':
                     # Get manual feedback and regenerate
-                    feedback = printer.input("Please provide feedback on how to fix the error: ").strip()
-                    if feedback:
-                        if await self._regenerate_connection_test_with_feedback(feedback):
-                            return await self._run_connection_test()
+                    printer.print("\n📝 Please provide feedback on how to fix the error.")
+                    printer.print("   (Press Ctrl+C or leave empty to cancel)")
+                    try:
+                        feedback = printer.input("Feedback: ").strip()
+                        if feedback:
+                            if await self._regenerate_connection_test_with_feedback(feedback):
+                                return await self._run_connection_test()
+                        else:
+                            printer.print("⬅️ No feedback provided. Continuing with error...")
+                    except KeyboardInterrupt:
+                        printer.print("\n⬅️ Cancelled. Continuing with error...")
                     return False
                     
                 elif action == 'manual_fix':
@@ -609,10 +636,17 @@ class SourceConnectionTestingPhase(BasePhase):
                         return await self._run_connection_test()
                 elif action == 'manual_feedback':
                     # Get manual feedback and regenerate
-                    feedback = printer.input("Please provide feedback on how to fix the error: ").strip()
-                    if feedback:
-                        if await self._regenerate_connection_test_with_feedback(feedback):
-                            return await self._run_connection_test()
+                    printer.print("\n📝 Please provide feedback on how to fix the error.")
+                    printer.print("   (Press Ctrl+C or leave empty to cancel)")
+                    try:
+                        feedback = printer.input("Feedback: ").strip()
+                        if feedback:
+                            if await self._regenerate_connection_test_with_feedback(feedback):
+                                return await self._run_connection_test()
+                        else:
+                            printer.print("⬅️ No feedback provided. Continuing with error...")
+                    except KeyboardInterrupt:
+                        printer.print("\n⬅️ Cancelled. Continuing with error...")
                     return False
                     
                 elif action == 'manual_fix':

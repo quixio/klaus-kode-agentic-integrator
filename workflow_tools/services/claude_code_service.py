@@ -1083,9 +1083,11 @@ class ClaudeCodeService:
                             connection_requirements = self.context.technology.source_technology
                             printer.print(f"\n📝 Your connection test requirements were:")
                             printer.print(f"   \"{connection_requirements}\"")
-                            printer.print(f"\n🔄 Is there anything else you'd like to add for the main application?")
-                            printer.print(f"   (Or press Enter to use the same requirements)")
-                            additional_requirements = input("\n> ").strip()
+                            from workflow_tools.core.questionary_utils import text
+                            additional_requirements = text(
+                                "🔄 Is there anything else you'd like to add for the main application?\n   (Or press Enter to use the same requirements)",
+                                default=""
+                            ).strip()
                             
                             if additional_requirements:
                                 # Concatenate the requirements
@@ -1115,9 +1117,11 @@ class ClaudeCodeService:
                         connection_requirements = self.context.technology.source_technology
                         printer.print(f"\n📝 Your connection test requirements were:")
                         printer.print(f"   \"{connection_requirements}\"")
-                        printer.print(f"\n🔄 Is there anything else you'd like to add for the main application?")
-                        printer.print(f"   (Or press Enter to use the same requirements)")
-                        additional_requirements = input("\n> ").strip()
+                        from workflow_tools.core.questionary_utils import text
+                        additional_requirements = text(
+                            "🔄 Is there anything else you'd like to add for the main application?\n   (Or press Enter to use the same requirements)",
+                            default=""
+                        ).strip()
                         
                         if additional_requirements:
                             # Concatenate the requirements
@@ -1158,7 +1162,12 @@ class ClaudeCodeService:
             printer.print("\n" + "=" * 60)
             printer.print("Generated Code:")
             printer.print("=" * 60)
-            printer.print(code)
+            printer.print_code(
+                code,
+                language="python",
+                title=f"Generated {workflow_type.title()} Application Code",
+                line_numbers=True
+            )
             printer.print("=" * 60)
             
             # Ask for approval
