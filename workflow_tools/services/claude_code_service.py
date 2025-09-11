@@ -14,9 +14,12 @@ import anyio
 from pathlib import Path
 from typing import Dict, Any, Optional, Tuple, List
 from claude_code_sdk import query, ClaudeCodeOptions, AssistantMessage, TextBlock, ToolUseBlock, ResultMessage
+from rich.console import Console
+from rich.panel import Panel
 from workflow_tools.contexts import WorkflowContext
 from workflow_tools.common import printer, extract_python_code_from_llm_output
 from workflow_tools.core.config_loader import config
+from workflow_tools.core.questionary_utils import text
 
 
 def monkey_patch_claude_sdk_for_windows(cli_path: str):
@@ -1083,7 +1086,6 @@ class ClaudeCodeService:
                             connection_requirements = self.context.technology.source_technology
                             printer.print(f"\n📝 Your connection test requirements were:")
                             printer.print(f"   \"{connection_requirements}\"")
-                            from workflow_tools.core.questionary_utils import text
                             additional_requirements = text(
                                 "🔄 Is there anything else you'd like to add for the main application?\n   (Or press Enter to use the same requirements)",
                                 default=""
@@ -1099,9 +1101,17 @@ class ClaudeCodeService:
                                 printer.print(f"✅ Using connection test requirements for main application")
                         else:
                             # Standard prompt for sink or source without prior requirements
-                            printer.print(f"\n📝 What kind of {workflow_type} application do you want to build?")
-                            printer.print(f"   Please describe the {workflow_type} system and what data you want to {'send' if workflow_type == 'sink' else 'receive'}.")
-                            user_prompt = input("\n> ").strip()
+                            console = Console()
+                            console.print(Panel(
+                                f"[bold cyan]What kind of {workflow_type} application do you want to build?[/bold cyan]\n\n"
+                                f"Please describe the {workflow_type} system and what data you want to {'[bold]send[/bold]' if workflow_type == 'sink' else '[bold]receive[/bold]'}.",
+                                title=f"📝 {workflow_type.title()} Application Requirements",
+                                border_style="blue"
+                            ))
+                            
+                            user_prompt = text(
+                                f"Enter your {workflow_type} requirements:"
+                            ).strip()
                             
                             if not user_prompt:
                                 printer.print("❌ No description provided. Aborting.")
@@ -1117,7 +1127,6 @@ class ClaudeCodeService:
                         connection_requirements = self.context.technology.source_technology
                         printer.print(f"\n📝 Your connection test requirements were:")
                         printer.print(f"   \"{connection_requirements}\"")
-                        from workflow_tools.core.questionary_utils import text
                         additional_requirements = text(
                             "🔄 Is there anything else you'd like to add for the main application?\n   (Or press Enter to use the same requirements)",
                             default=""
@@ -1133,9 +1142,17 @@ class ClaudeCodeService:
                             printer.print(f"✅ Using connection test requirements for main application")
                     else:
                         # Standard prompt for sink or source without prior requirements
-                        printer.print(f"\n📝 What kind of {workflow_type} application do you want to build?")
-                        printer.print(f"   Please describe the {workflow_type} system and what data you want to {'send' if workflow_type == 'sink' else 'receive'}.")
-                        user_prompt = input("\n> ").strip()
+                        console = Console()
+                        console.print(Panel(
+                            f"[bold cyan]What kind of {workflow_type} application do you want to build?[/bold cyan]\n\n"
+                            f"Please describe the {workflow_type} system and what data you want to {'[bold]send[/bold]' if workflow_type == 'sink' else '[bold]receive[/bold]'}.",
+                            title=f"📝 {workflow_type.title()} Application Requirements",
+                            border_style="blue"
+                        ))
+                        
+                        user_prompt = text(
+                            f"Enter your {workflow_type} requirements:"
+                        ).strip()
                         
                         if not user_prompt:
                             printer.print("❌ No description provided. Aborting.")
