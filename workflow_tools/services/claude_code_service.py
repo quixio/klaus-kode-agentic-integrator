@@ -17,7 +17,7 @@ from claude_code_sdk import query, ClaudeCodeOptions, AssistantMessage, TextBloc
 from rich.console import Console
 from rich.panel import Panel
 from workflow_tools.contexts import WorkflowContext
-from workflow_tools.common import printer, extract_python_code_from_llm_output
+from workflow_tools.common import printer, extract_python_code_from_llm_output, get_enhanced_input_async
 from workflow_tools.core.config_loader import config
 from workflow_tools.core.questionary_utils import text
 
@@ -264,7 +264,7 @@ class ClaudeCodeService:
                 printer.print("=" * 60)
                 
                 # Wait for user to top up and press Enter
-                input("\n🔄 Press Enter when you're ready to retry (after topping up)...")
+                await get_enhanced_input_async("\n🔄 Press Enter when you're ready to retry (after topping up)...")
                 
                 printer.print(f"\n🔄 Retrying {operation_name}...")
                 
@@ -361,7 +361,9 @@ class ClaudeCodeService:
         printer.print("  - Directory: /usr/local/bin")
         
         while True:
-            user_path = input("\nEnter Claude CLI path (or 'skip' to continue without Claude Code): ").strip()
+            user_path = text(
+                "Enter Claude CLI path (or 'skip' to continue without Claude Code):"
+            ).strip()
             
             if user_path.lower() == 'skip':
                 printer.print("⚠️ Continuing without Claude Code integration")
@@ -1162,7 +1164,8 @@ class ClaudeCodeService:
                     self.cache_utils.save_user_prompt_to_cache(user_prompt)
             else:
                 printer.print("\n📝 Please describe what changes you'd like:")
-                user_prompt = input("\n> ").strip()
+                user_prompt = await get_enhanced_input_async("> ")
+                user_prompt = user_prompt.strip() if user_prompt else ""
                 
                 if not user_prompt:
                     printer.print("❌ No changes requested. Keeping current code.")
