@@ -230,8 +230,9 @@ class WorkflowPrinter:
             self.file_handler.emit(prompt_record)
         
         try:
-            # Use getpass to hide input characters
-            response = getpass.getpass(prompt)
+            # Use questionary password field to hide input characters
+            from workflow_tools.core.questionary_utils import password
+            response = password(prompt)
             # Sanitize the actual response to prevent encoding issues downstream
             clean_response = response.encode('utf-8', errors='replace').decode('utf-8')
             
