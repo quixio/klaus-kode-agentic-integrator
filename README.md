@@ -3,7 +3,8 @@
 ![Klaus Kode Splash Screen](./docs/images/klauskode_splashscreen.png)
 
 ## What is Klaus Kode?
-Klaus Kode is a Python-based Agentic Data Integrator that helps you [vibe code](https://en.wikipedia.org/wiki/Vibe_coding) your data integrations so you can connect to more systems, faster. You run it in your terminal as a workflow wizard. 
+Agentic Data Integrator that helps you build production-ready data pipelines so you can connect to more systems, faster. You run it in your terminal as a workflow wizard.
+ 
 * It uses AI agents (primarily Claude Code) to generate connector code, run and test that code, analyze logs, as well as manage dependencies and environment variables.
 * It uses the [Quix Cloud](https://quix.io/quix-cloud) platform as a sandbox for running code in isolated containers and storing data. 
 
