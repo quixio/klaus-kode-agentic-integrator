@@ -246,18 +246,15 @@ class PrerequisitesCollector:
                 cached_data = json.load(f)
             
             # Use the new beautiful cache panel display
-            content_dict = {
-                "Workspace ID": cached_data.get('workspace_id', 'N/A')
-            }
-            
+            content_dict = {}
+
+            # Only show topic info in cache now (workspace comes from env var)
             if workflow_type == "source":
                 content_dict["Output Topic ID"] = cached_data.get('topic_id', 'N/A')
                 content_dict["Output Topic Name"] = cached_data.get('topic_name', 'N/A')
             else:
                 content_dict["Topic ID"] = cached_data.get('topic_id', 'N/A')
                 content_dict["Topic Name"] = cached_data.get('topic_name', 'N/A')
-            
-            content_dict["Branch Name"] = cached_data.get('branch_name', 'main')
             
             # Display the beautiful cache panel
             printer.print_cache_panel(
@@ -275,26 +272,32 @@ class PrerequisitesCollector:
                 raise NavigationBackRequest("User requested to go back")
             use_cached = (response == 'yes')
             if use_cached:
-                # Load cached data into context
-                self.context.workspace.workspace_id = cached_data['workspace_id']
+                # Load cached topic data into context
                 self.context.workspace.topic_id = cached_data['topic_id']
                 self.context.workspace.topic_name = cached_data['topic_name']
-                self.context.workspace.branch_name = cached_data.get('branch_name', 'main')
-                
-                # Get repository ID for secret management if not cached
-                if 'repository_id' in cached_data:
-                    self.context.workspace.repository_id = cached_data['repository_id']
-                else:
+
+                # Get workspace from environment or cached data (for backwards compatibility)
+                workspace_id = os.environ.get('QUIX_WORKSPACE_ID') or cached_data.get('workspace_id')
+                if workspace_id:
+                    self.context.workspace.workspace_id = workspace_id
+                    # Get workspace details
                     try:
-                        workspace_details = await quix_tools.get_workspace_details(self.context.workspace.workspace_id)
-                        if workspace_details and 'repositoryId' in workspace_details:
-                            self.context.workspace.repository_id = workspace_details['repositoryId']
+                        workspace_details = await quix_tools.get_workspace_details(workspace_id)
+                        if workspace_details:
+                            self.context.workspace.workspace_name = workspace_details.get('name', workspace_id)
+                            self.context.workspace.branch_name = workspace_details.get('branch', 'main')
+                            if 'repositoryId' in workspace_details:
+                                self.context.workspace.repository_id = workspace_details['repositoryId']
                     except Exception as e:
                         if self.debug_mode:
-                            printer.print_debug(f"Could not get repository ID: {e}")
-                
-                # Note: Technology is no longer cached here - it's cached with template selection
-                printer.print("✅ Using cached workspace and topic settings.")
+                            printer.print_debug(f"Could not get workspace details: {e}")
+                        self.context.workspace.workspace_name = workspace_id
+                        self.context.workspace.branch_name = 'main'
+                else:
+                    printer.print("⚠️ No workspace configured. You'll need to select one.")
+                    return False
+
+                printer.print("✅ Using cached topic settings.")
                 return True
             else:
                 printer.print("🔄 Collecting new prerequisites.")
@@ -309,12 +312,38 @@ class PrerequisitesCollector:
     
     async def collect_workspace_info(self) -> bool:
         """Collect workspace information from user.
-        
+
         Returns:
             True if successful, False otherwise
         """
+        # Check if QUIX_WORKSPACE_ID is already set in environment
+        default_workspace_id = os.environ.get('QUIX_WORKSPACE_ID')
+        if default_workspace_id:
+            printer.print_section_header("Step 1: Workspace Selection", icon="🏢", style="cyan")
+            printer.print(f"✅ Using default workspace: {default_workspace_id}")
+
+            # Store workspace info
+            self.context.workspace.workspace_id = default_workspace_id
+
+            # Try to get additional workspace details
+            try:
+                workspace_details = await quix_tools.get_workspace_details(default_workspace_id)
+                if workspace_details:
+                    self.context.workspace.workspace_name = workspace_details.get('name', default_workspace_id)
+                    self.context.workspace.branch_name = workspace_details.get('branch', 'main')
+                    if 'repositoryId' in workspace_details:
+                        self.context.workspace.repository_id = workspace_details['repositoryId']
+            except Exception as e:
+                # If we can't get details, just use the ID
+                self.context.workspace.workspace_name = default_workspace_id
+                self.context.workspace.branch_name = 'main'
+                if self.debug_mode:
+                    printer.print_debug(f"Could not get workspace details: {e}")
+
+            return True
+
         printer.print_section_header("Step 1: Workspace Selection", icon="🏢", style="cyan")
-        
+
         try:
             # Get list of workspaces
             printer.print("Fetching available workspaces...")
@@ -384,20 +413,49 @@ class PrerequisitesCollector:
     
     async def collect_topic_info(self, workflow_type: Literal["sink", "source"]) -> bool:
         """Collect topic information based on workflow type.
-        
+
         Args:
             workflow_type: Type of workflow
-            
+
         Returns:
             True if successful, False otherwise
         """
         topic_label = "output topic" if workflow_type == "source" else "source topic"
         printer.print_section_header(f"Step 2: {topic_label.title()} Selection", icon="📊", style="cyan")
-        
+
         try:
             # Get list of topics
             printer.print(f"Fetching available topics in workspace...")
             topics_df = await quix_tools.find_topics(self.context.workspace.workspace_id)
+
+            # Check for demo topic and create if it doesn't exist
+            demo_topic_name = "demo-output-topic" if workflow_type == "source" else "demo-input-topic"
+            demo_topic_exists = False
+
+            if not topics_df.empty:
+                # Check if demo topic already exists
+                for _, row in topics_df.iterrows():
+                    if row['Topic Name'] == demo_topic_name:
+                        demo_topic_exists = True
+                        break
+
+            # Create demo topic if it doesn't exist
+            if not demo_topic_exists:
+                printer.print(f"📝 Creating default {demo_topic_name} for first-time use...")
+                try:
+                    result = await quix_tools.manage_topic(
+                        action=quix_tools.TopicAction.create,
+                        workspace_id=self.context.workspace.workspace_id,
+                        name=demo_topic_name,
+                        partitions=1
+                    )
+                    if result:
+                        printer.print(f"✅ Created {demo_topic_name} successfully!")
+                        # Refresh topics list
+                        topics_df = await quix_tools.find_topics(self.context.workspace.workspace_id)
+                except Exception as e:
+                    printer.print(f"⚠️ Could not create demo topic: {e}")
+                    # Continue anyway, user can select or create another
             
             if topics_df.empty:
                 printer.print(f"❌ No topics found in the workspace.")
@@ -420,17 +478,29 @@ class PrerequisitesCollector:
             # Convert dataframe to choices for questionary
             choices = []
             topic_map = {}
-            
+            demo_topic_name = "demo-output-topic" if workflow_type == "source" else "demo-input-topic"
+            demo_choice = None
+
             for _, row in topics_df.iterrows():
                 topic_name = row['Topic Name']
                 display_name = f"{topic_name} (Partitions: {row.get('Partitions', 'N/A')}, Retention: {row.get('Retention (hours)', 'N/A')}h)"
-                choices.append({'name': display_name, 'value': topic_name})
+
+                # Mark demo topic as default
+                if topic_name == demo_topic_name:
+                    display_name = f"⭐ {display_name} [RECOMMENDED FOR FIRST TIME]"
+                    demo_choice = {'name': display_name, 'value': topic_name}
+                else:
+                    choices.append({'name': display_name, 'value': topic_name})
                 topic_map[topic_name] = row.to_dict()
-            
+
+            # Put demo topic at the top if it exists
+            if demo_choice:
+                choices.insert(0, demo_choice)
+
             # Add create new option for source workflows
             if workflow_type == "source":
                 choices.append({'name': '🆕 Create a new topic', 'value': 'CREATE_NEW'})
-            
+
             # Add back option
             choices.append({'name': '← Go back', 'value': 'back'})
             
@@ -615,18 +685,15 @@ class PrerequisitesCollector:
     
     def cache_prerequisites(self, workflow_type: Literal["sink", "source"]) -> None:
         """Cache the collected prerequisites to a file.
-        
+
         Args:
             workflow_type: Type of workflow
         """
         try:
-            # Prepare cache data - workspace and topic only (technology moved to template cache)
+            # Prepare cache data - only topic info now (workspace is in env var)
             cache_data = {
-                "workspace_id": self.context.workspace.workspace_id,
-                "workspace_name": self.context.workspace.workspace_name,
                 "topic_id": self.context.workspace.topic_id,
                 "topic_name": self.context.workspace.topic_name,
-                "branch_name": self.context.workspace.branch_name,
                 "timestamp": datetime.now().isoformat()
             }
             

@@ -1,5 +1,6 @@
 # triage_agent.py - Triage agent for workflow selection
 
+import os
 from typing import Optional
 from workflow_tools.common import WorkflowContext, printer
 from workflow_tools.workflow_types import WorkflowType, WorkflowInfo
@@ -16,17 +17,21 @@ class TriageAgent:
         self.context = context
         self.debug_mode = debug_mode
     
-    def get_user_choice(self) -> Optional[WorkflowType]:
+    def get_user_choice(self):
         """Get user's workflow choice using interactive menu."""
         # Set a fixed width for consistent display
         panel_width = 74
         console = Console(width=panel_width)
-        
+
         # Build workflow options list
         workflow_options = []
         workflows = list(WorkflowInfo.WORKFLOW_DETAILS.keys())
-        
+
         for workflow_type in workflows:
+            # Skip Transform workflow for now (hidden as per requirements)
+            if workflow_type == WorkflowType.TRANSFORM:
+                continue
+
             info = WorkflowInfo.WORKFLOW_DETAILS[workflow_type]
             status_suffix = f" !{info['status']}" if info['status'] == "TBD" else ""
             option_text = f"{info['name']} ({info['description']}){status_suffix}"
@@ -90,7 +95,21 @@ class TriageAgent:
             display_with_spacing = option['display'] + '\n'
             choices.append({'name': display_with_spacing, 'value': option['workflow_type']})
             workflow_map[option['workflow_type']] = option
-        
+
+        # Add option to change default workspace
+        current_workspace = os.environ.get('QUIX_WORKSPACE_ID')
+        if current_workspace:
+            # Extract just the project-env part for display
+            parts = current_workspace.split('-')
+            if len(parts) >= 3:
+                project_env = f"{parts[-2]}-{parts[-1]}"  # e.g., "myproject-production"
+            else:
+                project_env = current_workspace
+            workspace_option = f'⚙️  Change default project/environment (currently: {project_env})\n'
+        else:
+            workspace_option = '⚙️  Set default project/environment\n'
+        choices.append({'name': workspace_option, 'value': 'WORKSPACE_CONFIG'})
+
         # Add quit option with newline spacing
         choices.append({'name': '❌ Quit\n', 'value': 'QUIT'})
         
@@ -100,7 +119,11 @@ class TriageAgent:
         if selected_type == 'QUIT':
             printer.print("👋 Goodbye!")
             return None
-        
+
+        if selected_type == 'WORKSPACE_CONFIG':
+            # Handle workspace configuration
+            return 'WORKSPACE_CONFIG'
+
         workflow_type = selected_type
         selected = workflow_map[workflow_type]
         
@@ -115,20 +138,20 @@ class TriageAgent:
         
         return workflow_type
     
-    def run_triage(self) -> Optional[WorkflowType]:
-        """Run the triage process and return selected workflow."""
+    def run_triage(self):
+        """Run the triage process and return selected workflow or special action."""
         # Clear screen at the start of the workflow
         from workflow_tools.common import clear_screen
         clear_screen()
-        
+
         # Don't print header here anymore - it's handled by the menu
         selected_workflow = self.get_user_choice()
-        
-        if selected_workflow:
+
+        if selected_workflow and selected_workflow != 'WORKSPACE_CONFIG':
             # Clear screen after selection to start fresh
             clear_screen()
             workflow_name = WorkflowInfo.get_name(selected_workflow)
             printer.print(f"✅ Selected: {workflow_name}")
             printer.print("")
-        
+
         return selected_workflow
