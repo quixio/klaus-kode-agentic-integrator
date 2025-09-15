@@ -12,7 +12,7 @@ Agentic Data Integrator that helps you build production-ready data pipelines so 
 To save time. A huge part of software and data engineering is simply about wrangling data. You need to get data out of one system and pipe it into another system, while preventing data loss. This usually requires writing custom “glue” code which is a lot of busywork. The data ecosystem is sprawling with pre-built connectors for a patchwork of different systems—some well-maintained, others barely touched. But instead of hunting down the right connector, why not get AI to help you build and test your own connectors?
 
 ## Who is Klaus Kode for?
-Klaus Kode is for engineers and other technical roles who need to build data pipelines but lack the required data engineering skills. The focus is on pipelines that require _high throughput_. If you’re dealing with a very small number of events (such as emails and chat messages from a handful of users), you might be better off with [make.com](http://make.com) or [n8n.io](https://n8n.io/). 
+Klaus Kode is for engineers and other technical roles who need to build data pipelines but don't have time to build integrations from the ground up. The focus is on pipelines that require _high throughput_. If you’re dealing with a very small number of events (such as emails and chat messages from a handful of users), you might be better off with [make.com](http://make.com) or [n8n.io](https://n8n.io/). 
 
 Klaus Kode is best suited for scenarios where you need to integrate high-fidelity data sources — this could be continuous telemetry streams, blockchain transaction feeds, or large static datasets that need to be ingested and processed in a distributed manner.
 
