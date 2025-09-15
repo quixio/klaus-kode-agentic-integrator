@@ -117,7 +117,10 @@ class TriageAgent:
         selected_type = select("", choices, show_border=False)
         
         if selected_type == 'QUIT':
-            printer.print("👋 Goodbye!")
+            # Clear any questionary artifacts and print goodbye
+            import sys
+            sys.stdout.write('\r\033[K')  # Clear the current line
+            printer.print("\n👋 Goodbye!\n")
             return None
 
         if selected_type == 'WORKSPACE_CONFIG':

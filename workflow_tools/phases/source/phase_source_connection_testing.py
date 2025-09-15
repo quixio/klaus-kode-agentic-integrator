@@ -42,12 +42,15 @@ class SourceConnectionTestingPhase(BasePhase):
             from workflow_tools.exceptions import NavigationBackRequest
             cache_utils = CacheUtils(self.context, self.debug_mode)
             
-            # Step 0: Check for cached connection requirements or ask user
-            printer.print_section_header("Connection Test Requirements", icon="📝", style="cyan")
-            
-            # Check for cached user prompt (connection requirements)
-            cached_prompt = cache_utils.check_cached_user_prompt()
-            if cached_prompt:
+            # Step 0: Check if requirements already collected in prerequisites phase
+            if hasattr(self.context.technology, 'source_technology') and self.context.technology.source_technology:
+                # Requirements already collected in prerequisites phase - just use them
+                printer.print_section_header("Connection Test Requirements", icon="📝", style="cyan")
+                user_requirements = self.context.technology.source_technology
+                printer.print(f"✅ Using requirements from earlier: {user_requirements}")
+
+            # Otherwise check for cached user prompt (for backward compatibility)
+            elif (cached_prompt := cache_utils.check_cached_user_prompt()):
                 # Extract the actual prompt from the cached file (skip header comments)
                 prompt_lines = cached_prompt.split('\n')
                 actual_prompt_lines = []

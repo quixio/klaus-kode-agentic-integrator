@@ -16,6 +16,9 @@ logging.getLogger("litellm").setLevel(logging.CRITICAL)
 logging.getLogger("LiteLLM.litellm_logging").setLevel(logging.CRITICAL)
 logging.getLogger("litellm.litellm_logging").setLevel(logging.CRITICAL)
 
+# Suppress asyncio errors on exit
+logging.getLogger('asyncio').setLevel(logging.CRITICAL)
+
 # Import refactored components
 from workflow_tools import (
     WorkflowContext,
@@ -363,8 +366,8 @@ class WorkflowOrchestrator:
             selected_workflow = self.triage_agent.run_triage()
 
             if selected_workflow is None:
-                # User chose to quit
-                return
+                # User chose to quit - exit cleanly
+                return None
 
             # Handle workspace configuration
             if selected_workflow == 'WORKSPACE_CONFIG':
@@ -516,16 +519,22 @@ async def main():
         
         try:
             success = await workflow.run()
-            workflow_logger.info("=" * 60)
-            if success:
-                workflow_logger.info("KLAUS KODE COMPLETED")
-            else:
-                workflow_logger.info("KLAUS KODE STOPPED")
-            workflow_logger.info(f"End time: {datetime.now()}")
-            workflow_logger.info("=" * 60)
-            
-            # If user chose to quit, exit the loop
-            if success is None or not success:
+
+            # Only log completion if not quitting
+            if success is not None:
+                workflow_logger.info("=" * 60)
+                if success:
+                    workflow_logger.info("KLAUS KODE COMPLETED")
+                else:
+                    workflow_logger.info("KLAUS KODE STOPPED")
+                workflow_logger.info(f"End time: {datetime.now()}")
+                workflow_logger.info("=" * 60)
+
+            # If user chose to quit, exit the loop cleanly
+            if success is None:
+                break
+            elif not success:
+                # Workflow failed, ask if they want to continue
                 break
                 
         except KeyboardInterrupt:
@@ -568,12 +577,20 @@ if __name__ == "__main__":
     parser.add_argument('--debug', '-d', action='store_true',
                         help='Enable debug mode (saves intermediate files and shows additional info)')
     args = parser.parse_args()
-    
+
     # Set environment variables based on arguments
     if args.verbose:
         os.environ['VERBOSE_MODE'] = 'true'
     if args.debug:
         os.environ['DEBUG_MODE'] = 'true'
-    
+
+    # Suppress asyncio error messages on exit
+    import warnings
+    warnings.filterwarnings("ignore", category=RuntimeWarning)
+
     # Run the main async function
-    asyncio.run(main())
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        # Silently exit on Ctrl+C
+        pass

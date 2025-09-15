@@ -13,11 +13,15 @@ from typing import Dict, Optional, Literal, List, Tuple
 from agents import RunConfig
 from workflow_tools.contexts import WorkflowContext
 from workflow_tools.common import printer, sanitize_name, get_user_approval, get_user_approval_with_back, clear_screen
+from workflow_tools.core.questionary_utils import QUESTIONARY_STYLE, select
+from workflow_tools.core.navigation import NavigationRequest, SinkWorkflowSteps, SourceWorkflowSteps
 from workflow_tools.exceptions import NavigationBackRequest
 from workflow_tools.integrations import quix_tools
 from workflow_tools.integrations.quix_tools import QuixApiError
-from workflow_tools.core.prompt_manager import load_task_prompt
+from workflow_tools.core.prompt_manager import load_task_prompt, load_agent_instructions
 from workflow_tools.core.url_builder import QuixPortalURLBuilder
+from workflow_tools.services.model_utils import create_agent_with_model_config
+from agents import Runner
 
 
 class PrerequisitesCollector:
@@ -64,133 +68,146 @@ class PrerequisitesCollector:
     
     async def collect_prerequisites(self, workflow_type: Literal["sink", "source"]) -> Dict[str, any]:
         """Collect all prerequisites for the specified workflow type.
-        
+
         Args:
             workflow_type: Type of workflow ("sink" or "source")
-            
+
         Returns:
             Dictionary containing collected prerequisites
         """
         # Don't print a phase header here - base_phase already does that
         # Just show what we're collecting
         printer.print("")  # Add spacing after phase header
-        printer.print_section_header(f"{workflow_type.capitalize()} Prerequisites", 
-                                   subtitle="Collecting workspace, topic, and technology settings",
+        printer.print_section_header(f"{workflow_type.capitalize()} Prerequisites",
+                                   subtitle="Collecting requirements and configuration",
                                    icon="🔧", style="cyan")
         printer.print("")  # Add spacing after section header
-        
-        # First, collect app name so it can be used for caching
-        # MOVED FROM knowledge_gatherer.py lines 41-91
+
+        # Initialize services
         from workflow_tools.phases.shared.cache_utils import CacheUtils
         from workflow_tools.phases.shared.app_management import AppManager
-        
+
         cache_utils = CacheUtils(self.context, self.debug_mode)
         app_manager = AppManager(self.context, self.debug_mode)
-        
-        # Check for cached app name
-        cached_app_name = cache_utils.check_cached_app_name()
-        
-        if cached_app_name:
-            # Found cached app name - ask if user wants to use it
-            if cache_utils.use_cached_app_name(cached_app_name):
-                # User accepted cached app name
-                app_name = cached_app_name
-                printer.print(f"✅ Using cached application name: {app_name}")
-                # Note: Deletion of existing app happens in create_application() in knowledge phase
+
+        # Check if we have a navigation request to jump to a specific step
+        if hasattr(self.context, 'navigation_request') and self.context.navigation_request:
+            nav_req = self.context.navigation_request
+            self.context.navigation_request = None  # Clear the request
+
+            # Map navigation step to our internal step numbers
+            if workflow_type == 'sink':
+                if nav_req.target_step == SinkWorkflowSteps.COLLECT_TOPIC:
+                    current_step = 3  # Jump to topic selection
+                    printer.print("\n⬅️ Going back to topic selection...\n")
+                elif nav_req.target_step == SinkWorkflowSteps.COLLECT_WORKSPACE:
+                    current_step = 2  # Jump to workspace selection
+                elif nav_req.target_step == SinkWorkflowSteps.COLLECT_APP_NAME:
+                    current_step = 1  # Jump to app name
+                else:
+                    current_step = 0  # Default to requirements
             else:
-                # User wants to enter fresh app name
-                clear_screen()
-                printer.print(f"\n📝 What would you like to name your {workflow_type} application?")
-                printer.print("   (This will be the name shown in the Quix portal)")
-                
-                app_name = printer.input("Application name: ")
-                if not app_name:
-                    printer.print("❌ No application name provided.")
-                    return False
-                
-                # Cache the new app name
-                cache_utils.save_app_name_to_cache(app_name)
+                # Source workflow doesn't have topic selection
+                if nav_req.target_step == SourceWorkflowSteps.COLLECT_WORKSPACE:
+                    current_step = 2  # Jump to workspace selection
+                elif nav_req.target_step == SourceWorkflowSteps.COLLECT_APP_NAME:
+                    current_step = 1  # Jump to app name
+                else:
+                    current_step = 0  # Default to requirements
         else:
-            # No cached app name, ask user
-            clear_screen()
-            printer.print(f"\n📝 What would you like to name your {workflow_type} application?")
-            printer.print("   (This will be the name shown in the Quix portal)")
-            
-            app_name = printer.input("Application name: ")
-            if not app_name:
-                printer.print("❌ No application name provided.")
-                return False
-            
-            # Cache the new app name
-            cache_utils.save_app_name_to_cache(app_name)
-        
-        # Sanitize the app name for use as application name
-        import re
-        sanitized_name = re.sub(r'[^a-zA-Z0-9-_]', '-', app_name)
-        self.context.deployment.application_name = sanitized_name
-        
-        printer.print(f"✅ Application name: {sanitized_name}")
-        
-        # Clear screen before showing cached prerequisites
-        clear_screen()
-        
-        # Track current step for internal navigation
-        # Steps: 0=check_cache, 1=workspace, 2=topic
-        current_step = 0
-        cache_was_shown = False
-        
-        while current_step <= 2:
+            # Track current step for navigation: 0=requirements, 1=app_name, 2=workspace, 3=topic
+            current_step = 0
+
+        app_name = None
+        cached_app_name_handled = False
+
+        while current_step <= 3:
             try:
                 if current_step == 0:
-                    # Check for cached prerequisites
+                    # STEP 1: Collect technology/requirements
+                    clear_screen()
+                    if not await self.collect_technology_info(workflow_type):
+                        raise NavigationBackRequest("User requested to go back from requirements")
+                    current_step = 1
+
+                elif current_step == 1:
+                    # STEP 2: Collect app name (with AI suggestion)
+                    clear_screen()
+
+                    # Only check for cached app name once
+                    if not cached_app_name_handled:
+                        cached_app_name = cache_utils.check_cached_app_name()
+                        cached_app_name_handled = True
+
+                        if cached_app_name:
+                            if cache_utils.use_cached_app_name(cached_app_name):
+                                app_name = cached_app_name
+                                printer.print(f"✅ Using cached application name: {app_name}")
+                            else:
+                                app_name = await self._get_app_name_with_suggestion(workflow_type)
+                                if not app_name:
+                                    raise NavigationBackRequest("User requested to go back from app name")
+                                cache_utils.save_app_name_to_cache(app_name)
+                        else:
+                            app_name = await self._get_app_name_with_suggestion(workflow_type)
+                            if not app_name:
+                                raise NavigationBackRequest("User requested to go back from app name")
+                            cache_utils.save_app_name_to_cache(app_name)
+                    else:
+                        # On subsequent visits to this step, just ask for app name
+                        app_name = await self._get_app_name_with_suggestion(workflow_type)
+                        if not app_name:
+                            raise NavigationBackRequest("User requested to go back from app name")
+                        cache_utils.save_app_name_to_cache(app_name)
+
+                    # Sanitize the app name
+                    import re
+                    sanitized_name = re.sub(r'[^a-zA-Z0-9-_]', '-', app_name)
+                    self.context.deployment.application_name = sanitized_name
+                    printer.print(f"✅ Application name: {sanitized_name}")
+                    current_step = 2
+
+                elif current_step == 2:
+                    # STEP 3: Workspace selection
+                    clear_screen()
+
+                    # Check for cached prerequisites first
                     cache_result = await self.check_for_cached_prerequisites(workflow_type)
                     if cache_result:
-                        # Cache was accepted, we're done
+                        # Cache was accepted with topic info, we're done
                         return True
-                    # Cache was shown but rejected, or no cache exists
-                    # Update cache_was_shown flag for navigation purposes
-                    cache_was_shown = hasattr(self, '_cache_was_displayed') and self._cache_was_displayed
-                    current_step = 1  # Move to workspace selection
-                    
-                elif current_step == 1:
+
                     # Collect workspace info
                     if not await self.collect_workspace_info():
-                        return False
-                    
-                    # Now that we have a workspace, check for app name collision
-                    # This provides early feedback before topic selection
-                    from workflow_tools.phases.shared.app_management import AppManager
-                    app_manager = AppManager(self.context, self.debug_mode)
+                        raise NavigationBackRequest("User requested to go back from workspace")
+
+                    # Check for app name collision
                     if not await app_manager.check_and_handle_app_name_collision(self.context.deployment.application_name):
                         return False
-                    
-                    current_step = 2  # Move to topic selection
-                    
-                elif current_step == 2:
-                    # Collect topic info
+
+                    current_step = 3
+
+                elif current_step == 3:
+                    # STEP 4: Topic selection
                     if not await self.collect_topic_info(workflow_type):
-                        return False
-                    # All prerequisites collected
+                        raise NavigationBackRequest("User requested to go back from topic")
+
+                    # All steps completed successfully
                     break
-                    
-            except NavigationBackRequest:
-                # Handle internal navigation
-                if current_step == 0:
-                    # At cache prompt, go back to triage (previous phase)
-                    raise
-                elif current_step == 1 and cache_was_shown:
-                    # From workspace, go back to cache prompt
-                    current_step = 0
-                    printer.print("\n⬅️ Going back to cached prerequisites...\n")
-                elif current_step == 1 and not cache_was_shown:
-                    # From workspace with no cache shown, go back to triage
-                    raise
-                elif current_step == 2:
-                    # From topic, go back to workspace
-                    current_step = 1
-                    printer.print("\n⬅️ Going back to workspace selection...\n")
+
+            except NavigationBackRequest as e:
+                # Handle back navigation between steps
+                if current_step > 0:
+                    # Special handling: if going back from topic (step 3) and workspace is automated,
+                    # skip workspace (step 2) and go directly to app name (step 1)
+                    if current_step == 3 and os.environ.get('QUIX_WORKSPACE_ID'):
+                        current_step = 1  # Skip automated workspace, go to app name
+                        printer.print("\n⬅️ Going back to application name (skipping automated workspace)...\n")
+                    else:
+                        current_step -= 1
+                        printer.print("\n⬅️ Going back to previous step...\n")
                 else:
-                    # Shouldn't reach here, but bubble up just in case
+                    # At first step, bubble up to phase navigation
                     raise
         
         # Cache the prerequisites (workspace and topic only)
@@ -316,10 +333,11 @@ class PrerequisitesCollector:
         Returns:
             True if successful, False otherwise
         """
+        printer.print_section_header("Step 3: Workspace Selection", icon="🏢", style="cyan")
+
         # Check if QUIX_WORKSPACE_ID is already set in environment
         default_workspace_id = os.environ.get('QUIX_WORKSPACE_ID')
         if default_workspace_id:
-            printer.print_section_header("Step 1: Workspace Selection", icon="🏢", style="cyan")
             printer.print(f"✅ Using default workspace: {default_workspace_id}")
 
             # Store workspace info
@@ -341,8 +359,6 @@ class PrerequisitesCollector:
                     printer.print_debug(f"Could not get workspace details: {e}")
 
             return True
-
-        printer.print_section_header("Step 1: Workspace Selection", icon="🏢", style="cyan")
 
         try:
             # Get list of workspaces
@@ -368,9 +384,9 @@ class PrerequisitesCollector:
                 choices.append({'name': display_name, 'value': value})
                 workspace_map[value] = row.to_dict()
             
-            # Add back option
-            choices.append({'name': '← Go back', 'value': 'back'})
-            
+            # Add back option to go to app name
+            choices.append({'name': '← Go back to application name', 'value': 'back'})
+
             selected_id = select("📋 Available Workspaces", choices, show_border=True)
             
             # Check if user wants to go back
@@ -421,7 +437,7 @@ class PrerequisitesCollector:
             True if successful, False otherwise
         """
         topic_label = "output topic" if workflow_type == "source" else "source topic"
-        printer.print_section_header(f"Step 2: {topic_label.title()} Selection", icon="📊", style="cyan")
+        printer.print_section_header(f"Step 4: {topic_label.title()} Selection", icon="📊", style="cyan")
 
         try:
             # Get list of topics
@@ -501,8 +517,11 @@ class PrerequisitesCollector:
             if workflow_type == "source":
                 choices.append({'name': '🆕 Create a new topic', 'value': 'CREATE_NEW'})
 
-            # Add back option
-            choices.append({'name': '← Go back', 'value': 'back'})
+            # Add back option - if workspace is automated, indicate we're going back to app name
+            if os.environ.get('QUIX_WORKSPACE_ID'):
+                choices.append({'name': '← Go back to application name', 'value': 'back'})
+            else:
+                choices.append({'name': '← Go back to workspace selection', 'value': 'back'})
             
             selected = select(f"📋 Available Topics for {topic_label}", choices, show_border=True)
             
@@ -592,52 +611,62 @@ class PrerequisitesCollector:
     
     async def collect_technology_info(self, workflow_type: Literal["sink", "source"]) -> bool:
         """Collect technology information based on workflow type.
-        
+
         Args:
             workflow_type: Type of workflow
-            
+
         Returns:
             True if successful, False otherwise
         """
-        tech_label = "source technology" if workflow_type == "source" else "destination technology"
-        printer.print_section_header(f"Step 3: {tech_label.title()} Selection", icon="🔧", style="cyan")
-        
-        # Get technology patterns for this workflow type
-        tech_patterns = self.TECHNOLOGY_PATTERNS[workflow_type]
-        
-        # Ask user for technology
-        printer.print(f"What {tech_label} would you like to connect to?")
-        printer.print(f"(e.g., {', '.join(list(tech_patterns.keys())[:5])}...)")
-        
-        user_input = printer.input(f"\n{tech_label.title()}: ").strip().lower()
-        
-        if not user_input:
-            printer.print(f"❌ {tech_label.title()} cannot be empty.")
-            return False
-        
-        # Try to match with known patterns (for logging only)
-        matched_category = None
-        for tech, patterns in tech_patterns.items():
-            if any(pattern in user_input for pattern in patterns):
-                matched_category = tech
-                break
-        
-        # Always use the user's exact input
-        if matched_category:
-            printer.print(f"✅ Detected technology type: {matched_category}")
+        from workflow_tools.phases.shared.cache_utils import CacheUtils
+        cache_utils = CacheUtils(self.context, self.debug_mode)
+
+        # Check for cached user prompt/requirements
+        cached_requirements = cache_utils.check_cached_user_prompt()
+
+        if cached_requirements:
+            # Show cached requirements and ask if they want to use them
+            if cache_utils.use_cached_user_prompt(cached_requirements):
+                # Store cached requirements
+                if workflow_type == "source":
+                    self.context.technology.source_technology = cached_requirements
+                    self.context.technology.destination_technology = cached_requirements  # For compatibility
+                else:
+                    self.context.technology.destination_technology = cached_requirements
+
+                printer.print(f"✅ Using cached requirements!")
+                return True
+
+        # No cache or user chose to enter fresh requirements
+        if workflow_type == "source":
+            printer.print_section_header("Step 1: What do you want to build?", icon="🎯", style="cyan")
+            printer.print("\nDescribe what you want to connect to or build:")
+            printer.print("(e.g., \"I want to read sensor data from an MQTT broker\" or")
+            printer.print("       \"Connect to a weather API and fetch forecasts every hour\")")
         else:
-            printer.print(f"ℹ️ Using custom technology: {user_input}")
-        
-        # Store technology info - ALWAYS use what the user typed
+            printer.print_section_header("Step 1: What do you want to build?", icon="🎯", style="cyan")
+            printer.print("\nDescribe what you want to build or where you want to send data:")
+            printer.print("(e.g., \"I want to store events in a PostgreSQL database\" or")
+            printer.print("       \"Send alerts to a Slack channel when thresholds are exceeded\")")
+
+        user_input = printer.input("\nYour requirements: ").strip()
+
+        if not user_input:
+            printer.print(f"❌ Requirements cannot be empty.")
+            return False
+
+        # Store user requirements - this is what we'll use for app name suggestion
         if workflow_type == "source":
             self.context.technology.source_technology = user_input
             self.context.technology.destination_technology = user_input  # For compatibility
         else:
             self.context.technology.destination_technology = user_input
-        
-        # Search for library items using what the user typed
-        await self._search_library_items(user_input, workflow_type)
-        
+
+        # Save to cache for future runs
+        cache_utils.save_user_prompt_to_cache(user_input)
+
+        printer.print(f"✅ Got it! I understand what you want to build.")
+
         return True
     
     
@@ -682,7 +711,123 @@ class PrerequisitesCollector:
             printer.print(f"⚠️ Could not search library: {e}")
             self.context.technology.library_results = []
             self.context.technology.has_exact_template_match = False
-    
+
+    async def _get_app_name_with_suggestion(self, workflow_type: Literal["sink", "source"]) -> Optional[str]:
+        """Get app name from user with AI suggestion based on requirements.
+
+        Args:
+            workflow_type: Type of workflow
+
+        Returns:
+            App name or None if user wants to go back
+        """
+        clear_screen()
+        printer.print_section_header("Step 2: Application Name", icon="📝", style="cyan")
+        printer.print(f"\nWhat would you like to name your {workflow_type} application?")
+        printer.print("   (This will be the name shown in the Quix portal)")
+
+        # Get AI suggestion based on requirements
+        suggested_name = await self._suggest_app_name(workflow_type)
+
+        if suggested_name:
+            printer.print(f"\n💡 Suggested name: {suggested_name}")
+
+            # Offer choice to use suggestion, enter custom, or go back
+            choices = [
+                {'name': f'✓ Use suggested name: {suggested_name}', 'value': 'use_suggestion'},
+                {'name': '✏️  Enter a different name', 'value': 'custom'},
+                {'name': '← Go back to requirements', 'value': 'back'}
+            ]
+
+            action = select("Choose an option:", choices, show_border=True)
+
+            if action == 'back':
+                return None  # Signal to go back
+            elif action == 'use_suggestion':
+                app_name = suggested_name
+            else:  # custom
+                # Use questionary for text input
+                import questionary
+                app_name = questionary.text(
+                    "Application name:",
+                    style=QUESTIONARY_STYLE
+                ).ask()
+        else:
+            # No suggestion available, offer to enter name or go back
+            choices = [
+                {'name': '✏️  Enter application name', 'value': 'enter'},
+                {'name': '← Go back to requirements', 'value': 'back'}
+            ]
+
+            action = select("Choose an option:", choices, show_border=True)
+
+            if action == 'back':
+                return None  # Signal to go back
+            else:
+                # Use questionary for text input
+                import questionary
+                app_name = questionary.text(
+                    "Application name:",
+                    style=QUESTIONARY_STYLE
+                ).ask()
+
+        if not app_name:
+            printer.print("❌ No application name provided.")
+            return None
+
+        return app_name
+
+    async def _suggest_app_name(self, workflow_type: Literal["sink", "source"]) -> Optional[str]:
+        """Generate an app name suggestion using AI based on requirements.
+
+        Args:
+            workflow_type: Type of workflow
+
+        Returns:
+            Suggested app name or None if generation fails
+        """
+        try:
+            # Get the technology/requirements that were just collected
+            tech = getattr(self.context.technology, 'destination_technology' if workflow_type == 'sink' else 'source_technology', None)
+
+            if not tech:
+                return None
+
+            # Create the app name suggester agent
+            agent = create_agent_with_model_config(
+                agent_name="AppNameSuggesterAgent",
+                task_type="app_name_suggestion",
+                workflow_type=workflow_type,
+                instructions=load_agent_instructions("AppNameSuggesterAgent"),
+                context_type=WorkflowContext
+            )
+
+            # Format the prompt with requirements
+            prompt = load_agent_instructions("AppNameSuggesterAgent")
+            prompt = prompt.replace("{requirements}", tech)
+            prompt = prompt.replace("{workflow_type}", workflow_type)
+
+            # Get suggestion from AI with short timeout
+            import asyncio
+            result = await asyncio.wait_for(
+                Runner.run(starting_agent=agent, input=prompt),
+                timeout=10  # 10 second timeout for quick response
+            )
+
+            suggested_name = result.final_output.strip()
+
+            # Sanitize the suggested name
+            import re
+            suggested_name = re.sub(r'[^a-zA-Z0-9-]', '-', suggested_name)
+            suggested_name = suggested_name.lower()[:30]  # Limit to 30 chars
+
+            return suggested_name
+
+        except Exception as e:
+            if self.debug_mode:
+                printer.print_debug(f"Could not generate app name suggestion: {e}")
+            return None
+
     def cache_prerequisites(self, workflow_type: Literal["sink", "source"]) -> None:
         """Cache the collected prerequisites to a file.
 
