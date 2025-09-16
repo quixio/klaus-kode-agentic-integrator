@@ -2,7 +2,6 @@ models:
   claude_code_sdk:
     model: sonnet
     max_turns: 50
-    max_thinking_tokens: 8000
     allowed_tools:
     - Read
     - Write
