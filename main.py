@@ -105,9 +105,10 @@ class WorkflowOrchestrator:
             printer.print("")
             
             # Ask user if they want to monitor the deployment
-            monitor_choice = printer.input("Would you like to monitor the deployment status and logs? (y/n): ").strip().lower()
+            from workflow_tools.common import get_user_approval
+            monitor_deployment = get_user_approval("Would you like to monitor the deployment status and logs?")
             
-            if monitor_choice in ['y', 'yes']:
+            if monitor_deployment:
                 if not await monitoring_phase.run():
                     printer.print("⚠️  Deployment monitoring encountered issues, but the deployment may still be functional.")
                     printer.print("   Check the Quix Portal for more details.")
@@ -134,9 +135,10 @@ class WorkflowOrchestrator:
             printer.print("   Sandbox testing completed successfully. Deployment was skipped.")
         
         # Ask if user wants to run another workflow
-        printer.print("\n" + "="*50)
-        response = printer.input("Would you like to run another workflow? (y/n): ").strip().lower()
-        if response in ['y', 'yes']:
+        printer.print_divider()
+        from workflow_tools.common import get_user_approval
+        run_another = get_user_approval("Would you like to run another workflow?")
+        if run_another:
             # Reset context for new workflow
             self.context = WorkflowContext()
             # Re-register services with fresh context
@@ -196,9 +198,10 @@ class WorkflowOrchestrator:
             printer.print("")
             
             # Ask user if they want to monitor the deployment
-            monitor_choice = printer.input("Would you like to monitor the deployment status and logs? (y/n): ").strip().lower()
+            from workflow_tools.common import get_user_approval
+            monitor_deployment = get_user_approval("Would you like to monitor the deployment status and logs?")
             
-            if monitor_choice in ['y', 'yes']:
+            if monitor_deployment:
                 if not await monitoring_phase.run():
                     printer.print("⚠️  Deployment monitoring encountered issues, but the deployment may still be functional.")
                     printer.print("   Check the Quix Portal for more details.")
@@ -215,9 +218,10 @@ class WorkflowOrchestrator:
             printer.print("   Sandbox testing completed successfully. Deployment was skipped.")
         
         # Ask if user wants to run another workflow
-        printer.print("\n" + "="*50)
-        response = printer.input("Would you like to run another workflow? (y/n): ").strip().lower()
-        if response in ['y', 'yes']:
+        printer.print_divider()
+        from workflow_tools.common import get_user_approval
+        run_another = get_user_approval("Would you like to run another workflow?")
+        if run_another:
             # Reset context for new workflow
             self.context = WorkflowContext()
             # Re-register services with fresh context
@@ -304,6 +308,7 @@ async def main():
         printer.print(" ╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝ ╚═════╝ ╚══════╝    ╚═╝  ╚═╝ ╚═════╝ ╚═════╝ ╚══════╝")
         printer.print("")
         printer.print("                    Klaus Kode—agentic data integrator")
+        printer.print("                    (Press Ctrl+C twice to force quit)")
         printer.print("=" * 80)
     
     # Check required environment variables
@@ -337,8 +342,8 @@ async def main():
     except Exception as e:
         printer.print(f"⚠️ Warning: Claude Code CLI check failed: {e}")
         printer.print("   You may need to install or configure Claude CLI later.")
-        response = input("   Continue anyway? (y/n): ").strip().lower()
-        if response not in ['y', 'yes']:
+        from workflow_tools.common import get_user_approval
+        if not get_user_approval("Continue anyway?"):
             printer.print("👋 Exiting. Please install Claude Code CLI and try again.")
             return
     
@@ -370,9 +375,9 @@ async def main():
             workflow_logger.info(f"End time: {datetime.now()}")
             workflow_logger.info("=" * 60)
             
-            printer.print("\n" + "="*50)
-            response = printer.input("Would you like to run another workflow? (y/n): ").strip().lower()
-            if response not in ['y', 'yes']:
+            printer.print_divider()
+            from workflow_tools.common import get_user_approval
+            if not get_user_approval("Would you like to run another workflow?"):
                 break
             # Otherwise, continue the loop to start fresh
             continue
@@ -385,9 +390,9 @@ async def main():
             workflow_logger.error("=" * 60)
             
             printer.print(f"\n❌ An error occurred: {e}")
-            printer.print("\n" + "="*50)
-            response = printer.input("Would you like to run another workflow? (y/n): ").strip().lower()
-            if response not in ['y', 'yes']:
+            printer.print_divider()
+            from workflow_tools.common import get_user_approval
+            if not get_user_approval("Would you like to run another workflow?"):
                 break
             # Otherwise, continue the loop to start fresh
             continue

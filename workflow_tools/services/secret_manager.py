@@ -44,24 +44,21 @@ class SecretManager:
         printer.print("   Checking if secret already exists...")
         
         # Ask user if they want to use existing or create new
-        while True:
-            choice = printer.input("   Does this secret already exist in your workspace? (y/n): ").strip().lower()
-            
-            if choice == 'y':
-                # List existing secrets and let user choose
-                secret_key = await self._select_existing_secret(var_name)
-                if secret_key:
-                    return secret_key
-                # If user cancelled, ask again
-                continue
-                
-            elif choice == 'n':
-                # Create new secret
-                secret_key = await self._create_new_secret(var_name, var_description)
+        from workflow_tools.common import get_user_approval
+        
+        use_existing = get_user_approval("Does this secret already exist in your workspace?")
+        
+        if use_existing:
+            # List existing secrets and let user choose
+            secret_key = await self._select_existing_secret(var_name)
+            if secret_key:
                 return secret_key
-                
-            else:
-                printer.print("   Please enter 'y' for yes or 'n' for no.")
+            # If user cancelled, try again
+            return await self.handle_secret_variable(var_name, var_description)
+        else:
+            # Create new secret
+            secret_key = await self._create_new_secret(var_name, var_description)
+            return secret_key
     
     async def _select_existing_secret(self, var_name: str) -> Optional[str]:
         """
@@ -140,18 +137,21 @@ class SecretManager:
         secret_key = custom_key if custom_key else suggested_key
         
         # Ask about scoping (repository vs workspace)
-        while True:
-            scope_choice = printer.input("   Create as repository-scoped (all workspaces) or workspace-scoped? (r/w): ").strip().lower()
-            if scope_choice == 'r':
-                repository_scoped = True
-                printer.print(f"   Creating repository-scoped secret: {secret_key}")
-                break
-            elif scope_choice == 'w':
-                repository_scoped = False
-                printer.print(f"   Creating workspace-scoped secret: {secret_key}")
-                break
-            else:
-                printer.print("   Please enter 'r' for repository-scoped or 'w' for workspace-scoped.")
+        from workflow_tools.core.questionary_utils import select
+        
+        scope_choices = [
+            {'name': '🌐 Repository-scoped (accessible from all workspaces)', 'value': 'repository'},
+            {'name': '📁 Workspace-scoped (this workspace only)', 'value': 'workspace'}
+        ]
+        
+        scope_choice = select("Select secret scope:", scope_choices, show_border=True)
+        
+        if scope_choice == 'repository':
+            repository_scoped = True
+            printer.print(f"   Creating repository-scoped secret: {secret_key}")
+        else:
+            repository_scoped = False
+            printer.print(f"   Creating workspace-scoped secret: {secret_key}")
         
         try:
             # Create the secret

@@ -3,7 +3,11 @@
 from typing import Optional
 from workflow_tools.common import WorkflowContext, printer
 from workflow_tools.workflow_types import WorkflowType, WorkflowInfo
-from workflow_tools.core.interactive_menu import InteractiveMenu
+from rich.console import Console
+from rich.panel import Panel
+from rich.text import Text
+from rich.align import Align
+from rich.rule import Rule
 
 class TriageAgent:
     """Agent for selecting the appropriate workflow based on user choice."""
@@ -14,6 +18,10 @@ class TriageAgent:
     
     def get_user_choice(self) -> Optional[WorkflowType]:
         """Get user's workflow choice using interactive menu."""
+        # Set a fixed width for consistent display
+        panel_width = 74
+        console = Console(width=panel_width)
+        
         # Build workflow options list
         workflow_options = []
         workflows = list(WorkflowInfo.WORKFLOW_DETAILS.keys())
@@ -28,47 +36,73 @@ class TriageAgent:
                 'implemented': info['implemented']
             })
         
-        # Build header content that should be preserved on menu updates
-        header_lines = []
-        header_lines.append("")
-        header_lines.append(" ██╗  ██╗██╗      █████╗ ██╗   ██╗███████╗    ██╗  ██╗ ██████╗ ██████╗ ███████╗")
-        header_lines.append(" ██║ ██╔╝██║     ██╔══██╗██║   ██║██╔════╝    ██║ ██╔╝██╔═══██╗██╔══██╗██╔════╝")
-        header_lines.append(" █████╔╝ ██║     ███████║██║   ██║███████╗    █████╔╝ ██║   ██║██║  ██║█████╗  ")
-        header_lines.append(" ██╔═██╗ ██║     ██╔══██║██║   ██║╚════██║    ██╔═██╗ ██║   ██║██║  ██║██╔══╝  ")
-        header_lines.append(" ██║  ██╗███████╗██║  ██║╚██████╔╝███████║    ██║  ██╗╚██████╔╝██████╔╝███████╗")
-        header_lines.append(" ╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝ ╚═════╝ ╚══════╝    ╚═╝  ╚═╝ ╚═════╝ ╚═════╝ ╚══════╝")
-        header_lines.append("")
-        header_lines.append("                    Klaus Kode—agentic data integrator")
-        header_lines.append("")
-        header_lines.append("=" * 80)
-        header_lines.append("")
-        header_lines.append("Please choose the type of workflow you'd like to create:")
-        header_lines.append("")
-        header_lines.append("")
-        header_lines.append("You need a Quix Cloud account to use this workflow.")
-        header_lines.append("If you don't have one yet, sign up for a free account here:")
-        header_lines.append("https://portal.cloud.quix.io/signup?utm_campaign=ai-data-integrator")
-        header_lines.append("")
-        header_content = "\n".join(header_lines)
+        # Build Klaus Kode banner
+        banner_lines = []
+        banner_lines.append("\n")  # Add extra spacing at top
+        banner_lines.append(" ██╗  ██╗██╗      █████╗ ██╗   ██╗███████╗    ██╗  ██╗ ██████╗ ██████╗ ███████╗")
+        banner_lines.append(" ██║ ██╔╝██║     ██╔══██╗██║   ██║██╔════╝    ██║ ██╔╝██╔═══██╗██╔══██╗██╔════╝")
+        banner_lines.append(" █████╔╝ ██║     ███████║██║   ██║███████╗    █████╔╝ ██║   ██║██║  ██║█████╗  ")
+        banner_lines.append(" ██╔═██╗ ██║     ██╔══██║██║   ██║╚════██║    ██╔═██╗ ██║   ██║██║  ██║██╔══╝  ")
+        banner_lines.append(" ██║  ██╗███████╗██║  ██║╚██████╔╝███████║    ██║  ██╗╚██████╔╝██████╔╝███████╗")
+        banner_lines.append(" ╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝ ╚═════╝ ╚══════╝    ╚═╝  ╚═╝ ╚═════╝ ╚═════╝ ╚══════╝")
+        banner_lines.append("")
+        banner_lines.append("                    Klaus Kode—agentic data integrator")
+        banner_content = "\n".join(banner_lines)
         
-        # Create menu and get selection with the header content
-        menu = InteractiveMenu(title="Select Workflow Type", show_instructions=True, header_content=header_content)
+        # Print the banner first (using regular printer for full width)
+        printer.print(banner_content)
+        printer.print("\n" + "=" * 80 + "\n")
         
-        # Format function for display
-        def format_workflow(option):
-            return option['display']
+        # Build the info content
+        info_lines = []
+        info_lines.append("Please choose the type of workflow you'd like to create:")
+        info_lines.append("")
+        info_lines.append("You need a Quix Cloud account to use this workflow.")
+        info_lines.append("If you don't have one yet, sign up for a free account here:")
+        info_lines.append("https://portal.cloud.quix.io/signup?utm_campaign=ai-data-integrator")
+        info_content = "\n".join(info_lines)
         
-        selected, index = menu.select_option(
-            workflow_options,
-            display_formatter=format_workflow,
-            allow_back=False  # No back option at top level
+        # Create a Rich panel for the information
+        info_panel = Panel(
+            Text(info_content, justify="center"),
+            border_style="cyan",
+            padding=(1, 2),
+            expand=False
         )
         
-        if selected is None:
+        # Print the info panel using the width-constrained console
+        console.print(info_panel)
+        console.print("")  # Add spacing
+        
+        # Print a horizontal divider with the same width as the panel
+        console.rule("[bold cyan]Workflow Selection[/bold cyan]", style="cyan")
+        console.print("")
+        console.print("[dim cyan]Use ↑↓ arrow keys to navigate, Enter to select[/dim cyan]", justify="center")
+        console.print("")
+        
+        from workflow_tools.core.questionary_utils import select
+        
+        # Create choices for questionary with newlines for spacing
+        choices = []
+        workflow_map = {}
+        for option in workflow_options:
+            # Add newline at the end of each option for vertical spacing
+            display_with_spacing = option['display'] + '\n'
+            choices.append({'name': display_with_spacing, 'value': option['workflow_type']})
+            workflow_map[option['workflow_type']] = option
+        
+        # Add quit option with newline spacing
+        choices.append({'name': '❌ Quit\n', 'value': 'QUIT'})
+        
+        # Show the menu without any prompt text
+        selected_type = select("", choices, show_border=False)
+        
+        if selected_type == 'QUIT':
             printer.print("👋 Goodbye!")
             return None
         
-        workflow_type = selected['workflow_type']
+        workflow_type = selected_type
+        selected = workflow_map[workflow_type]
         
         # Check if workflow is implemented
         if not selected['implemented']:

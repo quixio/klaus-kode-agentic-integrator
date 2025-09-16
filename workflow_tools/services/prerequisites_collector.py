@@ -12,11 +12,10 @@ from datetime import datetime
 from typing import Dict, Optional, Literal, List, Tuple
 from agents import RunConfig
 from workflow_tools.contexts import WorkflowContext
-from workflow_tools.common import printer, sanitize_name, get_user_approval, get_user_approval_with_back
+from workflow_tools.common import printer, sanitize_name, get_user_approval, get_user_approval_with_back, clear_screen
 from workflow_tools.exceptions import NavigationBackRequest
 from workflow_tools.integrations import quix_tools
 from workflow_tools.integrations.quix_tools import QuixApiError
-from workflow_tools.core.interactive_menu import InteractiveMenu
 from workflow_tools.core.prompt_manager import load_task_prompt
 from workflow_tools.core.url_builder import QuixPortalURLBuilder
 
@@ -72,8 +71,13 @@ class PrerequisitesCollector:
         Returns:
             Dictionary containing collected prerequisites
         """
-        printer.print(f"\n🔧 **Phase 1: {workflow_type.capitalize()} Prerequisites Collection**")
-        printer.print("")
+        # Don't print a phase header here - base_phase already does that
+        # Just show what we're collecting
+        printer.print("")  # Add spacing after phase header
+        printer.print_section_header(f"{workflow_type.capitalize()} Prerequisites", 
+                                   subtitle="Collecting workspace, topic, and technology settings",
+                                   icon="🔧", style="cyan")
+        printer.print("")  # Add spacing after section header
         
         # First, collect app name so it can be used for caching
         # MOVED FROM knowledge_gatherer.py lines 41-91
@@ -95,7 +99,6 @@ class PrerequisitesCollector:
                 # Note: Deletion of existing app happens in create_application() in knowledge phase
             else:
                 # User wants to enter fresh app name
-                from workflow_tools.common import clear_screen
                 clear_screen()
                 printer.print(f"\n📝 What would you like to name your {workflow_type} application?")
                 printer.print("   (This will be the name shown in the Quix portal)")
@@ -109,7 +112,6 @@ class PrerequisitesCollector:
                 cache_utils.save_app_name_to_cache(app_name)
         else:
             # No cached app name, ask user
-            from workflow_tools.common import clear_screen
             clear_screen()
             printer.print(f"\n📝 What would you like to name your {workflow_type} application?")
             printer.print("   (This will be the name shown in the Quix portal)")
@@ -128,6 +130,9 @@ class PrerequisitesCollector:
         self.context.deployment.application_name = sanitized_name
         
         printer.print(f"✅ Application name: {sanitized_name}")
+        
+        # Clear screen before showing cached prerequisites
+        clear_screen()
         
         # Track current step for internal navigation
         # Steps: 0=check_cache, 1=workspace, 2=topic
@@ -240,20 +245,27 @@ class PrerequisitesCollector:
             with open(newest_cache, "r", encoding="utf-8") as f:
                 cached_data = json.load(f)
             
-            printer.print(f"\n--- Cached {workflow_type.capitalize()} Prerequisites ---")
-            printer.print(f"📁 Prerequisites cache file: {newest_cache}")
-            printer.print("-------------------------------")
-            printer.print(f"**Workspace ID:** {cached_data.get('workspace_id', 'N/A')}")
+            # Use the new beautiful cache panel display
+            content_dict = {
+                "Workspace ID": cached_data.get('workspace_id', 'N/A')
+            }
             
             if workflow_type == "source":
-                printer.print(f"**Output Topic ID:** {cached_data.get('topic_id', 'N/A')}")
-                printer.print(f"**Output Topic Name:** {cached_data.get('topic_name', 'N/A')}")
+                content_dict["Output Topic ID"] = cached_data.get('topic_id', 'N/A')
+                content_dict["Output Topic Name"] = cached_data.get('topic_name', 'N/A')
             else:
-                printer.print(f"**Topic ID:** {cached_data.get('topic_id', 'N/A')}")
-                printer.print(f"**Topic Name:** {cached_data.get('topic_name', 'N/A')}")
+                content_dict["Topic ID"] = cached_data.get('topic_id', 'N/A')
+                content_dict["Topic Name"] = cached_data.get('topic_name', 'N/A')
             
-            printer.print(f"**Branch Name:** {cached_data.get('branch_name', 'main')}")
-            printer.print("-------------------------------")
+            content_dict["Branch Name"] = cached_data.get('branch_name', 'main')
+            
+            # Display the beautiful cache panel
+            printer.print_cache_panel(
+                title=f"Cached {workflow_type.capitalize()} Prerequisites",
+                cache_file=newest_cache,
+                content_dict=content_dict,
+                border_style="bright_cyan"
+            )
             
             # Mark that cache was displayed
             self._cache_was_displayed = True
@@ -301,7 +313,7 @@ class PrerequisitesCollector:
         Returns:
             True if successful, False otherwise
         """
-        printer.print("\n🏢 **Step 1: Workspace Selection**")
+        printer.print_section_header("Step 1: Workspace Selection", icon="🏢", style="cyan")
         
         try:
             # Get list of workspaces
@@ -312,28 +324,32 @@ class PrerequisitesCollector:
                 printer.print("❌ No workspaces found.")
                 return False
             
+            from workflow_tools.core.questionary_utils import select, clear_screen
+            
             # Clear screen before showing workspace menu
-            InteractiveMenu.clear_terminal()
+            clear_screen()
             
-            # Use interactive menu for workspace selection
-            menu = InteractiveMenu(title="📋 Available Workspaces")
+            # Use questionary for workspace selection
+            # Convert dataframe to choices for questionary
+            choices = []
+            workspace_map = {}
+            for _, row in workspaces_df.iterrows():
+                display_name = f"{row['Workspace Name']}\n      {row['Workspace ID']}"
+                value = row['Workspace ID']
+                choices.append({'name': display_name, 'value': value})
+                workspace_map[value] = row.to_dict()
             
-            # Convert dataframe to list of dicts for custom formatting
-            workspace_options = workspaces_df.to_dict('records')
+            # Add back option
+            choices.append({'name': '← Go back', 'value': 'back'})
             
-            # Format workspace display with line break instead of pipe
-            def format_workspace(row):
-                return f"{row['Workspace Name']}\n      {row['Workspace ID']}"
+            selected_id = select("📋 Available Workspaces", choices, show_border=True)
             
-            selected_workspace, selected_index = menu.select_option(
-                workspace_options,
-                display_formatter=format_workspace,
-                allow_back=True
-            )
-            
-            # Check if user wants to go back or quit
-            if selected_workspace is None:
+            # Check if user wants to go back
+            if selected_id == 'back':
                 raise NavigationBackRequest("User requested to go back")
+            
+            # Get the full workspace data from the map
+            selected_workspace = workspace_map[selected_id]
             
             # Store workspace info directly from selected dict
             self.context.workspace.workspace_id = selected_workspace['Workspace ID']
@@ -352,7 +368,7 @@ class PrerequisitesCollector:
             except Exception as e:
                 printer.print(f"⚠️ Warning: Could not get workspace details: {e}")
             
-            printer.print(f"✅ Selected workspace: **{selected_workspace['Workspace Name']}**")
+            printer.print(f"✅ Selected workspace: {selected_workspace['Workspace Name']}")
             printer.print("")  # Add blank line for spacing
             return True
             
@@ -376,7 +392,7 @@ class PrerequisitesCollector:
             True if successful, False otherwise
         """
         topic_label = "output topic" if workflow_type == "source" else "source topic"
-        printer.print(f"\n📊 **Step 2: {topic_label.title()} Selection**")
+        printer.print_section_header(f"Step 2: {topic_label.title()} Selection", icon="📊", style="cyan")
         
         try:
             # Get list of topics
@@ -395,45 +411,47 @@ class PrerequisitesCollector:
                         return await self._create_new_topic()
                 return False
             
+            from workflow_tools.core.questionary_utils import select, clear_screen
+            
             # Clear screen before showing topic menu
-            InteractiveMenu.clear_terminal()
+            clear_screen()
             
-            # Use interactive menu for topic selection
-            menu = InteractiveMenu(title=f"📋 Available Topics for {topic_label}")
+            # Use questionary for topic selection
+            # Convert dataframe to choices for questionary
+            choices = []
+            topic_map = {}
             
-            # Prepare options list - topics plus optional "Create new" for source
-            options_list = topics_df.to_dict('records')
+            for _, row in topics_df.iterrows():
+                topic_name = row['Topic Name']
+                display_name = f"{topic_name} (Partitions: {row.get('Partitions', 'N/A')}, Retention: {row.get('Retention (hours)', 'N/A')}h)"
+                choices.append({'name': display_name, 'value': topic_name})
+                topic_map[topic_name] = row.to_dict()
             
             # Add create new option for source workflows
             if workflow_type == "source":
-                # Add a special marker for create new option
-                options_list.append({'Topic Name': '🆕 Create a new topic', 'is_create_new': True})
+                choices.append({'name': '🆕 Create a new topic', 'value': 'CREATE_NEW'})
             
-            # Define display formatter for topics
-            def format_topic(row):
-                if isinstance(row, dict) and row.get('is_create_new'):
-                    return row['Topic Name']
-                return f"{row['Topic Name']} (Partitions: {row.get('Partitions', 'N/A')}, Retention: {row.get('Retention (hours)', 'N/A')}h)"
+            # Add back option
+            choices.append({'name': '← Go back', 'value': 'back'})
             
-            selected_topic, selected_index = menu.select_option(
-                options_list,
-                display_formatter=format_topic,
-                allow_back=True
-            )
+            selected = select(f"📋 Available Topics for {topic_label}", choices, show_border=True)
             
-            # Check if user wants to go back or quit
-            if selected_topic is None:
+            # Check if user wants to go back
+            if selected == 'back':
                 raise NavigationBackRequest("User requested to go back")
             
             # Check if user wants to create a new topic
-            if isinstance(selected_topic, dict) and selected_topic.get('is_create_new'):
+            if selected == 'CREATE_NEW':
                 return await self._create_new_topic()
+            
+            # Get the full topic data from the map
+            selected_topic = topic_map[selected]
             
             # Store topic info using the selected topic dict
             self.context.workspace.topic_id = selected_topic['Topic ID']
             self.context.workspace.topic_name = selected_topic['Topic Name']
             
-            printer.print(f"✅ Selected {topic_label}: **{selected_topic['Topic Name']}**")
+            printer.print(f"✅ Selected {topic_label}: {selected_topic['Topic Name']}")
             printer.print("")  # Add blank line for spacing
             
             # Log the topic URL
@@ -458,7 +476,7 @@ class PrerequisitesCollector:
         Returns:
             True if successful, False otherwise
         """
-        printer.print("\n🆕 **Creating New Topic**")
+        printer.print_section_header("Creating New Topic", icon="🆕", style="yellow")
         
         topic_name = printer.input("Enter name for the new topic: ").strip()
         if not topic_name:
@@ -512,7 +530,7 @@ class PrerequisitesCollector:
             True if successful, False otherwise
         """
         tech_label = "source technology" if workflow_type == "source" else "destination technology"
-        printer.print(f"\n🔧 **Step 3: {tech_label.title()} Selection**")
+        printer.print_section_header(f"Step 3: {tech_label.title()} Selection", icon="🔧", style="cyan")
         
         # Get technology patterns for this workflow type
         tech_patterns = self.TECHNOLOGY_PATTERNS[workflow_type]

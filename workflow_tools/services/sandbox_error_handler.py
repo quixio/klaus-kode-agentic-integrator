@@ -193,8 +193,7 @@ class SandboxErrorHandler:
             has_error: Whether an error was detected
             max_chars: Maximum characters to display
         """
-        printer.print("\n--- Execution Logs ---")
-        printer.print("=" * 50)
+        printer.print_section_header("Execution Logs", icon="📝", style="yellow")
         
         # Always show the last N characters (more relevant for debugging)
         if len(logs) > max_chars:
@@ -202,8 +201,8 @@ class SandboxErrorHandler:
             printer.print(logs[-max_chars:])
         else:
             printer.print(logs)
-            
-        printer.print("=" * 50)
+        
+        printer.print_divider()
     
     @staticmethod
     def get_error_handling_choice(is_timeout_error: bool) -> str:
@@ -215,46 +214,34 @@ class SandboxErrorHandler:
         Returns:
             User's choice as a string
         """
+        from workflow_tools.core.questionary_utils import select
+        
         printer.print("⚠️ Errors detected in the logs!")
         
-        while True:
-            printer.print("\nChoose debugging approach:")
+        if is_timeout_error:
+            choices = [
+                {'name': '🔄 Retry running the code (recommended for timeout errors)', 'value': 'retry'},
+                {'name': '🤖 Let AI analyze the error and propose a fix', 'value': '1'},
+                {'name': '✏️ Provide manual feedback yourself', 'value': '2'},
+                {'name': '✅ Continue anyway (error not serious or fixed in IDE)', 'value': '3'},
+                {'name': '❌ Abort the workflow', 'value': '4'},
+                {'name': '← Go back to previous phase', 'value': 'back'}
+            ]
+            choice = select("Choose debugging approach:", choices, show_border=True)
             
-            if is_timeout_error:
-                printer.print("1. Retry running the code (recommended for timeout errors)")
-                printer.print("2. Let AI analyze the error and propose a fix")
-                printer.print("3. Provide manual feedback yourself") 
-                printer.print("4. Continue anyway (the error is not serious or you have fixed it in the IDE)")
-                printer.print("5. Abort the workflow")
-                printer.print("6. ⬅️ Go back to previous phase")
-                
-                choice = printer.input("Enter choice (1-6): ").strip()
-                
-                # Map timeout choices to standard choices
-                if choice == '1':
-                    return 'retry'
-                elif choice == '2':
-                    return '1'  # AI debug
-                elif choice == '3':
-                    return '2'  # Manual feedback
-                elif choice == '4':
-                    return '3'  # Fixed in IDE
-                elif choice == '5':
-                    return '4'  # Abort
-                elif choice == '6':
-                    raise NavigationBackRequest("User requested to go back")
-            else:
-                printer.print("1. Let AI analyze the error and propose a fix")
-                printer.print("2. Provide manual feedback yourself")
-                printer.print("3. Continue anyway (the error is not serious or you have fixed it in the IDE)")
-                printer.print("4. Abort the workflow")
-                printer.print("5. ⬅️ Go back to previous phase")
-                
-                choice = printer.input("Enter choice (1-5): ").strip()
-                
-                if choice == '5':
-                    raise NavigationBackRequest("User requested to go back")
-                elif choice in ['1', '2', '3', '4']:
-                    return choice
+            if choice == 'back':
+                raise NavigationBackRequest("User requested to go back")
+            return choice
+        else:
+            choices = [
+                {'name': '🤖 Let AI analyze the error and propose a fix', 'value': '1'},
+                {'name': '✏️ Provide manual feedback yourself', 'value': '2'},
+                {'name': '✅ Continue anyway (error not serious or fixed in IDE)', 'value': '3'},
+                {'name': '❌ Abort the workflow', 'value': '4'},
+                {'name': '← Go back to previous phase', 'value': 'back'}
+            ]
+            choice = select("Choose debugging approach:", choices, show_border=True)
             
-            printer.print("❌ Invalid choice. Please try again.")
+            if choice == 'back':
+                raise NavigationBackRequest("User requested to go back")
+            return choice

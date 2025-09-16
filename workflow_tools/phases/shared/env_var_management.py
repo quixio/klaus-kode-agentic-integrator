@@ -507,51 +507,61 @@ class EnvVarManager:
                 # Fall back to manual input
                 return None
             
-            # Use interactive menu for topic selection
-            menu_title = f"Select topic for '{var_name}' ({var_type})"
-            if current_value:
-                menu_title += f"\n   Press ENTER to use default: {current_value}"
-            menu = InteractiveMenu(title=menu_title)
+            # Use questionary for topic selection
+            from workflow_tools.core.questionary_utils import select
             
-            # Prepare options list
-            options_list = topics_df.to_dict('records')
+            # Prepare choices for questionary
+            choices = []
             
             # Add "Use default" option at the beginning if there's a default value
             if current_value:
-                options_list.insert(0, {'Topic Name': f'↵ Use default: {current_value}', 'is_default': True})
+                choices.append(f"✅ Use default: {current_value}")
             
-            # Define display formatter for topics
-            def format_topic(row):
-                if row.get('is_default'):
-                    return row['Topic Name']
-                topic_name = row['Topic Name']
+            # Add all topics
+            for topic in topics_df.to_dict('records'):
+                topic_name = topic['Topic Name']
+                partitions = topic.get('Partitions', 'N/A')
+                retention = topic.get('Retention (hours)', 'N/A')
+                
                 # Show current value indicator if it matches
                 if topic_name == current_value:
-                    return f"→ {topic_name} (current) - Partitions: {row.get('Partitions', 'N/A')}, Retention: {row.get('Retention (hours)', 'N/A')}h"
-                return f"  {topic_name} - Partitions: {row.get('Partitions', 'N/A')}, Retention: {row.get('Retention (hours)', 'N/A')}h"
+                    choice_text = f"📌 {topic_name} (current) - Partitions: {partitions}, Retention: {retention}h"
+                else:
+                    choice_text = f"📊 {topic_name} - Partitions: {partitions}, Retention: {retention}h"
+                
+                choices.append(choice_text)
             
             # Add manual input option at the end
-            options_list.append({'Topic Name': '✏️ Enter topic name manually', 'is_manual': True})
+            choices.append("✏️ Enter topic name manually")
             
-            selected_topic, selected_index = menu.select_option(
-                options_list,
-                display_formatter=format_topic,
-                allow_back=False  # Don't allow back in the middle of env var collection
+            # Display menu
+            printer.print(f"\nSelect topic for '{var_name}' ({var_type})")
+            if current_value:
+                printer.print(f"   Current value: {current_value}")
+            
+            selected = select(
+                "Choose a topic:",
+                choices=choices
             )
             
-            # Check if user selected "Use default"
-            if selected_topic and selected_topic.get('is_default'):
+            # Parse the selection
+            if selected.startswith("✅ Use default:"):
                 return 'USE_DEFAULT'
-            
-            # Check if user wants to enter manually
-            if selected_topic and selected_topic.get('is_manual'):
+            elif selected == "✏️ Enter topic name manually":
                 return None  # Fall back to manual input
-            
-            # Return the selected topic name
-            if selected_topic:
-                return selected_topic['Topic Name']
-            
-            return None
+            else:
+                # Extract topic name from the selection
+                # Remove icon and metadata
+                if selected.startswith("📌 "):
+                    # Current topic
+                    topic_name = selected[2:].split(" (current)")[0].strip()
+                elif selected.startswith("📊 "):
+                    # Regular topic
+                    topic_name = selected[2:].split(" - Partitions:")[0].strip()
+                else:
+                    topic_name = selected
+                
+                return topic_name
             
         except Exception as e:
             printer.print(f"   ⚠️ Could not fetch topics: {e}")
@@ -568,39 +578,48 @@ class EnvVarManager:
         Returns:
             Selected type or None if user cancels
         """
-        # Define available types based on current state
+        from workflow_tools.core.questionary_utils import select
+        
+        # Define available types based on current state with icons
         if is_secret:
             # When converting from Secret, don't offer Secret again
-            available_types = ['FreeText', 'InputTopic', 'OutputTopic', 'HiddenText']
+            type_choices = [
+                "📝 FreeText",
+                "⬅️ InputTopic",
+                "➡️ OutputTopic",
+                "🔒 HiddenText",
+                f"❌ Cancel (keep as {current_type})"
+            ]
+            type_values = ["FreeText", "InputTopic", "OutputTopic", "HiddenText", None]
         else:
             # When converting from non-secret, offer all types
-            available_types = ['FreeText', 'Secret', 'HiddenText', 'InputTopic', 'OutputTopic']
+            type_choices = [
+                "📝 FreeText",
+                "🔑 Secret",
+                "🔒 HiddenText",
+                "⬅️ InputTopic",
+                "➡️ OutputTopic",
+                f"❌ Cancel (keep as {current_type})"
+            ]
+            type_values = ["FreeText", "Secret", "HiddenText", "InputTopic", "OutputTopic", None]
         
-        # Keep prompting until valid selection
-        while True:
-            printer.print("\n   Select new type:")
-            for i, type_option in enumerate(available_types, 1):
-                printer.print(f"   {i}. {type_option}")
-            printer.print(f"   {len(available_types) + 1}. Cancel (keep as {current_type})")
-            
-            try:
-                choice_str = printer.input("   Enter number: ").strip()
-                if not choice_str:
-                    continue
-                    
-                choice = int(choice_str)
-                
-                if choice == len(available_types) + 1:
-                    # User chose to cancel
-                    printer.print(f"   Keeping type as: {current_type}")
-                    return None
-                elif 1 <= choice <= len(available_types):
-                    selected_type = available_types[choice - 1]
-                    return selected_type
-                else:
-                    printer.print(f"   ⚠️ Invalid choice. Please enter a number between 1 and {len(available_types) + 1}")
-            except ValueError:
-                printer.print(f"   ⚠️ Invalid input. Please enter a number between 1 and {len(available_types) + 1}")
+        selected_choice = select(
+            "Select new type:",
+            type_choices,
+            default=type_choices[-1]  # Default to Cancel
+        )
+        
+        # Map the selected choice to its value
+        if selected_choice:
+            idx = type_choices.index(selected_choice)
+            selected = type_values[idx]
+        else:
+            selected = None
+        
+        if selected is None:
+            printer.print(f"   Keeping type as: {current_type}")
+        
+        return selected
     
     async def collect_env_vars_from_app_yaml(self, app_dir: str, auto_debug_mode: bool = False) -> bool:
         """
@@ -662,9 +681,19 @@ class EnvVarManager:
             printer.print("")
             
             # Ask if user wants to edit manually or use console
-            edit_choice = printer.input("Would you like to edit them yourself in the './working_files/current/app.yaml' or shall I help you update each variable here in the console? (a/c): ").strip().lower()
+            from workflow_tools.core.questionary_utils import select
+            edit_options = [
+                "💻 Use console to update variables",
+                "📝 Edit app.yaml manually"
+            ]
+            edit_choice_text = select(
+                "Would you like to edit them yourself in the app.yaml or shall I help you update each variable here in the console?",
+                edit_options,
+                default=edit_options[0]
+            )
+            edit_choice = "console" if "console" in edit_choice_text.lower() else "manual"
             
-            if edit_choice == 'a':
+            if edit_choice == 'manual':
                 # User wants to edit app.yaml manually
                 printer.print("\n✏️ Ok, go ahead and update the 'app.yaml' and press ENTER when you're done.")
                 printer.input("")  # Wait for user to press ENTER
@@ -704,8 +733,12 @@ class EnvVarManager:
                     var_type = var.get('inputType', 'FreeText')
                     printer.print(f"   • {var_name}: {current_value} (Type: {var_type})")
                 
-                use_existing = printer.input("\n🤔 Would you like to use these existing values? [Y/n]: ").strip().lower()
-                if use_existing in ['', 'y', 'yes']:
+                from workflow_tools.common import get_user_approval
+                use_existing = get_user_approval(
+                    "🤔 Would you like to use these existing values?",
+                    default='yes'
+                )
+                if use_existing:
                     printer.print("✅ Using existing environment variable values from cached app.")
                     # Store existing values in context - ensure they're strings
                     for var in app_config['variables']:
@@ -720,137 +753,162 @@ class EnvVarManager:
                     printer.print("📝 Proceeding to collect new environment variable values...")
             
             # Process each variable
-            for i, var in enumerate(app_config['variables']):
-                var_name = var.get('name', '')
-                var_type = var.get('inputType', 'FreeText')
-                var_desc = var.get('description', '')
-                var_required = var.get('required', False)
-                current_value = var.get('defaultValue', '')
+            try:
+                for i, var in enumerate(app_config['variables']):
+                    var_name = var.get('name', '')
+                    var_type = var.get('inputType', 'FreeText')
+                    var_desc = var.get('description', '')
+                    var_required = var.get('required', False)
+                    current_value = var.get('defaultValue', '')
                 
-                # Check if this is a secret variable (by type or name pattern)
-                is_secret = var_type in ['Secret', 'HiddenText'] or self.secret_manager.is_secret_variable(var_name)
-                
-                # Display in compact format: name (description)
-                printer.print(f"{var_name} ({var_desc if var_desc else 'No description'})")
-                printer.print(f"   Type: {var_type}")
-                
-                # Show default value if present
-                if current_value and not is_secret:
-                    printer.print(f"   Default: {current_value}")
-                elif current_value and is_secret:
-                    printer.print(f"   Default secret key: {current_value}")
-                
-                # Handle secret variables using SecretManager
-                if is_secret:
-                    # First ask if user wants to change the type from Secret to something else
-                    change_secret_type = printer.input("   This is marked as a Secret. Change field type? [y/N/c]: (y=yes, N=no, c=change type)").strip().lower()
+                    # Check if this is a secret variable (by type or name pattern)
+                    is_secret = var_type in ['Secret', 'HiddenText'] or self.secret_manager.is_secret_variable(var_name)
                     
-                    if change_secret_type == 'c' or change_secret_type == 'y':
-                        # User wants to change the type from Secret to something else
-                        new_type = self._get_type_selection(var_type, is_secret=True)
-                        if new_type:  # User selected a valid type
-                            var['inputType'] = new_type
-                            var_type = new_type
-                            is_secret = False  # No longer a secret
-                            printer.print(f"   ✅ Type changed from Secret to: {new_type}")
-                            
-                            # Now handle it as a regular variable
-                            new_value = printer.input("   Value: ").strip()
-                            
-                            # Use default if no value provided
-                            if not new_value and current_value:
-                                new_value = current_value
-                            elif not new_value and var_required:
-                                # For required fields, insist on a value
-                                while not new_value:
-                                    printer.print("   ⚠️ This field is required. Please provide a value.")
-                                    new_value = printer.input("   Value: ").strip()
-                        # If new_type is None, user cancelled - fall through to normal secret handling
+                    # Display in compact format: name (description)
+                    printer.print(f"{var_name} ({var_desc if var_desc else 'No description'})")
+                    printer.print(f"   Type: {var_type}")
                     
-                    # If user didn't change type, or type change failed, handle as secret
+                    # Show default value if present
+                    if current_value and not is_secret:
+                        printer.print(f"   Default: {current_value}")
+                    elif current_value and is_secret:
+                        printer.print(f"   Default secret key: {current_value}")
+                    
+                    # Handle secret variables using SecretManager
                     if is_secret:
-                        secret_key = await self.secret_manager.handle_secret_variable(var_name, var_desc)
-                        if secret_key:
-                            new_value = secret_key
-                            # Update type to Secret if it wasn't already
-                            if var_type not in ['Secret', 'HiddenText']:
-                                var['inputType'] = 'Secret'
-                                printer.print(f"   ✅ Type updated to: Secret")
-                        elif var_required:
-                            # For required secrets, use default if available
-                            if current_value:
-                                printer.print(f"   Using default secret key: {current_value}")
-                                new_value = current_value
-                            else:
-                                printer.print(f"   ⚠️ Warning: Required secret {var_name} not configured")
-                                new_value = ""
-                        else:
-                            # Optional secret not configured - skip
-                            new_value = ""
-                else:
-                    # Non-secret variable - check if it's a topic type
-                    if var_type in ['InputTopic', 'OutputTopic']:
-                        # For topic variables, show the topic picker
-                        selected_topic = await self._select_topic_for_variable(var_name, var_type, current_value)
+                        # First ask if user wants to change the type from Secret to something else
+                        from workflow_tools.core.questionary_utils import select
+                        change_options = [
+                            "🔒 Keep as Secret",
+                            "🔄 Change to different type"
+                        ]
+                        change_secret_choice = select(
+                            "This is marked as a Secret. What would you like to do?",
+                            change_options,
+                            default=change_options[0]
+                        )
+                        change_secret_type = "keep" if "Keep" in change_secret_choice else "change"
                         
-                        if selected_topic == 'USE_DEFAULT':
-                            # User chose to use the default value
-                            new_value = current_value
-                            printer.print(f"   Using default: {new_value}")
-                        elif selected_topic:
-                            # User selected a topic from the picker
-                            new_value = selected_topic
-                            printer.print(f"   ✅ Selected topic: {new_value}")
+                        if change_secret_type == 'change':
+                            # User wants to change the type from Secret to something else
+                            new_type = self._get_type_selection(var_type, is_secret=True)
+                            if new_type:  # User selected a valid type
+                                var['inputType'] = new_type
+                                var_type = new_type
+                                is_secret = False  # No longer a secret
+                                printer.print(f"   ✅ Type changed from Secret to: {new_type}")
+                                
+                                # Now handle it as a regular variable
+                                new_value = printer.input("   Value: ").strip()
+                                
+                                # Use default if no value provided
+                                if not new_value and current_value:
+                                    new_value = current_value
+                                elif not new_value and var_required:
+                                    # For required fields, insist on a value
+                                    while not new_value:
+                                        printer.print("   ⚠️ This field is required. Please provide a value.")
+                                        new_value = printer.input("   Value: ").strip()
+                            # If new_type is None, user cancelled - fall through to normal secret handling
+                        
+                        # If user didn't change type, or type change failed, handle as secret
+                        if is_secret:
+                            secret_key = await self.secret_manager.handle_secret_variable(var_name, var_desc)
+                            if secret_key:
+                                new_value = secret_key
+                                # Update type to Secret if it wasn't already
+                                if var_type not in ['Secret', 'HiddenText']:
+                                    var['inputType'] = 'Secret'
+                                    printer.print(f"   ✅ Type updated to: Secret")
+                            elif var_required:
+                                # For required secrets, use default if available
+                                if current_value:
+                                    printer.print(f"   Using default secret key: {current_value}")
+                                    new_value = current_value
+                                else:
+                                    printer.print(f"   ⚠️ Warning: Required secret {var_name} not configured")
+                                    new_value = ""
+                            else:
+                                # Optional secret not configured - skip
+                                new_value = ""
+                    else:
+                        # Non-secret variable - check if it's a topic type
+                        if var_type in ['InputTopic', 'OutputTopic']:
+                            # For topic variables, show the topic picker
+                            selected_topic = await self._select_topic_for_variable(var_name, var_type, current_value)
+                            
+                            if selected_topic == 'USE_DEFAULT':
+                                # User chose to use the default value
+                                new_value = current_value
+                                printer.print(f"   Using default: {new_value}")
+                            elif selected_topic:
+                                # User selected a topic from the picker
+                                new_value = selected_topic
+                                printer.print(f"   ✅ Selected topic: {new_value}")
+                            else:
+                                # Fall back to manual input (user chose manual or picker failed)
+                                new_value = printer.input("   Value (Press ENTER to use the default): ").strip()
+                                
+                                # Use default if no value provided
+                                if not new_value and current_value:
+                                    new_value = current_value
+                                elif not new_value and var_required:
+                                    # For required fields, insist on a value
+                                    while not new_value:
+                                        printer.print("   ⚠️ This field is required. Please provide a value.")
+                                        new_value = printer.input("   Value: ").strip()
                         else:
-                            # Fall back to manual input (user chose manual or picker failed)
+                            # Regular non-secret variable - ask for value
                             new_value = printer.input("   Value (Press ENTER to use the default): ").strip()
                             
                             # Use default if no value provided
                             if not new_value and current_value:
                                 new_value = current_value
+                                # Don't print "Using default" - just use it silently
                             elif not new_value and var_required:
                                 # For required fields, insist on a value
                                 while not new_value:
                                     printer.print("   ⚠️ This field is required. Please provide a value.")
                                     new_value = printer.input("   Value: ").strip()
-                    else:
-                        # Regular non-secret variable - ask for value
-                        new_value = printer.input("   Value (Press ENTER to use the default): ").strip()
                         
-                        # Use default if no value provided
-                        if not new_value and current_value:
-                            new_value = current_value
-                            # Don't print "Using default" - just use it silently
-                        elif not new_value and var_required:
-                            # For required fields, insist on a value
-                            while not new_value:
-                                printer.print("   ⚠️ This field is required. Please provide a value.")
-                                new_value = printer.input("   Value: ").strip()
+                        # Ask if user wants to change the type (only for non-secrets)
+                        from workflow_tools.core.questionary_utils import select
+                        type_options = [
+                            "❌ No, skip",
+                            "🔄 Yes, change type"
+                        ]
+                        change_type_choice = select(
+                            "Change field type?",
+                            type_options,
+                            default=type_options[0]
+                        )
+                        change_type = "yes" if "Yes" in change_type_choice else "no"
+                        if change_type == 'yes':
+                            new_type = self._get_type_selection(var_type, is_secret=False)
+                            if new_type:  # User selected a valid type
+                                var['inputType'] = new_type
+                                var_type = new_type
+                                printer.print(f"   ✅ Type changed to: {new_type}")
+                                # If changed to secret, handle it
+                                if new_type in ['Secret', 'HiddenText'] and new_value:
+                                    # User just changed type to secret - need to create secret
+                                    secret_key = await self.secret_manager.handle_secret_variable(var_name, var_desc)
+                                    if secret_key:
+                                        new_value = secret_key
+                            # If new_type is None, user cancelled - type stays the same
                     
-                    # Ask if user wants to change the type (only for non-secrets)
-                    change_type = printer.input("   Change field type? [y/N] (press ENTER to skip): ").strip().lower()
-                    if change_type == 'y':
-                        new_type = self._get_type_selection(var_type, is_secret=False)
-                        if new_type:  # User selected a valid type
-                            var['inputType'] = new_type
-                            var_type = new_type
-                            printer.print(f"   ✅ Type changed to: {new_type}")
-                            # If changed to secret, handle it
-                            if new_type in ['Secret', 'HiddenText'] and new_value:
-                                # User just changed type to secret - need to create secret
-                                secret_key = await self.secret_manager.handle_secret_variable(var_name, var_desc)
-                                if secret_key:
-                                    new_value = secret_key
-                        # If new_type is None, user cancelled - type stays the same
-                
-                # IMPORTANT: Convert all values to strings to prevent API errors
-                if new_value:
-                    new_value_str = str(new_value)
-                    var['defaultValue'] = new_value_str
-                    # Also store in context for immediate use - ensure it's a string
-                    self.context.credentials.env_var_values[var_name] = new_value_str
-                
-                printer.print("")  # Add spacing between variables
+                    # IMPORTANT: Convert all values to strings to prevent API errors
+                    if new_value:
+                        new_value_str = str(new_value)
+                        var['defaultValue'] = new_value_str
+                        # Also store in context for immediate use - ensure it's a string
+                        self.context.credentials.env_var_values[var_name] = new_value_str
+                    
+                        printer.print("")  # Add spacing between variables
+            except KeyboardInterrupt:
+                printer.print("\n\n⚠️ Variable configuration cancelled by user (Ctrl+C).")
+                printer.print("❌ Aborting workflow.")
+                return False
             
             # Write the updated app.yaml back
             with open(app_yaml_path, 'w', encoding='utf-8') as f:

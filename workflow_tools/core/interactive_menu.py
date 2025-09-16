@@ -4,6 +4,7 @@ import sys
 import os
 from typing import List, Optional, Tuple, Any, Dict
 from workflow_tools.common import printer
+from workflow_tools.core.questionary_utils import text
 
 # Check if we can use arrow keys (requires terminal that supports it)
 try:
@@ -126,7 +127,8 @@ class InteractiveMenu:
                         return 'RIGHT'
                 return key.decode('utf-8', errors='ignore')
             else:
-                return input().strip()
+                # Fallback to questionary when arrow keys unavailable
+                return text("Enter selection: ").strip()
         else:  # Unix/Linux/Mac
             if ARROW_KEYS_AVAILABLE:
                 fd = sys.stdin.fileno()
@@ -148,7 +150,8 @@ class InteractiveMenu:
                 finally:
                     termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
             else:
-                return input().strip()
+                # Fallback to questionary when arrow keys unavailable
+                return text("Enter selection: ").strip()
     
     def select_option(
         self, 

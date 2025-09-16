@@ -34,8 +34,8 @@ class SourceSchemaPhase(BasePhase):
     
     async def execute(self) -> PhaseResult:
         """Execute the source schema analysis workflow."""
-        printer.print("📊 **Phase 5: Source Schema Analysis**")
-        printer.print("")
+        # Phase header is already shown by base_phase
+        # No need for additional header here
         
         try:
             # Create working_files directory
@@ -184,7 +184,7 @@ Focus on providing actionable insights for code generation.
     
     async def _get_schema_approval(self) -> bool:
         """Get user approval for the schema analysis."""
-        printer.print("👀 **Schema Analysis Results:**")
+        printer.print_section_header("Schema Analysis Results", icon="👀", style="green")
         printer.print("")
         
         retry_count = 0
@@ -192,8 +192,11 @@ Focus on providing actionable insights for code generation.
         
         try:
             while retry_count <= max_retries:
-                # Display the schema analysis
-                printer.print(self.context.source_schema_analysis)
+                # Display the schema analysis with Rich markdown formatting
+                printer.print_markdown(
+                    self.context.source_schema_analysis,
+                    title="📊 Schema Analysis Summary"
+                )
                 printer.print("")
                 
                 # Get user approval
@@ -204,14 +207,18 @@ Focus on providing actionable insights for code generation.
                     printer.print("✅ Schema analysis approved by user.")
                     break
                 else:
-                    printer.print("\n❌ Schema analysis needs adjustment.")
-                    printer.print("\nChoose an option:")
-                    printer.print("1. Provide feedback to improve the analysis")
-                    printer.print("2. Manually edit the schema documentation")
-                    printer.print("3. Go back to previous phase")
-                    printer.print("4. Abort workflow")
+                    from workflow_tools.core.questionary_utils import select
                     
-                    retry_choice = printer.input("Enter choice (1-4): ").strip()
+                    printer.print("\n❌ Schema analysis needs adjustment.")
+                    
+                    choices = [
+                        {'name': '💬 Provide feedback to improve the analysis', 'value': '1'},
+                        {'name': '✏️ Manually edit the schema documentation', 'value': '2'},
+                        {'name': '← Go back to previous phase', 'value': '3'},
+                        {'name': '❌ Abort workflow', 'value': '4'}
+                    ]
+                    
+                    retry_choice = select("Choose an option:", choices, show_border=True)
                     
                     if retry_choice == "1":
                         printer.print("🔄 Retrying schema analysis with feedback.")
@@ -223,9 +230,10 @@ Focus on providing actionable insights for code generation.
                             printer.print("❌ Failed to re-analyze schema.")
                             return False
                     elif retry_choice == "2":
+                        from workflow_tools.core.questionary_utils import text
                         printer.print("✏️  Please manually edit the schema documentation file:")
                         printer.print(f"   {self.context.code_generation.source_schema_doc_path}")
-                        printer.input("Press ENTER when you've finished editing.")
+                        text("Press ENTER when you've finished editing:", show_border=False)
                         return True
                     elif retry_choice == "3":
                         raise NavigationBackRequest("User requested to go back")
@@ -318,9 +326,11 @@ Focus on addressing the user's feedback while providing actionable insights for 
                 # Update the schema analysis
                 self.context.source_schema_analysis = result.final_output
                 
-                printer.print("\n--- Updated Schema Analysis ---")
-                printer.print(self.context.source_schema_analysis)
-                printer.print("-------------------------------")
+                # Display updated schema analysis with Rich markdown formatting
+                printer.print_markdown(
+                    self.context.source_schema_analysis,
+                    title="📊 Updated Schema Analysis"
+                )
                 
                 # Recreate the documentation with updated analysis
                 return self._create_schema_documentation()

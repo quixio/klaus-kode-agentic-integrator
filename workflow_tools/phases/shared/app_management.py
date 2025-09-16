@@ -26,11 +26,13 @@ class AppManager:
         base_url = os.environ.get("QUIX_BASE_URL", "https://portal-api.platform.quix.io")
         
         if not token:
+            printer.print("")  # Add spacing before error
             printer.print("❌ Error: QUIX_TOKEN environment variable not set.")
             printer.print("")
             printer.print("No Quix PAT token detected.")
             printer.print("To get one, sign up for a free Quix account here:")
             printer.print("https://portal.cloud.quix.io/signup?utm_campaign=ai-data-integrator")
+            printer.print("")  # Add spacing after error
             return None
         
         # Create the API URL
@@ -133,20 +135,23 @@ class AppManager:
         # If an exact match exists, ask the user what to do
         if exact_matches:
             existing_app = exact_matches[0]
-            printer.print(f"\n⚠️  Found existing application '{app_name}' (ID: {existing_app['applicationId']})")
+            printer.print("")  # Add spacing before warning
+            printer.print(f"⚠️  Found existing application '{app_name}' (ID: {existing_app['applicationId']})")
             printer.print("   This application already exists in your workspace.")
-            printer.print("\n   What would you like to do?")
-            printer.print("   1) Delete the existing application and create a fresh one with the same name")
-            printer.print("   2) Keep the existing application and create a new one with a different name")
+            printer.print("")  # Add spacing before menu
             
-            # Get user choice
-            while True:
-                choice = printer.input("\nACTION REQUIRED: Please enter your choice (1 or 2): ").strip()
-                if choice in ['1', '2']:
-                    break
-                printer.print("Invalid input. Please enter '1' or '2'.")
+            from workflow_tools.core.questionary_utils import select
             
-            delete_existing = (choice == '1')
+            choices = [
+                {'name': '🗑️  Delete the existing application and create a fresh one with the same name', 'value': 'delete'},
+                {'name': '📝 Keep the existing application and create a new one with a different name', 'value': 'keep'}
+            ]
+            
+            choice = select("What would you like to do?", choices, show_border=True)
+            
+            delete_existing = (choice == 'delete')
+            
+            printer.print("")  # Add spacing after selection
             
             if delete_existing:
                 printer.print(f"🗑️  Deleting existing application '{app_name}'...")
@@ -160,7 +165,7 @@ class AppManager:
                 )
                 
                 if not deletion_success:
-                    printer.print(f"⚠️ Failed to delete existing application, will create with a different name")
+                    printer.print(f"\n⚠️ Failed to delete existing application, will create with a different name")
                     # Fall back to using a random suffix
                     unique_name = generate_unique_app_name(app_name)
                     unique_name = ensure_name_length_limit(unique_name, max_length=50)

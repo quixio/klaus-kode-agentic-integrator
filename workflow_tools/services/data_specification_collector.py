@@ -55,27 +55,25 @@ class DataSpecificationCollector:
             printer.print("  • Filtering conditions")
             printer.print("  • Aggregation or batching requirements")
         
-        printer.print("\n" + "-"*60)
-        printer.print("Options:")
-        printer.print("1. Yes, I want to specify data requirements")
-        printer.print("2. No, use all available data (default behavior)")
-        printer.print("3. ⬅️ Go back to previous phase")
+        from workflow_tools.core.questionary_utils import select
         
-        while True:
-            choice = printer.input("\nEnter choice (1-3) [default: 2]: ").strip() or "2"
-            
-            if choice == "3":
-                raise NavigationBackRequest("User requested to go back")
-            
-            elif choice == "1":
-                return self._collect_specification_details(workflow_type)
-            
-            elif choice == "2":
-                printer.print("✅ Proceeding with default behavior (all available data)")
-                return None
-            
-            else:
-                printer.print("❌ Invalid choice. Please enter 1, 2, or 3.")
+        printer.print("\n" + "-"*60)
+        
+        choices = [
+            {'name': '✅ Yes, I want to specify data requirements', 'value': '1'},
+            {'name': '⏭️ No, use all available data (default behavior)', 'value': '2'},
+            {'name': '← Go back to previous phase', 'value': 'back'}
+        ]
+        
+        choice = select("Select an option:", choices, default='2', show_border=True)
+        
+        if choice == 'back':
+            raise NavigationBackRequest("User requested to go back")
+        elif choice == '1':
+            return self._collect_specification_details(workflow_type)
+        else:  # choice == '2'
+            printer.print("✅ Proceeding with default behavior (all available data)")
+            return None
     
     def _collect_specification_details(self, workflow_type: str) -> str:
         """Collect detailed specification from user.
@@ -103,28 +101,27 @@ class DataSpecificationCollector:
             printer.print(" 'Aggregate data by minute before sinking',")
             printer.print(" 'Transform temperature from Fahrenheit to Celsius')")
         
+        from workflow_tools.core.questionary_utils import text
+        
         printer.print("\nEnter your data specification (or press Enter to skip):")
+        printer.print("(You can enter multiple lines, press Esc then Enter when done)")
         
-        # Collect multi-line input
-        lines = []
-        printer.print("(Enter an empty line when done)")
+        specification = text(
+            "",
+            multiline=True,
+            allow_empty=True,
+            show_border=False
+        )
         
-        while True:
-            line = printer.input("").strip()
-            if not line and lines:  # Empty line after entering some text
-                break
-            elif not line and not lines:  # Empty line without any text
-                printer.print("ℹ️ No specification provided. Using default behavior.")
-                return None
-            lines.append(line)
-        
-        specification = "\n".join(lines)
+        if not specification or not specification.strip():
+            printer.print("ℹ️ No specification provided. Using default behavior.")
+            return None
         
         if self.debug_mode:
             printer.print_debug(f"Collected data specification ({len(specification)} chars):")
             printer.print_debug(specification[:500] + "..." if len(specification) > 500 else specification)
         
-        printer.print(f"✅ Data specification collected ({len(lines)} lines)")
+        printer.print(f"✅ Data specification collected ({len(specification.splitlines())} lines)")
         
         # Store in context for later use
         if workflow_type == "source":

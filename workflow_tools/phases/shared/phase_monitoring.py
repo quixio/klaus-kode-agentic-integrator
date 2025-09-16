@@ -79,9 +79,11 @@ class MonitoringPhase(BasePhase):
         printer.print("🤖 Analyzing runtime logs with AI.")
         analysis = await self.monitor.analyze_logs_with_ai(logs, "runtime", "Running")
         
-        printer.print("\n--- Log Analysis Results ---")
-        printer.print(analysis)
-        printer.print("---------------------------")
+        # Display log analysis with Rich markdown formatting
+        printer.print_markdown(
+            analysis,
+            title="📋 Log Analysis Results"
+        )
         
         return PhaseResult(success=True, message="Deployment running successfully")
     
@@ -112,9 +114,11 @@ class MonitoringPhase(BasePhase):
         filename = f"runtime_error_analysis_{self.context.deployment.deployment_id}.md"
         filepath = self.monitor.save_analysis_to_file(analysis, filename)
         
-        printer.print("\n--- Runtime Error Analysis ---")
-        printer.print(analysis)
-        printer.print("------------------------------")
+        # Display runtime error analysis with Rich markdown formatting
+        printer.print_markdown(
+            analysis,
+            title="⚠️ Runtime Error Analysis"
+        )
         
         if filepath:
             printer.print(f"\n📄 Detailed analysis saved to: {filepath}")
@@ -149,9 +153,11 @@ class MonitoringPhase(BasePhase):
         filename = f"build_failure_analysis_{self.context.deployment.deployment_id}.md"
         filepath = self.monitor.save_analysis_to_file(analysis, filename)
         
-        printer.print("\n--- Build Failure Analysis ---")
-        printer.print(analysis)
-        printer.print("------------------------------")
+        # Display build failure analysis with Rich markdown formatting
+        printer.print_markdown(
+            analysis,
+            title="🔨 Build Failure Analysis"
+        )
         
         if filepath:
             printer.print(f"\n📄 Detailed analysis saved to: {filepath}")

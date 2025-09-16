@@ -17,19 +17,15 @@ class PlaceholderWorkflowBase:
         """Show placeholder message and get user choice."""
         printer.print(f"The {self.workflow_name} workflow hasn't been implemented yet, but its coming soon.")
         printer.print("")
-        printer.print("Do you want to go back and choose another option or quit?")
-        printer.print("b - back to the triage agent")
-        printer.print("q - quit")
-        printer.print("")
+        from workflow_tools.core.questionary_utils import select
         
-        while True:
-            choice = printer.input("Please enter your choice (b/q): ").strip().lower()
-            if choice in ['b', 'back']:
-                return 'back'
-            elif choice in ['q', 'quit']:
-                return 'quit'
-            else:
-                printer.print("❌ Invalid input. Please enter 'b' for back or 'q' to quit.")
+        choices = [
+            {'name': '← Back to the triage agent', 'value': 'back'},
+            {'name': '❌ Quit', 'value': 'quit'}
+        ]
+        
+        choice = select("What would you like to do?", choices, show_border=True)
+        return choice
     
     def run(self) -> Optional[str]:
         """Run the placeholder workflow."""

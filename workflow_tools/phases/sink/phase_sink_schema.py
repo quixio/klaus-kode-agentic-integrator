@@ -45,8 +45,10 @@ class SinkSchemaPhase(BasePhase):
                 cached_schema = f.read()
             
             printer.print("\n--- Cached Schema Analysis ---")
-            printer.print(cached_schema)
-            printer.print("------------------------------")
+            printer.print_markdown(
+                cached_schema,
+                title="📊 Cached Schema Analysis"
+            )
             
             response = get_user_approval_with_back("Would you like to use this cached schema analysis instead of re-analyzing?", allow_back=True)
             if response == 'back':
@@ -136,9 +138,11 @@ class SinkSchemaPhase(BasePhase):
             return PhaseResult(success=False, message="Schema analysis timed out")
         
         schema_description = result.final_output
-        printer.print("\n--- AI Schema Analysis ---")
-        printer.print(schema_description)
-        printer.print("--------------------------")
+        # Display schema analysis with Rich markdown formatting
+        printer.print_markdown(
+            schema_description,
+            title="🤖 AI Schema Analysis"
+        )
         
         # Loop to allow retry with feedback
         retry_count = 0
@@ -159,14 +163,18 @@ class SinkSchemaPhase(BasePhase):
                 self.context.schema.data_schema = {"analysis": current_schema_description, "sample_data": messages_data}
                 return PhaseResult(success=True, message="Schema analysis completed and approved")
             else:
+                from workflow_tools.core.questionary_utils import select, text
+                
                 # User rejected - offer options
                 printer.print("\n❌ Schema analysis needs adjustment.")
-                printer.print("\nChoose an option:")
-                printer.print("1. Provide feedback to improve the analysis")
-                printer.print("2. Go back to previous phase")
-                printer.print("3. Abort workflow")
                 
-                choice = printer.input("Enter choice (1-3): ").strip()
+                choices = [
+                    {'name': '💬 Provide feedback to improve the analysis', 'value': '1'},
+                    {'name': '← Go back to previous phase', 'value': '2'},
+                    {'name': '❌ Abort workflow', 'value': '3'}
+                ]
+                
+                choice = select("Choose an option:", choices, show_border=True)
                 
                 if choice == '2':
                     raise NavigationBackRequest("User requested to go back")
@@ -177,7 +185,7 @@ class SinkSchemaPhase(BasePhase):
                     # Get user feedback
                     printer.print("\n📝 Please describe what needs to be corrected in the schema analysis:")
                     printer.print("   (e.g., 'The timestamp field is actually in milliseconds, not seconds')")
-                    user_feedback = printer.input("> ").strip()
+                    user_feedback = text("", multiline=False, show_border=False).strip()
                     
                     if not user_feedback:
                         printer.print("⚠️ No feedback provided. Please try again.")
@@ -203,8 +211,10 @@ class SinkSchemaPhase(BasePhase):
                         current_schema_description = result.final_output
                         
                         printer.print("\n--- Updated Schema Analysis ---")
-                        printer.print(current_schema_description)
-                        printer.print("-------------------------------")
+                        printer.print_markdown(
+                            current_schema_description,
+                            title="🔄 Updated Schema Analysis"
+                        )
                         
                         retry_count += 1
                         

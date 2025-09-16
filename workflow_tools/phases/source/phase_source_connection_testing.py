@@ -33,8 +33,8 @@ class SourceConnectionTestingPhase(BasePhase):
     
     async def execute(self) -> PhaseResult:
         """Execute the connection testing workflow."""
-        printer.print("🔌 **Phase 4: Source Connection Testing**")
-        printer.print("")
+        # Phase header is already shown by base_phase
+        # No need for additional header here
         
         try:
             # Initialize cache utils
@@ -43,8 +43,7 @@ class SourceConnectionTestingPhase(BasePhase):
             cache_utils = CacheUtils(self.context, self.debug_mode)
             
             # Step 0: Check for cached connection requirements or ask user
-            printer.print("📝 **Connection Test Requirements**")
-            printer.print("-" * 40)
+            printer.print_section_header("Connection Test Requirements", icon="📝", style="cyan")
             
             # Check for cached user prompt (connection requirements)
             cached_prompt = cache_utils.check_cached_user_prompt()
@@ -200,25 +199,45 @@ class SourceConnectionTestingPhase(BasePhase):
                 printer.print("❌ Failed to generate connection test code with Claude Code SDK.")
                 return None
             
-            # Display the code
-            printer.print(f"\n--- Generated Connection Test Code ---")
-            printer.print("```python")
-            printer.print(connection_code)
-            printer.print("```")
+            # Display the code with syntax highlighting
+            printer.print("")  # Add blank line for spacing
+            printer.print_code(
+                connection_code,
+                language="python",
+                title="Generated Connection Test Code",
+                line_numbers=True
+            )
             printer.print("-" * 50)
             
-            # Get user approval
-            if get_user_approval("Does the generated connection test code look correct?"):
+            # Get user approval with back option
+            from workflow_tools.common import get_user_approval_with_back
+            response = get_user_approval_with_back(
+                "Does the generated connection test code look correct?",
+                allow_back=True
+            )
+            
+            if response == 'yes':
                 printer.print("✅ Connection test code approved by user.")
                 return connection_code
-            
-            # Get feedback for regeneration
-            feedback = printer.input("Please provide feedback on what to change: ").strip()
-            if not feedback:
-                printer.print("No feedback provided. Aborting connection test generation.")
-                return None
-            
-            printer.print("🔄 Regenerating code based on your feedback.")
+            elif response == 'back':
+                printer.print("⬅️ Going back to re-generate code...")
+                continue  # This will loop back to generate new code
+            else:  # response == 'no'
+                # Get feedback for regeneration with ability to cancel
+                printer.print("\n📝 Please provide feedback to improve the code generation.")
+                printer.print("   (Press Ctrl+C or leave empty to go back)")
+                
+                try:
+                    feedback = printer.input("Feedback: ").strip()
+                    if not feedback:
+                        printer.print("⬅️ No feedback provided. Going back...")
+                        continue  # Go back to show the code again
+                    
+                    printer.print("🔄 Regenerating code based on your feedback.")
+                    # The feedback will be used in the next iteration of the loop
+                except KeyboardInterrupt:
+                    printer.print("\n⬅️ Cancelled. Going back...")
+                    continue
     
 
     async def _run_connection_test(self, auto_debug_attempt: int = 0) -> bool:
@@ -413,10 +432,17 @@ class SourceConnectionTestingPhase(BasePhase):
                         return await self._run_connection_test()
                 elif action == 'manual_feedback':
                     # Get manual feedback and regenerate
-                    feedback = printer.input("Please provide feedback on how to fix the error: ").strip()
-                    if feedback:
-                        if await self._regenerate_connection_test_with_feedback(feedback):
-                            return await self._run_connection_test()
+                    printer.print("\n📝 Please provide feedback on how to fix the error.")
+                    printer.print("   (Press Ctrl+C or leave empty to cancel)")
+                    try:
+                        feedback = printer.input("Feedback: ").strip()
+                        if feedback:
+                            if await self._regenerate_connection_test_with_feedback(feedback):
+                                return await self._run_connection_test()
+                        else:
+                            printer.print("⬅️ No feedback provided. Continuing with error...")
+                    except KeyboardInterrupt:
+                        printer.print("\n⬅️ Cancelled. Continuing with error...")
                     return False
                     
                 elif action == 'manual_fix':
@@ -460,7 +486,7 @@ class SourceConnectionTestingPhase(BasePhase):
                     self.context.connection_test_output = logs
                 else:
                     return False
-                printer.print("📊 **Sample Data Output:**")
+                printer.print_section_header("Sample Data Output", icon="📊", style="blue")
                 printer.print(logs[:2000] + "..." if len(logs) > 2000 else logs)
                 return True
 
@@ -563,10 +589,9 @@ class SourceConnectionTestingPhase(BasePhase):
                 "main.py"
             )
             
-            printer.print("📊 **Connection Test Output:**")
-            printer.print("=" * 50)
+            printer.print_section_header("Connection Test Output", icon="📊", style="blue")
             printer.print(logs[:2000] + "..." if len(logs) > 2000 else logs)
-            printer.print("=" * 50)
+            printer.print_divider()
             
             # Check for errors using centralized error handler
             has_error, is_timeout_error, has_success = self.error_handler.analyze_logs(logs, workflow_type="source")
@@ -609,10 +634,17 @@ class SourceConnectionTestingPhase(BasePhase):
                         return await self._run_connection_test()
                 elif action == 'manual_feedback':
                     # Get manual feedback and regenerate
-                    feedback = printer.input("Please provide feedback on how to fix the error: ").strip()
-                    if feedback:
-                        if await self._regenerate_connection_test_with_feedback(feedback):
-                            return await self._run_connection_test()
+                    printer.print("\n📝 Please provide feedback on how to fix the error.")
+                    printer.print("   (Press Ctrl+C or leave empty to cancel)")
+                    try:
+                        feedback = printer.input("Feedback: ").strip()
+                        if feedback:
+                            if await self._regenerate_connection_test_with_feedback(feedback):
+                                return await self._run_connection_test()
+                        else:
+                            printer.print("⬅️ No feedback provided. Continuing with error...")
+                    except KeyboardInterrupt:
+                        printer.print("\n⬅️ Cancelled. Continuing with error...")
                     return False
                     
                 elif action == 'manual_fix':
@@ -656,7 +688,7 @@ class SourceConnectionTestingPhase(BasePhase):
                     self.context.connection_test_output = logs
                 else:
                     return False
-                printer.print("📊 **Sample Data Output:**")
+                printer.print_section_header("Sample Data Output", icon="📊", style="blue")
                 printer.print(logs[:2000] + "..." if len(logs) > 2000 else logs)
                 return True
                 

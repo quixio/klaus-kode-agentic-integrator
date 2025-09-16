@@ -136,8 +136,8 @@ Your connection details:"""
         printer.print(json_output)
         printer.print("")
         
-        choice = printer.input("Is this correct? (y/n): ").strip().lower()
-        return choice in ['y', 'yes']
+        from workflow_tools.common import get_user_approval
+        return get_user_approval("Is this correct?")
     
     def _get_correction_input(self) -> str:
         """Get correction input from user."""
@@ -210,8 +210,8 @@ Your connection details:"""
                     
                     if not is_valid:
                         printer.print(f"⚠️ Validation warning: {validation_message}")
-                        continue_anyway = printer.input("Continue anyway? (y/n): ").strip().lower()
-                        if continue_anyway not in ['y', 'yes']:
+                        from workflow_tools.common import get_user_approval
+                        if not get_user_approval("Continue anyway?"):
                             continue
                     
                     printer.print("✅ Connection details confirmed!")

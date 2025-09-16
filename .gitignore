@@ -243,3 +243,12 @@ interruptible_auto_debug_plan.md
 
 # Startup Guide (contains local setup info)
 STARTUP_GUIDE.md
+
+# Test files
+test_enhanced_input.py
+test_diagnose.py
+test_env_var_ctrlc.py
+test_ctrl_c.py
+
+# Diagnostic files  
+DIAGNOSE_WORKFLOW_PROGRESS.md
