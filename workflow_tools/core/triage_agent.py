@@ -60,16 +60,17 @@ class TriageAgent:
         
         # Build the info content
         info_lines = []
-        info_lines.append("Please choose the type of workflow you'd like to create:")
+        info_lines.append("Choose the type of workflow you'd like to run:")
         info_lines.append("")
-        info_lines.append("You need a Quix Cloud account to use this workflow.")
+        info_lines.append("You need a Quix Cloud account to run these workflows.")
         info_lines.append("If you don't have one yet, sign up for a free account here:")
-        info_lines.append("https://portal.cloud.quix.io/signup?utm_campaign=ai-data-integrator")
+        info_lines.append("[bold cyan][link=https://portal.cloud.quix.io/signup?utm_campaign=klaus-kode]https://portal.cloud.quix.io/signup?utm_campaign=klaus-kode[/link][/bold cyan]")
         info_content = "\n".join(info_lines)
-        
+
         # Create a Rich panel for the information
+        # Use Text.from_markup to process the markup in the string
         info_panel = Panel(
-            Text(info_content, justify="center"),
+            Text.from_markup(info_content, justify="center"),
             border_style="cyan",
             padding=(1, 2),
             expand=False
