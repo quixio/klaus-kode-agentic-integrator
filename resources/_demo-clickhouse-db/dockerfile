@@ -1,0 +1,11 @@
+FROM clickhouse/clickhouse-server:23.3
+
+ENV DEBIAN_FRONTEND=noninteractive
+RUN mkdir -p /app
+WORKDIR /app
+
+ENV CLICKHOUSE_USER=clickadmin
+ENV CLICKHOUSE_PASSWORD=clickpass
+
+EXPOSE 8123
+EXPOSE 9000

@@ -16,6 +16,9 @@ logging.getLogger("litellm").setLevel(logging.CRITICAL)
 logging.getLogger("LiteLLM.litellm_logging").setLevel(logging.CRITICAL)
 logging.getLogger("litellm.litellm_logging").setLevel(logging.CRITICAL)
 
+# Suppress asyncio errors on exit
+logging.getLogger('asyncio').setLevel(logging.CRITICAL)
+
 # Import refactored components
 from workflow_tools import (
     WorkflowContext,
@@ -234,20 +237,146 @@ class WorkflowOrchestrator:
             return 'back_to_triage'
         
         return True
-    
+
+    async def handle_workspace_configuration(self):
+        """Handle workspace configuration from main menu."""
+        from workflow_tools.services.prerequisites_collector import PrerequisitesCollector
+        from workflow_tools.core.questionary_utils import select, clear_screen
+
+        # Clear screen before showing workspace menu
+        clear_screen()
+
+        printer.print_section_header("Default Project/Environment Configuration", icon="⚙️", style="cyan")
+        printer.print("")
+
+        # Get current workspace if set
+        current_workspace = os.environ.get('QUIX_WORKSPACE_ID')
+        if current_workspace:
+            printer.print(f"Current default workspace: {current_workspace}")
+            printer.print("")
+
+        # Get list of workspaces
+        printer.print("Fetching available workspaces...")
+        from workflow_tools.integrations import quix_tools
+        workspaces_df = await quix_tools.find_workspaces()
+
+        if workspaces_df.empty:
+            printer.print("❌ No workspaces found.")
+            printer.input("\nPress Enter to continue...")
+            return
+
+        # Convert dataframe to choices for questionary
+        choices = []
+        workspace_map = {}
+        for _, row in workspaces_df.iterrows():
+            workspace_id = row['Workspace ID']
+            display_name = f"{row['Workspace Name']}\n      {workspace_id}"
+            if workspace_id == current_workspace:
+                display_name += " (current)"
+            choices.append({'name': display_name, 'value': workspace_id})
+            workspace_map[workspace_id] = row.to_dict()
+
+        # Add option to clear default
+        if current_workspace:
+            choices.append({'name': '❌ Clear default workspace', 'value': 'CLEAR'})
+
+        # Add back option
+        choices.append({'name': '← Go back', 'value': 'back'})
+
+        selected_id = select("📋 Select Default Workspace", choices, show_border=True)
+
+        # Check if user wants to go back
+        if selected_id == 'back':
+            return
+
+        # Check if user wants to clear
+        if selected_id == 'CLEAR':
+            # Remove from .env file
+            self._update_env_file('QUIX_WORKSPACE_ID', '')
+            if 'QUIX_WORKSPACE_ID' in os.environ:
+                del os.environ['QUIX_WORKSPACE_ID']
+            printer.print("✅ Default workspace cleared. You'll be prompted to select one for each workflow.")
+            printer.input("\nPress Enter to continue...")
+            return
+
+        # Update the default workspace
+        if self._update_env_file('QUIX_WORKSPACE_ID', selected_id):
+            selected_workspace = workspace_map[selected_id]
+            printer.print(f"✅ Default workspace updated to: {selected_workspace['Workspace Name']}")
+            printer.print(f"   Workspace ID: {selected_id}")
+        else:
+            printer.print("❌ Failed to update default workspace")
+
+        printer.input("\nPress Enter to continue...")
+
+    def _update_env_file(self, key: str, value: str) -> bool:
+        """Update or add an environment variable in the .env file."""
+        try:
+            env_path = '.env'
+
+            # Read existing content
+            if os.path.exists(env_path):
+                with open(env_path, 'r') as f:
+                    lines = f.readlines()
+            else:
+                lines = []
+
+            # Check if key already exists
+            key_found = False
+            for i, line in enumerate(lines):
+                # Skip comments
+                if line.strip().startswith('#'):
+                    continue
+
+                # Check if this line contains our key
+                if line.strip().startswith(f'{key}='):
+                    if value:
+                        lines[i] = f'{key}={value}\n'
+                    else:
+                        # Remove the line if value is empty
+                        lines.pop(i)
+                    key_found = True
+                    break
+
+            # If key not found and value is not empty, append it
+            if not key_found and value:
+                # Ensure there's a newline at the end
+                if lines and not lines[-1].endswith('\n'):
+                    lines[-1] += '\n'
+                lines.append(f'{key}={value}\n')
+
+            # Write back to file
+            with open(env_path, 'w') as f:
+                f.writelines(lines)
+
+            # Also update the current environment
+            if value:
+                os.environ[key] = value
+
+            return True
+
+        except Exception as e:
+            printer.print(f"⚠️ Error updating .env file: {e}")
+            return False
+
     async def run(self):
         """Execute the workflow with triage agent for workflow selection."""
         while True:
             # Run triage to select workflow
             selected_workflow = self.triage_agent.run_triage()
-            
+
             if selected_workflow is None:
-                # User chose to quit
-                return
-            
+                # User chose to quit - exit cleanly
+                return None
+
+            # Handle workspace configuration
+            if selected_workflow == 'WORKSPACE_CONFIG':
+                await self.handle_workspace_configuration()
+                continue  # Go back to main menu
+
             # Store selected workflow in context
             self.context.selected_workflow = selected_workflow
-            
+
             # Route to appropriate workflow
             if selected_workflow == WorkflowType.SINK:
                 # Run the implemented sink workflow
@@ -284,11 +413,31 @@ class WorkflowOrchestrator:
                     printer.print("🛑 Unexpected response from workflow.")
                     return
 
+async def auto_detect_myproject_workspace():
+    """Auto-detect and configure MyProject workspace for first-time users."""
+    import re
+    from workflow_tools.integrations import quix_tools
+
+    try:
+        workspaces_df = await quix_tools.find_workspaces()
+        if not workspaces_df.empty:
+            # Look for MyProject workspace (case-insensitive)
+            # Pattern: <prefix>-myproject-production
+            myproject_pattern = re.compile(r'.*-myproject-production$', re.IGNORECASE)
+
+            for _, row in workspaces_df.iterrows():
+                workspace_id = row['Workspace ID']
+                if myproject_pattern.match(workspace_id):
+                    return workspace_id
+    except Exception:
+        pass  # Silently fail
+    return None
+
 async def main():
     """Main entry point for the application."""
     # Check verbose mode
     verbose_mode = os.environ.get('VERBOSE_MODE', 'false').lower() == 'true'
-    
+
     # Log the workflow start
     workflow_logger.info("=" * 60)
     workflow_logger.info("KLAUS KODE STARTED")
@@ -314,19 +463,33 @@ async def main():
     # Check required environment variables
     required_vars = ["ANTHROPIC_API_KEY", "QUIX_TOKEN", "QUIX_BASE_URL"]
     missing_vars = [var for var in required_vars if not os.environ.get(var)]
-    
+
     if missing_vars:
         printer.print(f"Error: Missing required environment variables: {', '.join(missing_vars)}")
-        
+
         # Special message for missing QUIX_TOKEN
         if "QUIX_TOKEN" in missing_vars:
             printer.print("")
             printer.print("No Quix PAT token detected.")
             printer.print("To get one, sign up for a free Quix account here:")
             printer.print("https://portal.cloud.quix.io/signup?utm_campaign=ai-data-integrator")
-        
+
         return
-    
+
+    # Auto-detect MyProject workspace if QUIX_WORKSPACE_ID is not set
+    if not os.environ.get('QUIX_WORKSPACE_ID'):
+        printer.print("🔍 Checking for default MyProject workspace...")
+        myproject_id = await auto_detect_myproject_workspace()
+        if myproject_id:
+            printer.print(f"✅ Found MyProject workspace: {myproject_id}")
+            # Create a temporary orchestrator just to use its _update_env_file method
+            temp_orchestrator = WorkflowOrchestrator(debug_mode=False)
+            if temp_orchestrator._update_env_file('QUIX_WORKSPACE_ID', myproject_id):
+                printer.print(f"✅ Default workspace configured: {myproject_id}")
+                printer.print("   (You can change this later from the main menu)")
+        else:
+            printer.print("ℹ️ No default MyProject workspace found. You'll select one during workflow setup.")
+
     # Early check for Claude Code CLI availability
     printer.print("🔍 Checking Claude Code CLI installation...")
     
@@ -356,16 +519,22 @@ async def main():
         
         try:
             success = await workflow.run()
-            workflow_logger.info("=" * 60)
-            if success:
-                workflow_logger.info("KLAUS KODE COMPLETED")
-            else:
-                workflow_logger.info("KLAUS KODE STOPPED")
-            workflow_logger.info(f"End time: {datetime.now()}")
-            workflow_logger.info("=" * 60)
-            
-            # If user chose to quit, exit the loop
-            if success is None or not success:
+
+            # Only log completion if not quitting
+            if success is not None:
+                workflow_logger.info("=" * 60)
+                if success:
+                    workflow_logger.info("KLAUS KODE COMPLETED")
+                else:
+                    workflow_logger.info("KLAUS KODE STOPPED")
+                workflow_logger.info(f"End time: {datetime.now()}")
+                workflow_logger.info("=" * 60)
+
+            # If user chose to quit, exit the loop cleanly
+            if success is None:
+                break
+            elif not success:
+                # Workflow failed, ask if they want to continue
                 break
                 
         except KeyboardInterrupt:
@@ -408,12 +577,20 @@ if __name__ == "__main__":
     parser.add_argument('--debug', '-d', action='store_true',
                         help='Enable debug mode (saves intermediate files and shows additional info)')
     args = parser.parse_args()
-    
+
     # Set environment variables based on arguments
     if args.verbose:
         os.environ['VERBOSE_MODE'] = 'true'
     if args.debug:
         os.environ['DEBUG_MODE'] = 'true'
-    
+
+    # Suppress asyncio error messages on exit
+    import warnings
+    warnings.filterwarnings("ignore", category=RuntimeWarning)
+
     # Run the main async function
-    asyncio.run(main())
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        # Silently exit on Ctrl+C
+        pass

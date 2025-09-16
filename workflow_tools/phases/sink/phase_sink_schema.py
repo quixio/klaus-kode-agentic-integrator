@@ -5,6 +5,7 @@ import json
 from agents import Agent, Runner
 from workflow_tools.common import WorkflowContext, printer, get_user_approval, get_user_approval_with_back
 from workflow_tools.exceptions import NavigationBackRequest
+from workflow_tools.core.navigation import NavigationRequest, SinkWorkflowSteps
 from workflow_tools.integrations import quix_tools
 from workflow_tools.phases.base.base_phase import BasePhase, PhaseResult
 from workflow_tools.services.model_utils import create_agent_with_model_config
@@ -83,13 +84,50 @@ class SinkSchemaPhase(BasePhase):
                 
                 printer.print("📥 Proceeding with fresh schema analysis.")
         
-        printer.print("\nFetching message sample from topic.")
+        printer.print("\nFetching message sample from topic...")
+        printer.print(f"Topic: {self.context.workspace.topic_name}")
         messages_data = await quix_tools.get_topic_sample(self.context.workspace.workspace_id, self.context.workspace.topic_id)
-        
-        # Check if the API call failed entirely
+
+        # Check if the API call failed or topic is empty
         if not messages_data:
-            printer.print("❌ Failed to retrieve data from the topic. Cannot continue.")
-            return PhaseResult(success=False, message="Failed to retrieve topic data")
+            printer.print("\n⚠️  The topic exists but appears to be empty (no messages found).")
+            printer.print(f"   Topic: {self.context.workspace.topic_name}")
+            printer.print("\n   This is normal if you haven't set up a data source yet.")
+            printer.print("   For sink workflows, you typically need:")
+            printer.print("   • A source application writing data to this topic")
+            printer.print("   • Or some test data to analyze the schema")
+
+            printer.print("\n   You have a few options:")
+            printer.print("   1. Go back and select a different topic that has data")
+            printer.print("   2. Set up a source to write data to this topic first")
+            printer.print("   3. Skip schema analysis and define it manually in your code")
+
+            # Use questionary for better selection
+            from workflow_tools.core.questionary_utils import select
+            choices = [
+                {'name': '← Go back and select a different topic', 'value': 'back'},
+                {'name': '⏭️  Skip schema analysis and proceed', 'value': 'skip'},
+                {'name': '❌ Exit workflow to set up a data source first', 'value': 'exit'}
+            ]
+
+            response = select("What would you like to do?", choices, show_border=True)
+
+            if response == 'back':
+                # Request navigation back to topic selection step
+                self.context.navigation_request = NavigationRequest(
+                    target_step=SinkWorkflowSteps.COLLECT_TOPIC,
+                    message="User requested to go back to select different topic"
+                )
+                raise NavigationBackRequest("User requested to go back to select different topic")
+            elif response == 'skip':
+                printer.print("\n⚠️  Skipping schema analysis.")
+                printer.print("   You'll need to handle the data schema manually in your sink code.")
+                self.context.schema.data_schema = {"analysis": "Schema analysis skipped - topic was empty", "sample_data": None}
+                return PhaseResult(success=True, message="Schema analysis skipped - proceeding without schema")
+            else:  # exit
+                printer.print("\n👍 Exiting workflow.")
+                printer.print("   Set up a source to write data to the topic, then run the sink workflow again.")
+                return PhaseResult(success=False, message="User chose to exit and set up data source first")
         
         # Check if the topic has no messages (empty topic)
         if isinstance(messages_data, dict) and "messages" in messages_data:
@@ -105,6 +143,11 @@ class SinkSchemaPhase(BasePhase):
                 )
                 
                 if response == 'back' or response == 'yes':
+                    # Request navigation back to topic selection step
+                    self.context.navigation_request = NavigationRequest(
+                        target_step=SinkWorkflowSteps.COLLECT_TOPIC,
+                        message="User requested to go back due to empty topic"
+                    )
                     raise NavigationBackRequest("User requested to go back due to empty topic")
                 else:
                     return PhaseResult(success=False, message="Topic is empty - no messages to analyze")

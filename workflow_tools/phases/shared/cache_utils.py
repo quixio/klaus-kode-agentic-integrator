@@ -603,39 +603,49 @@ class CacheUtils:
     def _get_cached_user_prompt_filename(self) -> str:
         """Get the filename for cached user prompt (app requirements)."""
         from workflow_tools.workflow_types import WorkflowType
-        
+
         # Determine workflow type
         if self.context.selected_workflow == WorkflowType.SOURCE:
             workflow_type = "source"
         else:
             workflow_type = "sink"
-        
-        # Use app name for the filename
-        app_name = getattr(self.context.deployment, 'application_name', 'app')
-        sanitized_app_name = sanitize_name(app_name)
-        
+
+        # Requirements are now cached separately from app name
+        # Use a fixed filename for requirements cache
+        requirements_cache_name = "user_requirements"
+
         # Use the prompts directory for user prompts
-        return WorkingDirectory.get_cached_prompt_path(workflow_type, sanitized_app_name)
+        return WorkingDirectory.get_cached_prompt_path(workflow_type, requirements_cache_name)
     
     def check_cached_user_prompt(self) -> Optional[str]:
         """Check if there's a cached user prompt (app requirements) for this technology."""
         cache_file = self._get_cached_user_prompt_filename()
-        
+
         if not os.path.exists(cache_file):
             return None
-        
+
         try:
-            # Get app name for display
-            if hasattr(self.context.deployment, 'application_name'):
-                app_name = self.context.deployment.application_name
-            else:
-                app_name = 'app'
-            
-            printer.print(f"\n📋 Found cached user prompt (app requirements) for application '{app_name}'")
+            printer.print(f"\n📋 Found cached user requirements")
             with open(cache_file, 'r', encoding='utf-8') as f:
-                cached_prompt = f.read()
-            
-            return cached_prompt
+                full_content = f.read()
+
+            # Extract only the actual requirements (skip header comments)
+            lines = full_content.split('\n')
+            actual_requirements = []
+            in_header = True
+
+            for line in lines:
+                if in_header:
+                    # Skip comment lines and empty lines at the beginning
+                    if line.strip() and not line.strip().startswith('#'):
+                        in_header = False
+                        actual_requirements.append(line)
+                else:
+                    actual_requirements.append(line)
+
+            # Join and clean up
+            requirements = '\n'.join(actual_requirements).strip()
+            return requirements if requirements else None
             
         except Exception as e:
             printer.print(f"⚠️ Warning: Could not read cached user prompt: {e}")
@@ -645,33 +655,37 @@ class CacheUtils:
     def use_cached_user_prompt(self, cached_prompt: str) -> bool:
         """Show cached user prompt to user and ask for confirmation."""
         cache_file = self._get_cached_user_prompt_filename()
-        
-        # Don't clear screen here - we want to preserve the app creation logging
+
         # Prepare content dict
         content_dict = {}
-        
+
         # Get file modification time for context
         try:
             mod_time = datetime.fromtimestamp(os.path.getmtime(cache_file))
             content_dict["Last Modified"] = mod_time.strftime('%Y-%m-%d %H:%M:%S')
         except:
             pass
-        
-        # Add requirements info
-        content_dict["Requirements"] = cached_prompt[:100] + "..." if len(cached_prompt) > 100 else cached_prompt
-        content_dict["Length"] = f"{len(cached_prompt)} characters"
-        
+
+        # Add requirements info - show full requirements in the box if short enough
+        if len(cached_prompt) <= 200:
+            content_dict["Requirements"] = cached_prompt
+        else:
+            # For longer requirements, show preview in box and full text below
+            content_dict["Requirements Preview"] = cached_prompt[:150] + "..."
+            content_dict["Full Length"] = f"{len(cached_prompt)} characters"
+
         # Display the beautiful cache panel
         printer.print_cache_panel(
-            title="Cached App Requirements",
+            title="Cached User Requirements",
             cache_file=cache_file,
             content_dict=content_dict,
             border_style="cyan"
         )
-        
-        # Show full requirements separately
-        printer.print("\nFull cached requirements:")
-        printer.print(f'"{cached_prompt}"')
+
+        # If requirements are long, show full text separately
+        if len(cached_prompt) > 200:
+            printer.print("\n📝 Full requirements:")
+            printer.print(f'"{cached_prompt}"')
         
         question = "Would you like to use these cached app requirements instead of entering new ones?"
         response = get_user_approval_with_back(question, allow_back=True)
@@ -700,12 +714,11 @@ class CacheUtils:
             else:
                 tech_name = self.context.technology.destination_technology
             
-            # Get app name
-            app_name = getattr(self.context.deployment, 'application_name', 'app')
-            
-            header = f"""# Cached user prompt (app requirements) for {app_name}
+            # Note: Requirements are now cached independently of app name
+            workflow = self._get_workflow_type()
+
+            header = f"""# Cached user requirements for {workflow} workflow
 # Generated on {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
-# Template: {getattr(self.context.technology, 'selected_item_name', 'Unknown')}
 # This is cached requirements - delete this file to force re-entry
 
 """
@@ -719,6 +732,126 @@ class CacheUtils:
             printer.print(f"⚠️ Warning: Could not save user prompt to cache: {e}")
     
     # App name caching methods
+    def _get_cached_additional_requirements_filename(self) -> str:
+        """Get the filename for cached additional requirements (source workflow only)."""
+        # This is only for source workflows
+        workflow_type = "source"
+
+        # Additional requirements are cached independently of app name
+        # Use a fixed filename for additional requirements cache
+        additional_cache_name = "additional_requirements"
+
+        # Use the prompts directory
+        return WorkingDirectory.get_cached_prompt_path(workflow_type, additional_cache_name)
+
+    def check_cached_additional_requirements(self) -> Optional[str]:
+        """Check if there's cached additional requirements for source workflow."""
+        cache_file = self._get_cached_additional_requirements_filename()
+
+        if not os.path.exists(cache_file):
+            return None
+
+        try:
+            printer.print(f"\n📋 Found cached additional requirements")
+            with open(cache_file, 'r', encoding='utf-8') as f:
+                full_content = f.read()
+
+            # Extract actual requirements (skip header comments)
+            lines = full_content.split('\n')
+            actual_requirements = []
+            in_header = True
+
+            for line in lines:
+                if in_header:
+                    # Skip comment lines and empty lines at the beginning
+                    if line.strip() and not line.strip().startswith('#'):
+                        in_header = False
+                        actual_requirements.append(line)
+                else:
+                    actual_requirements.append(line)
+
+            # Join and clean up
+            requirements = '\n'.join(actual_requirements).strip()
+            return requirements if requirements else ""
+
+        except Exception as e:
+            printer.print(f"⚠️ Warning: Could not read cached additional requirements: {e}")
+
+        return None
+
+    def use_cached_additional_requirements(self, cached_additional: str) -> bool:
+        """Show cached additional requirements to user and ask for confirmation."""
+        cache_file = self._get_cached_additional_requirements_filename()
+
+        # Prepare content dict
+        content_dict = {}
+
+        # Get file modification time for context
+        try:
+            mod_time = datetime.fromtimestamp(os.path.getmtime(cache_file))
+            content_dict["Last Modified"] = mod_time.strftime('%Y-%m-%d %H:%M:%S')
+        except:
+            pass
+
+        # Add requirements info - show in the box if short enough
+        if cached_additional:
+            if len(cached_additional) <= 200:
+                content_dict["Additional Requirements"] = cached_additional
+            else:
+                content_dict["Additional Requirements Preview"] = cached_additional[:150] + "..."
+                content_dict["Full Length"] = f"{len(cached_additional)} characters"
+        else:
+            content_dict["Additional Requirements"] = "(None - using same as initial requirements)"
+
+        # Display the beautiful cache panel
+        printer.print_cache_panel(
+            title="Cached Additional Requirements",
+            cache_file=cache_file,
+            content_dict=content_dict,
+            border_style="cyan"
+        )
+
+        # If requirements are long, show full text separately
+        if cached_additional and len(cached_additional) > 200:
+            printer.print("\n📝 Full additional requirements:")
+            printer.print(f'"{cached_additional}"')
+
+        question = "Would you like to use these cached additional requirements?"
+        response = get_user_approval_with_back(question, allow_back=True)
+        if response == 'back':
+            raise NavigationBackRequest("User requested to go back")
+        if response == 'yes':
+            printer.print("✅ Using cached additional requirements")
+            return True
+        else:
+            printer.print("🔄 Will enter fresh additional requirements")
+            return False
+
+    def save_additional_requirements_to_cache(self, additional_requirements: str):
+        """Save additional requirements to cache file for future runs."""
+        cache_file = self._get_cached_additional_requirements_filename()
+
+        try:
+            # Ensure the cache directory exists
+            cache_dir = os.path.dirname(cache_file)
+            os.makedirs(cache_dir, exist_ok=True)
+
+            # Additional requirements are cached independently of app name
+            header = f"""# Cached additional requirements for source workflow
+# Generated on {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+# This is for source workflow additional requirements only
+# Delete this file to force re-entry
+
+"""
+
+            with open(cache_file, 'w', encoding='utf-8') as f:
+                f.write(header + additional_requirements)
+
+            printer.print(f"✅ Additional requirements cached to: {cache_file}")
+
+        except Exception as e:
+            printer.print(f"⚠️ Warning: Could not save additional requirements to cache: {e}")
+
     def _get_cached_app_name_filename(self) -> str:
         """Get the filename for cached app name."""
         from workflow_tools.workflow_types import WorkflowType

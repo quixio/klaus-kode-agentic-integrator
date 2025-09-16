@@ -1088,11 +1088,30 @@ class ClaudeCodeService:
                             connection_requirements = self.context.technology.source_technology
                             printer.print(f"\n📝 Your connection test requirements were:")
                             printer.print(f"   \"{connection_requirements}\"")
-                            additional_requirements = text(
-                                "🔄 Is there anything else you'd like to add for the main application?\n   (Or press Enter to use the same requirements)",
-                                default=""
-                            ).strip()
-                            
+
+                            # Check for cached additional requirements
+                            cached_additional = self.cache_utils.check_cached_additional_requirements()
+                            if cached_additional is not None:
+                                # Ask if they want to use cached additional requirements
+                                if self.cache_utils.use_cached_additional_requirements(cached_additional):
+                                    additional_requirements = cached_additional
+                                else:
+                                    # Get fresh additional requirements
+                                    additional_requirements = text(
+                                        "🔄 Is there anything else you'd like to add for the main application?\n   (Or press Enter to use the same requirements)",
+                                        default=""
+                                    ).strip()
+                                    # Cache the additional requirements
+                                    self.cache_utils.save_additional_requirements_to_cache(additional_requirements)
+                            else:
+                                # No cache, ask for additional requirements
+                                additional_requirements = text(
+                                    "🔄 Is there anything else you'd like to add for the main application?\n   (Or press Enter to use the same requirements)",
+                                    default=""
+                                ).strip()
+                                # Cache the additional requirements
+                                self.cache_utils.save_additional_requirements_to_cache(additional_requirements)
+
                             if additional_requirements:
                                 # Concatenate the requirements
                                 user_prompt = f"{connection_requirements}\n\n{additional_requirements}"
@@ -1129,11 +1148,30 @@ class ClaudeCodeService:
                         connection_requirements = self.context.technology.source_technology
                         printer.print(f"\n📝 Your connection test requirements were:")
                         printer.print(f"   \"{connection_requirements}\"")
-                        additional_requirements = text(
-                            "🔄 Is there anything else you'd like to add for the main application?\n   (Or press Enter to use the same requirements)",
-                            default=""
-                        ).strip()
-                        
+
+                        # Check for cached additional requirements
+                        cached_additional = self.cache_utils.check_cached_additional_requirements()
+                        if cached_additional is not None:
+                            # Ask if they want to use cached additional requirements
+                            if self.cache_utils.use_cached_additional_requirements(cached_additional):
+                                additional_requirements = cached_additional
+                            else:
+                                # Get fresh additional requirements
+                                additional_requirements = text(
+                                    "🔄 Is there anything else you'd like to add for the main application?\n   (Or press Enter to use the same requirements)",
+                                    default=""
+                                ).strip()
+                                # Cache the additional requirements
+                                self.cache_utils.save_additional_requirements_to_cache(additional_requirements)
+                        else:
+                            # No cache, ask for additional requirements
+                            additional_requirements = text(
+                                "🔄 Is there anything else you'd like to add for the main application?\n   (Or press Enter to use the same requirements)",
+                                default=""
+                            ).strip()
+                            # Cache the additional requirements
+                            self.cache_utils.save_additional_requirements_to_cache(additional_requirements)
+
                         if additional_requirements:
                             # Concatenate the requirements
                             user_prompt = f"{connection_requirements}\n\n{additional_requirements}"
