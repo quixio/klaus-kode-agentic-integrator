@@ -190,8 +190,34 @@ class DeploymentPhase(BasePhase):
             return PhaseResult(success=True, message=f"Deployment '{self.context.deployment.deployment_name}' created successfully")
             
         except quix_tools.QuixApiError as e:
-            printer.print(f"🛑 Failed to deploy application: {e}")
-            return PhaseResult(success=False, message=f"API error: {e}")
+            error_msg = str(e)
+            if "WorkspaceOutOfSync" in error_msg:
+                printer.print("⚠️ Workspace is out of sync. Performing workspace sync...")
+
+                # Try to sync workspace and retry
+                try:
+                    sync_result = await quix_tools.sync_workspace_before_deployment(self.context.workspace.workspace_id)
+                    if sync_result:
+                        printer.print("✅ Workspace synced successfully")
+                        printer.print("🔄 Retrying deployment start...")
+
+                        # Retry starting the deployment
+                        try:
+                            await quix_tools.start_deployment(self.context.workspace.workspace_id, self.context.deployment.deployment_id)
+                            printer.print(f"✅ Deployment started after sync")
+                            return PhaseResult(success=True, message=f"Deployment '{self.context.deployment.deployment_name}' created successfully (after sync)")
+                        except Exception as retry_error:
+                            printer.print(f"🛑 Failed to start deployment after sync: {retry_error}")
+                            return PhaseResult(success=False, message=f"Failed after sync: {retry_error}")
+                    else:
+                        printer.print("🛑 Workspace sync failed")
+                        return PhaseResult(success=False, message="Workspace sync failed")
+                except Exception as sync_error:
+                    printer.print(f"🛑 Could not sync workspace: {sync_error}")
+                    return PhaseResult(success=False, message=f"Workspace sync error: {sync_error}")
+            else:
+                printer.print(f"🛑 Failed to deploy application: {e}")
+                return PhaseResult(success=False, message=f"API error: {e}")
         except Exception as e:
             printer.print(f"🛑 Unexpected error during deployment: {e}")
             return PhaseResult(success=False, message=f"Unexpected error: {e}")

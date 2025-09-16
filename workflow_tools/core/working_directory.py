@@ -28,6 +28,7 @@ class WorkingDirectory:
     CACHE_APPS = "apps"
     CACHE_TEMPLATES = "templates"
     CACHE_SCHEMAS = "schemas"
+    CACHE_ANALYSIS = "analysis"
     CACHE_PREREQUISITES = "prerequisites"
     CACHE_PROMPTS = "prompts"
     CACHE_CONNECTION_TESTS = "connection_tests"
@@ -50,8 +51,8 @@ class WorkingDirectory:
         (base_path / cls.CACHE_DIR).mkdir(exist_ok=True)
         (base_path / cls.TEMP_DIR).mkdir(exist_ok=True)
         
-        # Create cache structure for both workflows
-        for workflow in ["sink", "source"]:
+        # Create cache structure for all workflows
+        for workflow in ["sink", "source", "diagnose"]:
             workflow_cache = base_path / cls.CACHE_DIR / workflow
             workflow_cache.mkdir(exist_ok=True)
             
@@ -59,6 +60,7 @@ class WorkingDirectory:
             (workflow_cache / cls.CACHE_APPS).mkdir(exist_ok=True)
             (workflow_cache / cls.CACHE_TEMPLATES).mkdir(exist_ok=True)
             (workflow_cache / cls.CACHE_SCHEMAS).mkdir(exist_ok=True)
+            (workflow_cache / cls.CACHE_ANALYSIS).mkdir(exist_ok=True)
             (workflow_cache / cls.CACHE_PREREQUISITES).mkdir(exist_ok=True)
             (workflow_cache / cls.CACHE_PROMPTS).mkdir(exist_ok=True)
             (workflow_cache / cls.CACHE_ENV_VARS).mkdir(exist_ok=True)
@@ -98,6 +100,13 @@ class WorkingDirectory:
         cls.ensure_structure()
         sanitized_name = cls._sanitize_name(identifier)
         return os.path.join(cls.BASE_DIR, cls.CACHE_DIR, workflow, cls.CACHE_SCHEMAS, f"{sanitized_name}_schema.md")
+    
+    @classmethod
+    def get_cached_analysis_path(cls, workflow: str, identifier: str) -> str:
+        """Get the path to a cached app analysis file (for diagnose workflow)."""
+        cls.ensure_structure()
+        sanitized_name = cls._sanitize_name(identifier)
+        return os.path.join(cls.BASE_DIR, cls.CACHE_DIR, workflow, cls.CACHE_ANALYSIS, f"{sanitized_name}_analysis.md")
     
     @classmethod
     def get_cached_prerequisites_path(cls, workflow: WorkflowType, timestamp: Optional[str] = None) -> str:

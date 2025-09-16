@@ -38,6 +38,11 @@ models:
       bypass_litellm: false
   template_matching:
     provider: anthropic
+  code_analysis:
+    diagnose:
+      provider: anthropic
+      model: claude-3-5-haiku-latest
+      bypass_litellm: false
     model: claude-3-5-haiku-latest
     bypass_litellm: false
   debugging:

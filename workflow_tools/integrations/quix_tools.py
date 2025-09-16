@@ -809,6 +809,38 @@ async def start_deployment(workspace_id: str, deployment_id: str) -> Optional[Di
         logger.error(f"Error starting deployment: {e}")
         raise e
 
+async def list_deployments(workspace_id: str, application_id: Optional[str] = None) -> List[Dict[str, Any]]:
+    """
+    List all deployments in a workspace, optionally filtered by application.
+    
+    Args:
+        workspace_id: The ID of the workspace
+        application_id: Optional application ID to filter deployments
+        
+    Returns:
+        List of deployment objects
+    """
+    try:
+        params = {}
+        if application_id:
+            params['applicationId'] = application_id
+            
+        result = await make_quix_request(
+            "GET", 
+            f"workspaces/{workspace_id}/deployments",
+            params=params if params else None
+        )
+        
+        if result:
+            logger.info(f"Found {len(result)} deployments in workspace {workspace_id}")
+            if application_id:
+                logger.info(f"  Filtered by application: {application_id}")
+            return result
+        return []
+    except Exception as e:
+        logger.error(f"Failed to list deployments: {e}")
+        return []
+
 async def sync_deployment(deployment_id: str) -> Optional[Dict[str, Any]]:
     """
     Sync a deployment to use the latest source code.

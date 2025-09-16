@@ -134,10 +134,33 @@ class WorkflowPrinter:
         """Print message to console and log to file."""
         # Print to console directly
         print(message, end=end)
-        
+
         # Log to file only if we have a file handler
         if self.file_handler:
             safe_message = self._sanitize_for_logging(message)
+            record = logging.LogRecord(
+                name=self.logger.name,
+                level=logging.INFO,
+                pathname="",
+                lineno=0,
+                msg=safe_message,
+                args=(),
+                exc_info=None
+            )
+            self.file_handler.emit(record)
+
+    def print_markup(self, message: str = "", end: str = "\n"):
+        """Print message with Rich markup support to console and log to file."""
+        console = Console()
+        # Use Rich console to print with markup support
+        console.print(message, end=end)
+
+        # Log to file only if we have a file handler (strip markup for log)
+        if self.file_handler:
+            # Create Text object to strip markup
+            text_obj = Text.from_markup(message)
+            plain_text = text_obj.plain
+            safe_message = self._sanitize_for_logging(plain_text)
             record = logging.LogRecord(
                 name=self.logger.name,
                 level=logging.INFO,
