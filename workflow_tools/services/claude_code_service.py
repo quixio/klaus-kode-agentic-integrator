@@ -761,17 +761,36 @@ class ClaudeCodeService:
             workflow_type = str(self.context.selected_workflow.value).lower()
             if 'source' in workflow_type:
                 workflow_type = "source"
+            elif 'diagnose' in workflow_type:
+                workflow_type = "diagnose"
             else:
                 workflow_type = "sink"
         else:
             # Try to infer from what's in context
-            if hasattr(self.context.technology, 'source_technology') and self.context.technology.source_technology:
+            if hasattr(self.context, 'diagnose'):
+                workflow_type = "diagnose"
+            elif hasattr(self.context.technology, 'source_technology') and self.context.technology.source_technology:
                 workflow_type = "source"
             else:
                 workflow_type = "sink"
         
-        # Get appropriate schema based on workflow type
-        if workflow_type == "sink":
+        # Get appropriate schema/analysis based on workflow type
+        if workflow_type == "diagnose":
+            # For diagnose workflow, get the app analysis
+            if hasattr(self.context, 'diagnose') and self.context.diagnose.get('app_analysis'):
+                schema_analysis = self.context.diagnose['app_analysis']
+            else:
+                # Try to load from cache
+                from workflow_tools.core.working_directory import WorkingDirectory
+                if hasattr(self.context.workspace, 'app_name'):
+                    app_name = self.context.workspace.app_name
+                    analysis_path = WorkingDirectory.get_cached_analysis_path("diagnose", app_name)
+                    try:
+                        with open(analysis_path, "r", encoding='utf-8') as f:
+                            schema_analysis = f.read()
+                    except:
+                        pass
+        elif workflow_type == "sink":
             if self.context.schema.data_schema:
                 schema_analysis = self.context.schema.data_schema
             else:

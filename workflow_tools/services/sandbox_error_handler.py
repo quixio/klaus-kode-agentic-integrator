@@ -185,23 +185,40 @@ class SandboxErrorHandler:
         return 'uncertain'
     
     @staticmethod
-    def display_logs(logs: str, has_error: bool, max_chars: int = 2000):
-        """Display logs with appropriate truncation.
+    def display_logs(logs: str, has_error: bool, max_chars: int = 3000):
+        """Display logs with sandwich approach for long logs.
         
         Args:
             logs: The logs to display
             has_error: Whether an error was detected
-            max_chars: Maximum characters to display
+            max_chars: Maximum characters to display (default 3000)
         """
         printer.print_section_header("Execution Logs", icon="📝", style="yellow")
         
-        # Always show the last N characters (more relevant for debugging)
-        if len(logs) > max_chars:
-            printer.print(f"... (showing last {max_chars} characters)")
-            printer.print(logs[-max_chars:])
-        else:
-            printer.print(logs)
+        log_length = len(logs)
         
+        # For short logs, show everything
+        if log_length <= max_chars:
+            printer.print(logs)
+        else:
+            # Use sandwich approach for long logs
+            # Show first 1000 chars and last 2000 chars (last part usually more important)
+            first_chars = min(1000, max_chars // 3)
+            last_chars = max_chars - first_chars
+
+            printer.print(f"[Log output: {log_length} characters total, showing first {first_chars} and last {last_chars} characters]")
+            printer.print("")
+
+            # Show beginning
+            printer.print(logs[:first_chars])
+
+            # Add separator
+            omitted = log_length - first_chars - last_chars
+            printer.print(f"\n... [{omitted} characters omitted from middle] ...\n")
+
+            # Show end (more important for errors)
+            printer.print(logs[-last_chars:])
+
         printer.print_divider()
     
     @staticmethod
