@@ -1,3 +1,6 @@
+# Progress tracking (not for commit)
+DIAGNOSE_WORKFLOW_PROGRESS.md
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]

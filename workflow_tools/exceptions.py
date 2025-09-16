@@ -161,7 +161,8 @@ class UserCancellationError(WorkflowException):
 
 class NavigationBackRequest(WorkflowException):
     """Raised when user requests to go back to previous phase."""
-    pass
+    def __init__(self):
+        super().__init__("User requested to go back to previous phase")
 
 
 class FileOperationError(WorkflowException):

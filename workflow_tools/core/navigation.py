@@ -84,6 +84,45 @@ class SourceWorkflowSteps(IntEnum):
     MONITOR_APP = 801
 
 
+class DiagnoseWorkflowSteps(IntEnum):
+    """Unified step indexing for diagnose workflow.
+
+    Phases are at hundreds (100, 200, 300...)
+    Steps within phases are increments (101, 102, 103...)
+    """
+    # Phase 1: App Selection (100)
+    APP_SELECTION_START = 100
+    SELECT_WORKSPACE = 101
+    SELECT_APPLICATION = 102
+
+    # Phase 2: App Download & Analysis (200)
+    APP_DOWNLOAD_START = 200
+    DOWNLOAD_APP = 201
+    ANALYZE_APP = 202
+    CHOOSE_ACTION = 203  # Run vs provide context
+
+    # Phase 3: Edit (300)
+    EDIT_START = 300
+    PROVIDE_CONTEXT = 301
+    CHOOSE_EDIT_OR_RUN = 302
+    EDIT_CODE = 303
+
+    # Phase 4: Sandbox Testing (400)
+    SANDBOX_START = 400
+    TEST_IN_SANDBOX = 401
+    DEBUG_ISSUES = 402
+    FOLLOW_UP_IMPROVEMENTS = 403
+
+    # Phase 5: Deployment Sync (500)
+    DEPLOYMENT_START = 500
+    SELECT_DEPLOYMENT = 501
+    SYNC_DEPLOYMENT = 502
+
+    # Phase 6: Monitoring (600)
+    MONITORING_START = 600
+    MONITOR_DEPLOYMENT = 601
+
+
 @dataclass
 class NavigationRequest:
     """Request to navigate to a specific step."""
@@ -99,7 +138,7 @@ class NavigationManager:
         """Initialize navigation manager.
 
         Args:
-            workflow_type: Type of workflow ('sink' or 'source')
+            workflow_type: Type of workflow ('sink', 'source', or 'diagnose')
         """
         self.workflow_type = workflow_type
         self.current_step = 100  # Start at first phase
@@ -107,7 +146,12 @@ class NavigationManager:
         # Get the appropriate step enum
         if workflow_type == 'sink':
             self.steps = SinkWorkflowSteps
+        elif workflow_type == 'source':
+            self.steps = SourceWorkflowSteps
+        elif workflow_type == 'diagnose':
+            self.steps = DiagnoseWorkflowSteps
         else:
+            # Default to source for backward compatibility
             self.steps = SourceWorkflowSteps
 
     def get_phase_from_step(self, step: int) -> int:
