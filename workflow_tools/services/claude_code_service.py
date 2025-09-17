@@ -604,7 +604,6 @@ class ClaudeCodeService:
             cwd=main_workflow_dir,  # Use main workflow directory as working directory
             system_prompt=system_prompt,
             max_turns=self.claude_config.get("max_turns", 10),
-            max_thinking_tokens=self.claude_config.get("max_thinking_tokens", 8000),
             model=self.claude_config.get("model", "sonnet-4.1")
         )
         
@@ -847,7 +846,6 @@ class ClaudeCodeService:
             cwd=main_workflow_dir,  # Use main workflow directory as working directory
             system_prompt=debug_system_prompt,
             max_turns=debug_config.get("max_turns", 5),
-            max_thinking_tokens=self.claude_config.get("max_thinking_tokens", 8000),
             model=debug_config.get("model", self.claude_config.get("model", "sonnet-4.1"))
         )
         
@@ -1332,7 +1330,6 @@ This is a connection test only - do NOT integrate with Quix Streams or Kafka yet
             cwd=main_workflow_dir,
             system_prompt=system_prompt,
             max_turns=self.claude_config.get("max_turns", 10),
-            max_thinking_tokens=self.claude_config.get("max_thinking_tokens", 8000),
             model=self.claude_config.get("model", "sonnet-4.1")
         )
         
