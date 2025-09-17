@@ -1,6 +1,6 @@
 # External Prompt Management System
 
-This directory contains externalized prompts for all AI agents and tasks in the Quix Coding Agent workflow system.
+This directory contains externalized prompts for all AI agents and tasks in the Klaus Kode Agentic Data Integrator workflow system.
 
 ## Directory Structure
 
@@ -22,7 +22,7 @@ prompts/
 
 ## Agent Instructions
 
-Agent instruction files contain the system instructions that define each AI agent's role, capabilities, and behavior. These are loaded when agents are created.
+Agent instruction files contain the system instructions that define each AI agent's role, capabilities, and behavior. These are loaded when agents are created in Klaus Kode workflows.
 
 ### Available Agent Instructions:
 
@@ -43,7 +43,7 @@ Agent instruction files contain the system instructions that define each AI agen
 
 ## Task Prompts
 
-Task prompt files contain specific prompts used for particular operations. They support template variables using Python's `.format()` syntax.
+Task prompt files contain specific prompts used for particular operations in Klaus Kode. They support template variables using Python's `.format()` syntax.
 
 ### Available Task Prompts:
 
@@ -57,7 +57,7 @@ Task prompt files contain specific prompts used for particular operations. They 
 - **sink_code_generation.md** - Prompt for generating sink application code
 - **sink_technology_prep.md** - Prompt for preparing sink technology requirements
 
-## Usage in Code
+## Usage in Klaus Kode
 
 ### Loading Agent Instructions
 
@@ -112,7 +112,7 @@ Variables are passed when loading the prompt:
 
 ```python
 prompt = load_task_prompt(
-    "template_selection", 
+    "template_selection",
     destination_technology="PostgreSQL",
     template_list=json.dumps(templates, indent=2)
 )
@@ -134,17 +134,18 @@ prompt = load_task_prompt(
 
 ## Error Handling
 
-The prompt manager provides graceful error handling:
+The Klaus Kode prompt manager provides graceful error handling:
 - Missing files return error messages that are visible in logs
 - Template variable errors are logged but don't crash the workflow
 - All operations are logged for debugging
 
 ## Migration Status
 
-The system is currently implemented in:
+The prompt externalization system is currently implemented in:
 - ✅ Source workflow phases (knowledge, connection testing)
 - ✅ Main orchestrator
-- 🔄 Sink workflow phases (partial)
-- ⏳ Other workflow components (planned)
+- ✅ Sink workflow phases
+- ✅ Debug workflow phases
+- ✅ Transform workflow phases
 
-To complete migration, update remaining phase files to use `load_agent_instructions()` and `load_task_prompt()` instead of inline strings.
+All Klaus Kode workflows now use the externalized prompt system via `load_agent_instructions()` and `load_task_prompt()` functions.

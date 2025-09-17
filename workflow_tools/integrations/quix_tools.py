@@ -705,21 +705,35 @@ async def run_code_in_session_with_timeout(workspace_id: str, session_id: str, f
         async with httpx.AsyncClient() as client:
             # Start the execution with a streaming request
             # Add 5 seconds to the HTTP timeout to be slightly longer than our collection timeout
-            async with client.stream("POST", url, headers=headers, json=payload, 
+            async with client.stream("POST", url, headers=headers, json=payload,
                                     timeout=timeout_seconds + 5.0) as response:
                 response.raise_for_status()
-                
-                # Collect logs for the specified timeout
-                start_time = asyncio.get_event_loop().time()
-                async for chunk in response.aiter_text():
-                    logs += chunk
-                    # Stop collecting after timeout
-                    if asyncio.get_event_loop().time() - start_time > timeout_seconds:
-                        if verbose_mode:
-                            logger.info(f"  {timeout_seconds} seconds elapsed, terminating process")
-                        # Explicitly close the response to signal the server to terminate the process
-                        await response.aclose()
-                        break
+
+                # Check if the response is actually streaming
+                content_type = response.headers.get('content-type', '')
+                is_streaming = ('text/plain' in content_type or
+                               'stream' in content_type or
+                               'text/event-stream' in content_type)
+
+                if is_streaming:
+                    # Collect logs for the specified timeout
+                    start_time = asyncio.get_event_loop().time()
+                    async for chunk in response.aiter_text():
+                        logs += chunk
+                        # Stop collecting after timeout
+                        if asyncio.get_event_loop().time() - start_time > timeout_seconds:
+                            if verbose_mode:
+                                logger.info(f"  {timeout_seconds} seconds elapsed, terminating process")
+                            # Explicitly close the response to signal the server to terminate the process
+                            await response.aclose()
+                            break
+                else:
+                    # Handle non-streaming response
+                    # Read the entire response content
+                    content = await response.aread()
+                    logs = content.decode('utf-8', errors='replace')
+                    if verbose_mode:
+                        logger.info(f"  Received non-streaming response (content-type: {content_type})")
     except httpx.ReadTimeout:
         # This is expected for apps that run continuously
         if verbose_mode:

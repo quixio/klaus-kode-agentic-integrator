@@ -11,6 +11,7 @@ import platform
 import subprocess
 import yaml
 import anyio
+import shutil
 from pathlib import Path
 from typing import Dict, Any, Optional, Tuple, List
 from claude_code_sdk import query, ClaudeCodeOptions, AssistantMessage, TextBlock, ToolUseBlock, ResultMessage
@@ -90,10 +91,13 @@ class ClaudeCodeService:
     
     def _detect_claude_cli_path(self) -> Optional[str]:
         """Detect Claude Code CLI installation path.
-        
+
         Returns:
             Path to Claude CLI executable or None if not found
         """
+        # Ensure Node.js is in PATH for Claude CLI to work
+        self._ensure_node_in_path()
+
         # First check environment variable
         env_cli_path = os.environ.get("CLAUDE_CLI_PATH")
         if env_cli_path:
@@ -275,6 +279,29 @@ class ClaudeCodeService:
                 # Re-raise non-balance errors
                 raise
     
+    def _ensure_node_in_path(self):
+        """Ensure Node.js is in PATH for Claude CLI to work."""
+        if shutil.which("node"):
+            return
+
+        # Find Node.js from NVM or standard locations
+        import glob
+        nvm_paths = glob.glob(os.path.expanduser("~/.nvm/versions/node/*/bin"))
+        standard_paths = ["/usr/local/bin", "/usr/bin", "/opt/homebrew/bin"]
+
+        for path in nvm_paths + standard_paths:
+            node_exe = os.path.join(path, "node")
+            if os.path.exists(node_exe):
+                self._add_to_path(path)
+                printer.print(f"✅ Added Node.js to PATH: {path}")
+                return
+
+    def _add_to_path(self, new_path: str):
+        """Add a path to the system PATH environment variable."""
+        current_path = os.environ.get("PATH", "")
+        sep = ";" if platform.system() == "Windows" else ":"
+        os.environ["PATH"] = f"{new_path}{sep}{current_path}"
+
     def _verify_claude_cli(self, path: str) -> bool:
         """Verify if Claude CLI exists at the given path.
         

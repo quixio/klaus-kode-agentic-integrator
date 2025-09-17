@@ -1,4 +1,4 @@
-# Quix Coding Agent Startup Script for Windows PowerShell
+# Klaus Kode Agentic Data Integrator Startup Script for Windows PowerShell
 # This script handles environment setup and launches the application
 
 $ErrorActionPreference = "Stop"
@@ -13,7 +13,7 @@ function Write-ColorOutput($ForegroundColor, $Message) {
 
 Write-Host ""
 Write-ColorOutput Cyan "╔════════════════════════════════════════╗"
-Write-ColorOutput Cyan "║     Quix Coding Agent - Klaus Kode     ║"
+Write-ColorOutput Cyan "║  Klaus Kode Agentic Data Integrator    ║"
 Write-ColorOutput Cyan "╚════════════════════════════════════════╝"
 Write-Host ""
 
@@ -259,7 +259,7 @@ if (-not (Test-Path "logging")) { New-Item -ItemType Directory -Path "logging" -
 
 # Start the application
 Write-Host ""
-Write-ColorOutput Green "🚀 Starting Quix Coding Agent..."
+Write-ColorOutput Green "🚀 Starting Klaus Kode Agentic Data Integrator..."
 Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 Write-Host ""
 

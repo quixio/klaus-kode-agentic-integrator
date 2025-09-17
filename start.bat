@@ -1,12 +1,12 @@
 @echo off
 setlocal enabledelayedexpansion
 
-REM Quix Coding Agent Startup Script for Windows
+REM Klaus Kode Agentic Data Integrator Startup Script for Windows
 REM This script handles environment setup and launches the application
 
 echo.
 echo ============================================
-echo      Quix Coding Agent - Klaus Kode
+echo  Klaus Kode Agentic Data Integrator
 echo ============================================
 echo.
 
@@ -240,7 +240,7 @@ if not exist "logging" mkdir "logging"
 
 REM Start the application
 echo.
-echo [START] Starting Quix Coding Agent...
+echo [START] Starting Klaus Kode Agentic Data Integrator...
 echo ----------------------------------------
 echo.
 
