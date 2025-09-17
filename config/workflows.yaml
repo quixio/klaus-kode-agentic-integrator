@@ -3,8 +3,8 @@
 
 workflows:
   sink:
-    name: "Create Quix Sink"
-    description: "Create an application to consume data from a Quix topic and send to an external destination"
+    name: "Create Klaus Kode Sink"
+    description: "Create an application to consume data from a Kafka topic and send to an external destination"
     phases:
       - prerequisites_collection
       - schema_analysis
@@ -15,25 +15,25 @@ workflows:
       - monitoring
     welcome_message: |
       ==============================================
-      Welcome to the AI-Powered Quix Sink Creation Workflow!
+      Welcome to the Klaus Kode Sink Creation Workflow!
       ==============================================
-      
-      I'll help you create a complete Quix sink application that:
-      - Reads data from a Quix topic
+
+      I'll help you create a complete sink application that:
+      - Reads data from a Kafka topic
       - Processes and transforms the data as needed
       - Sends it to your chosen destination system
-      
+
       This wizard will guide you through:
       1. Selecting your workspace and source topic
       2. Choosing and configuring your destination
       3. Analyzing data schema
       4. Generating production-ready code
       5. Testing in a sandbox environment
-      6. Deploying to your Quix workspace
-  
+      6. Deploying to your workspace
+
   source:
-    name: "Create Quix Source"
-    description: "Create an application to produce data from an external system and publish to a Quix topic"
+    name: "Create Klaus Kode Source"
+    description: "Create an application to produce data from an external system and publish to a Kafka topic"
     phases:
       - prerequisites_collection
       - schema_analysis
@@ -45,31 +45,31 @@ workflows:
       - monitoring
     welcome_message: |
       ==============================================
-      Welcome to the AI-Powered Quix Source Creation Workflow!
+      Welcome to the Klaus Kode Source Creation Workflow!
       ==============================================
-      
-      I'll help you create a complete Quix source application that:
+
+      I'll help you create a complete source application that:
       - Connects to your external data source
       - Reads and processes data
-      - Publishes it to a Quix topic
-      
+      - Publishes it to a Kafka topic
+
       This wizard will guide you through:
       1. Selecting your workspace
       2. Configuring your data source
       3. Defining the output schema
       4. Generating production-ready code
       5. Testing connectivity and data flow
-      6. Deploying to your Quix workspace
-  
+      6. Deploying to your workspace
+
   transform:
-    name: "Create Quix Transformation"
-    description: "Create an application to transform data between Quix topics"
+    name: "Create Klaus Kode Transformation"
+    description: "Create an application to transform data between Kafka topics"
     enabled: false
     placeholder_message: "Transform workflow coming soon!"
-  
+
   starter:
-    name: "Create Quix Starter Application"
-    description: "Create a starter application from Quix templates"
+    name: "Create Klaus Kode Starter Application"
+    description: "Create a starter application from templates"
     enabled: false
     placeholder_message: "Starter workflow coming soon!"
 
@@ -80,7 +80,7 @@ phases:
     initial_delay: 2  # seconds
     max_delay: 30
     exponential_base: 2
-  
+
   timeouts:
     prerequisites_collection: 300
     schema_analysis: 120

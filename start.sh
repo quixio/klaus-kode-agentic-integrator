@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Quix Coding Agent Startup Script for Linux/Mac
+# Klaus Kode Agentic Data Integrator Startup Script for Linux/Mac
 # This script handles environment setup and launches the application
 
 set -e  # Exit on error
@@ -13,7 +13,7 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 echo -e "${BLUE}╔════════════════════════════════════════╗${NC}"
-echo -e "${BLUE}║     Quix Coding Agent - Klaus Kode     ║${NC}"
+echo -e "${BLUE}║  Klaus Kode Agentic Data Integrator    ║${NC}"
 echo -e "${BLUE}╚════════════════════════════════════════╝${NC}"
 echo ""
 
@@ -233,7 +233,7 @@ mkdir -p logging
 
 # Start the application
 echo ""
-echo -e "${GREEN}🚀 Starting Quix Coding Agent...${NC}"
+echo -e "${GREEN}🚀 Starting Klaus Kode Agentic Data Integrator...${NC}"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
 
