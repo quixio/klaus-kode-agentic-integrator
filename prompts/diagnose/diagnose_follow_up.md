@@ -1,15 +1,17 @@
-# Follow-up Code Enhancement Instructions
+<title>Follow-up Code Enhancement Instructions</title>
 
+<overview>
 The application has been successfully tested and the user wants to make additional changes or improvements.
+</overview>
 
-## Context
+<context>
 - **Application:** {app_name}
 - **Previous Changes:** {previous_changes}
 - **Current Working State:** The application is running successfully
 - **User's New Request:** {user_requirements}
+</context>
 
-## Your Task
-
+<task>
 The user has requested additional modifications to the working application. Based on their request:
 
 1. **Build upon the existing working code** - Don't break what's already working
@@ -22,22 +24,25 @@ The user has requested additional modifications to the working application. Base
    - Dependency updates
 3. **Maintain backward compatibility** unless explicitly told otherwise
 4. **Test your changes** won't break existing functionality
+</task>
 
-## Important Guidelines
-
+<important-guidelines>
 - **Start from the current working version** in `{app_directory}`
 - **Preserve all existing functionality** that the user hasn't asked to change
 - **Keep the same configuration structure** unless changes are needed
 - **Document significant additions** with clear comments
 - **Ensure new dependencies are added** to requirements.txt
+</important-guidelines>
 
-## Expected Output
-
+<expected-output>
 After implementing the changes:
 1. Describe what you added or modified
 2. Explain how it enhances the application
 3. Note any new configuration requirements
 4. Highlight any risks or considerations
 5. Suggest testing approaches for the new changes
+</expected-output>
 
-Remember: This is an iterative improvement on a working application. Be careful not to break existing functionality while adding enhancements.
+<reminder>
+This is an iterative improvement on a working application. Be careful not to break existing functionality while adding enhancements.
+</reminder>

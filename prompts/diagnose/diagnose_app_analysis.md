@@ -1,21 +1,23 @@
-# Application Analysis
+<title>Application Analysis</title>
 
-You are analyzing an existing Quix application to help the user understand what it does and identify potential issues or improvements.
+<role>
+You are analyzing an existing application to help the user understand what it does and identify potential issues or improvements.
+</role>
 
-## Application Details
+<application-details>
 - **Application Name:** {app_name}
 - **Application ID:** {app_id}
 - **Workspace:** {workspace_id}
+</application-details>
 
-## Files to Analyze
-
+<files-to-analyze>
 The application files are located in: `{app_directory}`
 
 Please analyze the following files:
 {file_list}
+</files-to-analyze>
 
-## Your Task
-
+<task>
 1. **Examine the main application file** (typically `app.py` or `main.py`)
 2. **Review the configuration** in `app.yaml` to understand:
    - Environment variables and their purposes
@@ -30,9 +32,9 @@ Please analyze the following files:
    - Hardcoded values that should be variables
    - Deprecated libraries or patterns
    - Performance bottlenecks
+</task>
 
-## Output Format
-
+<output-format>
 Provide a concise summary in the following format:
 
 ### Application Summary
@@ -52,3 +54,4 @@ Provide a concise summary in the following format:
 
 ### Recommendation
 [Brief suggestion on whether to run as-is, fix issues first, or provide more context]
+</output-format>
