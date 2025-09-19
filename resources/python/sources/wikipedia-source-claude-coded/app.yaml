@@ -1,0 +1,27 @@
+name: wikipedia-sandbox
+language: python
+variables:
+  - name: output
+    inputType: OutputTopic
+    description: Name of the output topic to write into
+    defaultValue: output-topic
+    required: true
+  - name: WIKIPEDIA_STREAM_URL
+    inputType: FreeText
+    description: Wikipedia EventStreams API URL
+    defaultValue: https://stream.wikimedia.org/v2/stream/recentchange
+    required: true
+  - name: TARGET_WIKI
+    inputType: FreeText
+    description: Target wiki to filter events (e.g., en.wikipedia.org)
+    defaultValue: en.wikipedia.org
+    required: true
+  - name: MAX_EVENTS
+    inputType: FreeText
+    description: Maximum number of events to process (for testing)
+    defaultValue: "100"
+    required: false
+dockerfile: dockerfile
+runEntryPoint: main.py
+defaultFile: main.py
+libraryItemId: starter-source

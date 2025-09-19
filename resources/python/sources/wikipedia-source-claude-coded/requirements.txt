@@ -1,0 +1,3 @@
+quixstreams==3.22.0
+python-dotenv
+requests-sse

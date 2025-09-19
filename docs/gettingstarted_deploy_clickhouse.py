@@ -76,6 +76,10 @@ def load_template_files():
 
     for file_path in TEMPLATE_DIR.glob("*"):
         if file_path.is_file():
+            # Skip Zone.Identifier files (Windows metadata files)
+            if file_path.name.endswith(':Zone.Identifier') or ':Zone.Identifier' in file_path.name:
+                continue
+
             with open(file_path, 'rb') as f:
                 content = f.read()
                 # Encode content to base64 for API
