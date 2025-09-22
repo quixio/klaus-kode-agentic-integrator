@@ -1,0 +1,35 @@
+name: clickhouse-wikipedia-sink
+language: python
+variables:
+- name: input
+  inputType: InputTopic
+  description: Name of the input topic to listen to.
+  defaultValue: wikipedia-data
+- name: CLICKHOUSE_HOST
+  inputType: FreeText
+  description: ClickHouse server hostname
+  defaultValue: quix-clickhouse
+- name: CLICKHOUSE_PORT
+  inputType: FreeText
+  description: ClickHouse server port
+  defaultValue: '8123'
+- name: CLICKHOUSE_DATABASE
+  inputType: FreeText
+  description: ClickHouse database name
+  defaultValue: default
+- name: CLICKHOUSE_USERNAME
+  inputType: FreeText
+  description: ClickHouse username
+  defaultValue: clickadmin
+- name: CLICKHOUSE_PASSWORD
+  inputType: Secret
+  description: ClickHouse password
+  defaultValue: CLICKHOUSE_PW_KEY
+- name: CLICKHOUSE_TABLE
+  inputType: FreeText
+  description: ClickHouse table name for Wikipedia page edit data
+  defaultValue: en_wikipedia_pageedits
+dockerfile: dockerfile
+runEntryPoint: main.py
+defaultFile: main.py
+libraryItemId: starter-destination

@@ -408,14 +408,48 @@ class SourceConnectionTestingPhase(BasePhase):
             )
             
             if execution_status == 'error':
-                # Use centralized debug analyzer for interactive debugging
-                action, debug_feedback = await self.debug_analyzer.interactive_debug_workflow(
+                # Create a callback to run fixed code and get new logs
+                async def run_fixed_code_callback(fixed_code):
+                    """Run the fixed connection test code and return logs."""
+                    # Update the connection test file
+                    test_code_path = os.path.join(
+                        self.context.code_generation.app_extract_dir,
+                        "connection_test.py"
+                    )
+                    with open(test_code_path, 'w', encoding='utf-8') as file:
+                        file.write(fixed_code)
+
+                    # Backup and swap main.py with connection test
+                    cache_utils.backup_and_swap_main_py(
+                        self.context.code_generation.app_extract_dir,
+                        fixed_code
+                    )
+
+                    # Update session and run
+                    await quix_tools.update_session_file(
+                        self.context.workspace.workspace_id,
+                        self.context.deployment.session_id,
+                        "main.py",
+                        fixed_code
+                    )
+
+                    # Run the code and get logs
+                    new_logs = await quix_tools.run_code_in_session_with_timeout(
+                        self.context.workspace.workspace_id,
+                        self.context.deployment.session_id,
+                        "main.py",
+                        timeout_seconds=15
+                    )
+                    return new_logs
+
+                # Use centralized debug analyzer with callback for auto-testing
+                action, debug_feedback = await self.debug_analyzer.handle_debug_workflow(
                     code=self.context.code_generation.connection_test_code,
                     error_logs=logs,
                     workflow_type="source",
                     is_timeout_error=is_timeout_error,
                     is_connection_test=True,  # This is a connection test, not a full app
-                    auto_debug_attempt=auto_debug_attempt  # Pass through auto-debug state
+                    run_code_callback=run_fixed_code_callback
                 )
                 
                 # Handle the action returned by debug analyzer
@@ -610,14 +644,48 @@ class SourceConnectionTestingPhase(BasePhase):
             )
             
             if execution_status == 'error':
-                # Use centralized debug analyzer for interactive debugging
-                action, debug_feedback = await self.debug_analyzer.interactive_debug_workflow(
+                # Create a callback to run fixed code and get new logs
+                async def run_fixed_code_callback(fixed_code):
+                    """Run the fixed connection test code and return logs."""
+                    # Update the connection test file
+                    test_code_path = os.path.join(
+                        self.context.code_generation.app_extract_dir,
+                        "connection_test.py"
+                    )
+                    with open(test_code_path, 'w', encoding='utf-8') as file:
+                        file.write(fixed_code)
+
+                    # Backup and swap main.py with connection test
+                    cache_utils.backup_and_swap_main_py(
+                        self.context.code_generation.app_extract_dir,
+                        fixed_code
+                    )
+
+                    # Update session and run
+                    await quix_tools.update_session_file(
+                        self.context.workspace.workspace_id,
+                        self.context.deployment.session_id,
+                        "main.py",
+                        fixed_code
+                    )
+
+                    # Run the code and get logs
+                    new_logs = await quix_tools.run_code_in_session_with_timeout(
+                        self.context.workspace.workspace_id,
+                        self.context.deployment.session_id,
+                        "main.py",
+                        timeout_seconds=15
+                    )
+                    return new_logs
+
+                # Use centralized debug analyzer with callback for auto-testing
+                action, debug_feedback = await self.debug_analyzer.handle_debug_workflow(
                     code=self.context.code_generation.connection_test_code,
                     error_logs=logs,
                     workflow_type="source",
                     is_timeout_error=is_timeout_error,
                     is_connection_test=True,  # This is a connection test, not a full app
-                    auto_debug_attempt=auto_debug_attempt  # Pass through auto-debug state
+                    run_code_callback=run_fixed_code_callback
                 )
                 
                 # Handle the action returned by debug analyzer

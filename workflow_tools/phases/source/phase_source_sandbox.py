@@ -220,18 +220,34 @@ class SourceSandboxPhase(BasePhase):
                 )
                 
                 if execution_status == 'error':
-                    # Track auto-debug attempts
-                    auto_debug_mode = getattr(self, '_auto_debug_mode', False)
-                    auto_debug_attempt = getattr(self, '_auto_debug_attempt', 0)
-                    
-                    # Use centralized debug analyzer for interactive debugging
+                    # Create a callback to run fixed code and get new logs
+                    async def run_fixed_code_callback(fixed_code):
+                        """Run the fixed code in the session and return logs."""
+                        # Update the session with fixed code
+                        await quix_tools.update_session_file(
+                            self.context.workspace.workspace_id,
+                            self.context.deployment.session_id,
+                            "main.py",
+                            fixed_code
+                        )
+                        # Run the code and get logs
+                        new_logs = await quix_tools.run_code_in_session_with_timeout(
+                            self.context.workspace.workspace_id,
+                            self.context.deployment.session_id,
+                            "main.py",
+                            timeout_seconds=30
+                        )
+                        return new_logs
+
+                    # Use centralized debug analyzer with callback for auto-testing
                     current_code = self.context.code_generation.generated_code_draft
-                    action, fixed_code = await self.debug_analyzer.interactive_debug_workflow(
+                    action, fixed_code = await self.debug_analyzer.handle_debug_workflow(
                         code=current_code,
                         error_logs=logs,
                         workflow_type="source",
                         is_timeout_error=is_timeout_error,
-                        auto_debug_attempt=auto_debug_attempt if auto_debug_mode else 0
+                        is_connection_test=False,
+                        run_code_callback=run_fixed_code_callback
                     )
                     
                     # Handle the action returned by debug analyzer

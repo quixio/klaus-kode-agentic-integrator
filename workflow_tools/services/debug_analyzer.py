@@ -103,13 +103,14 @@ class DebugAnalyzer:
                 traceback.print_exc()
             return None
 
-    async def run_auto_debug_loop(self, code: str, error_logs: str, 
+    async def run_auto_debug_loop(self, code: str, error_logs: str,
                                  workflow_type: str = "sink",
                                  is_timeout_error: bool = False,
                                  is_connection_test: bool = False,
-                                 max_attempts: int = 10) -> Tuple[str, Optional[str]]:
+                                 max_attempts: int = 10,
+                                 run_code_callback=None) -> Tuple[str, Optional[str]]:
         """Centralized auto-debug loop that automatically retries Claude Code fixes.
-        
+
         Args:
             code: The code that produced the error
             error_logs: Error logs from execution
@@ -117,40 +118,90 @@ class DebugAnalyzer:
             is_timeout_error: Whether this is a timeout error
             is_connection_test: Whether this is debugging a connection test
             max_attempts: Maximum number of auto-debug attempts
-            
+            run_code_callback: Optional async callback to run fixed code and get new logs
+
         Returns:
             Tuple of (action, fixed_code) where action indicates the result:
             'claude_fixed' if Claude successfully fixed the code
             'auto_debug_failed' if max attempts reached without success
         """
         from workflow_tools.common import printer
-        
+
         printer.print(f"🚀 Starting auto-debug mode (max {max_attempts} attempts)...")
-        
+
+        # Initialize error log history to track all attempts
+        error_log_history = []
+        cumulative_error_logs = error_logs
+        current_code = code
+
         for attempt in range(1, max_attempts + 1):
             printer.print(f"🤖 Auto-debug attempt {attempt}/{max_attempts} - using Claude Code SDK...")
-            
+
+            # Build cumulative error context
+            if error_log_history:
+                cumulative_error_logs = self._build_cumulative_error_logs(error_log_history, error_logs)
+
             # Always use Claude Code SDK option automatically
             action, fixed_code = await self.interactive_debug_workflow(
-                code=code,
-                error_logs=error_logs,
+                code=current_code,
+                error_logs=cumulative_error_logs,
                 workflow_type=workflow_type,
                 is_timeout_error=is_timeout_error,
                 is_connection_test=is_connection_test,
                 auto_debug_attempt=attempt  # Pass current attempt
             )
-            
+
             # Handle the result
             if action == 'claude_fixed' and fixed_code:
-                printer.print(f"✅ Auto-debug succeeded on attempt {attempt}!")
-                return ('claude_fixed', fixed_code)
+                # If we have a callback to run the code, test the fix
+                if run_code_callback and attempt < max_attempts:
+                    printer.print(f"🧪 Testing fix from attempt {attempt}...")
+                    try:
+                        new_logs = await run_code_callback(fixed_code)
+
+                        # Check if new logs contain errors
+                        if self._contains_errors(new_logs):
+                            # Add to history and continue
+                            error_log_history.append({
+                                'attempt': attempt,
+                                'logs': new_logs,
+                                'code_snippet': fixed_code[:500] + "..." if len(fixed_code) > 500 else fixed_code
+                            })
+                            current_code = fixed_code
+                            printer.print(f"⚠️ Fix from attempt {attempt} still has errors. Continuing...")
+                            continue
+                        else:
+                            # Success!
+                            printer.print(f"✅ Auto-debug succeeded on attempt {attempt}!")
+                            return ('claude_fixed', fixed_code)
+                    except Exception as e:
+                        printer.print(f"⚠️ Error testing fix: {e}")
+                        # Add error to history
+                        error_log_history.append({
+                            'attempt': attempt,
+                            'logs': str(e),
+                            'code_snippet': fixed_code[:500] + "..." if len(fixed_code) > 500 else fixed_code
+                        })
+                        current_code = fixed_code
+                        continue
+                else:
+                    # No callback or last attempt, assume success
+                    printer.print(f"✅ Auto-debug completed on attempt {attempt}!")
+                    return ('claude_fixed', fixed_code)
+
             elif action == 'auto_debug_failed':
                 # Continue to next attempt
                 if attempt < max_attempts:
                     printer.print(f"🔄 Auto-debug attempt {attempt} failed. Retrying...")
                     # Update code for next attempt if we have any changes
                     if fixed_code:
-                        code = fixed_code
+                        current_code = fixed_code
+                        # Add failed attempt to history
+                        error_log_history.append({
+                            'attempt': attempt,
+                            'logs': "Claude unable to fix the error",
+                            'code_snippet': fixed_code[:500] + "..." if len(fixed_code) > 500 else fixed_code
+                        })
                 else:
                     printer.print(f"❌ Auto-debug reached maximum attempts ({max_attempts}). Failed to fix the error.")
                     return ('auto_debug_failed', None)
@@ -161,19 +212,20 @@ class DebugAnalyzer:
                     continue
                 else:
                     return ('auto_debug_failed', None)
-        
+
         return ('auto_debug_failed', None)
 
     async def handle_debug_workflow(self, code: str, error_logs: str,
                                    workflow_type: str = "sink",
                                    is_timeout_error: bool = False,
                                    is_connection_test: bool = False,
-                                   env_vars_collected: bool = False) -> Tuple[str, Optional[str]]:
+                                   env_vars_collected: bool = False,
+                                   run_code_callback=None) -> Tuple[str, Optional[str]]:
         """Simplified entry point for debug workflows that handles both manual and auto modes.
-        
+
         This method should be used by phases instead of directly calling interactive_debug_workflow.
         It handles the user choice between manual debugging and auto-debug mode.
-        
+
         Args:
             code: The code that produced the error
             error_logs: Error logs from execution
@@ -181,7 +233,8 @@ class DebugAnalyzer:
             is_timeout_error: Whether this is a timeout error
             is_connection_test: Whether this is debugging a connection test
             env_vars_collected: Whether env vars have already been collected (to prevent re-collection)
-            
+            run_code_callback: Optional async callback to run fixed code and get new logs
+
         Returns:
             Tuple of (action, fixed_code) where action indicates the result
         """
@@ -194,7 +247,7 @@ class DebugAnalyzer:
             is_connection_test=is_connection_test,
             auto_debug_attempt=0  # Start with manual mode
         )
-        
+
         # If user chose auto-debug, switch to the centralized auto-debug loop
         if action == 'auto_debug':
             return await self.run_auto_debug_loop(
@@ -203,9 +256,10 @@ class DebugAnalyzer:
                 workflow_type=workflow_type,
                 is_timeout_error=is_timeout_error,
                 is_connection_test=is_connection_test,
-                max_attempts=10
+                max_attempts=10,
+                run_code_callback=run_code_callback
             )
-        
+
         return (action, fixed_code)
     
     async def interactive_debug_workflow(self, code: str, error_logs: str,
@@ -409,6 +463,65 @@ class DebugAnalyzer:
         
         return "unknown"
     
+    def _build_cumulative_error_logs(self, error_log_history: List[Dict], initial_logs: str) -> str:
+        """Build a cumulative error log string from history.
+
+        Args:
+            error_log_history: List of previous error attempts
+            initial_logs: The initial error logs from the first run
+
+        Returns:
+            Formatted cumulative error log string
+        """
+        sections = []
+
+        # Add initial error
+        sections.append("=== INITIAL ERROR (Attempt 0) ===")
+        sections.append(initial_logs)
+
+        # Add each attempt's errors
+        for entry in error_log_history:
+            sections.append(f"\n=== ATTEMPT {entry['attempt']} ERROR LOGS ===")
+            sections.append(f"After applying fix, got these NEW errors:")
+            sections.append(entry['logs'])
+            if 'code_snippet' in entry:
+                sections.append(f"\n[Code snippet that produced this error:]")
+                sections.append(entry['code_snippet'])
+
+        return "\n".join(sections)
+
+    def _contains_errors(self, logs: str) -> bool:
+        """Check if logs contain error indicators.
+
+        Args:
+            logs: Log output to check
+
+        Returns:
+            True if errors are detected, False otherwise
+        """
+        if not logs:
+            return False
+
+        error_indicators = [
+            'error', 'exception', 'traceback', 'failed',
+            'Error', 'Exception', 'Traceback', 'Failed',
+            'ERROR', 'EXCEPTION', 'FAILED', 'CRITICAL',
+            'ModuleNotFoundError', 'ImportError', 'AttributeError',
+            'TypeError', 'ValueError', 'KeyError', 'NameError',
+            'SyntaxError', 'IndentationError', 'RuntimeError',
+            'ConnectionError', 'TimeoutError', 'PermissionError'
+        ]
+
+        # Check for any error indicators
+        logs_lower = logs.lower()
+        for indicator in error_indicators:
+            if indicator.lower() in logs_lower:
+                # Avoid false positives from success messages
+                if 'no error' not in logs_lower and 'error: 0' not in logs_lower:
+                    return True
+
+        return False
+
     def extract_missing_imports(self, error_logs: str) -> List[str]:
         """Extract missing module names from import errors.
         

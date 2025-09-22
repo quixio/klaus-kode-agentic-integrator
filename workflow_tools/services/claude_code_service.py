@@ -14,7 +14,7 @@ import anyio
 import shutil
 from pathlib import Path
 from typing import Dict, Any, Optional, Tuple, List
-from claude_code_sdk import query, ClaudeCodeOptions, AssistantMessage, TextBlock, ToolUseBlock, ResultMessage
+from claude_code_sdk import query, ClaudeCodeOptions, AssistantMessage, TextBlock, ToolUseBlock, ResultMessage, ThinkingBlock
 from rich.console import Console
 from rich.panel import Panel
 from workflow_tools.contexts import WorkflowContext
@@ -659,6 +659,10 @@ class ClaudeCodeService:
                             # Display Claude's thoughts
                             printer.print(f"Claude: {block.text}")
                             full_response.append(block.text)
+                        elif isinstance(block, ThinkingBlock):
+                            # Log Claude's internal thinking (in debug mode)
+                            if self.debug_mode:
+                                printer.print_debug(f"   💭 Thinking: {block.thinking[:200]}..." if len(block.thinking) > 200 else f"   💭 Thinking: {block.thinking}")
                         elif isinstance(block, ToolUseBlock):
                             # Log tool usage
                             if self.debug_mode:
@@ -891,22 +895,37 @@ class ClaudeCodeService:
             
             # Collect Claude's thought process for saving
             claude_thoughts = []
-            
+            claude_outputs = []
+
             async for message in self._query_with_balance_retry(debug_prompt, options, "code debugging"):
                 if isinstance(message, AssistantMessage):
                     for block in message.content:
                         if isinstance(block, TextBlock):
                             printer.print(f"Claude: {block.text}")
-                            # Collect Claude's analysis for thought process
-                            claude_thoughts.append(block.text)
+                            # Collect Claude's output for display
+                            claude_outputs.append(block.text)
+                        elif isinstance(block, ThinkingBlock):
+                            # Collect Claude's actual thinking/reasoning
+                            claude_thoughts.append(f"[THINKING]: {block.thinking}")
+                            if self.debug_mode:
+                                printer.print(f"💭 [Debug] Claude thinking: {block.thinking[:200]}..." if len(block.thinking) > 200 else f"💭 [Debug] Claude thinking: {block.thinking}")
             
             printer.print("=" * 60)
             
             # Save Claude's thought process for future reference
-            if claude_thoughts:
-                thought_process = "\n\n".join(claude_thoughts)
+            if claude_thoughts or claude_outputs:
+                # Combine actual thinking with outputs for complete context
+                combined_process = []
+                if claude_thoughts:
+                    combined_process.append("=== CLAUDE'S INTERNAL REASONING ===")
+                    combined_process.extend(claude_thoughts)
+                if claude_outputs:
+                    combined_process.append("\n=== CLAUDE'S VISIBLE OUTPUT ===")
+                    combined_process.extend(claude_outputs)
+
+                thought_process = "\n\n".join(combined_process)
                 self._save_thought_process(thought_process, counter_key, current_attempt)
-                printer.print(f"💭 Saved thought process for {debug_type} attempt #{current_attempt}")
+                printer.print(f"💭 Saved thought process for {debug_type} attempt #{current_attempt} (thinking: {len(claude_thoughts)}, outputs: {len(claude_outputs)})")
             
             # Debug: Check app directory contents AFTER Claude Code SDK runs
             printer.print_debug(f"🔍 DEBUG: Checking app directory after debug...")
@@ -1391,6 +1410,10 @@ This is a connection test only - do NOT integrate with Quix Streams or Kafka yet
                         if isinstance(block, TextBlock):
                             printer.print(f"Claude: {block.text}")
                             full_response.append(block.text)
+                        elif isinstance(block, ThinkingBlock):
+                            # Log Claude's internal thinking (in debug mode)
+                            if self.debug_mode:
+                                printer.print_debug(f"   💭 Thinking: {block.thinking[:200]}..." if len(block.thinking) > 200 else f"   💭 Thinking: {block.thinking}")
                         elif isinstance(block, ToolUseBlock):
                             if self.debug_mode:
                                 printer.print(f"   🔧 Using tool: {block.name}")
