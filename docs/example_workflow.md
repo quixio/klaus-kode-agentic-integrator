@@ -171,7 +171,9 @@ You can monitor deployments via the Quix UI.
 
 ## The Sink Workflow
 
-The sink workflow is similar to the source workflow, but doesn't require connection code.
+The sink workflow is similar to the source workflow, but doesn't require connection code. When following the sink workflow, you’ll be guided through these phases:
+
+![Source Workflow Steps](./images/sink_workflow_steps.png)
 
 Let’s continue by writing the Wikipedia event data to a Clickhouse database.
 
