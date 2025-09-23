@@ -300,11 +300,16 @@ class SourceConnectionTestingPhase(BasePhase):
             )
             printer.print(f"🔗 Running session in application: {app_url}")
             
+            # Prepare session variables to pass during session creation
+            session_env_vars, session_secrets = env_var_manager.prepare_session_variables()
+
             session_result = await quix_tools.manage_session(
                 action=quix_tools.SessionAction.start,
                 workspace_id=self.context.workspace.workspace_id,
                 application_id=self.context.deployment.application_id,
-                branch_name=self.context.workspace.branch_name
+                branch_name=self.context.workspace.branch_name,
+                environment_variables=session_env_vars if session_env_vars else None,
+                secrets=session_secrets if session_secrets else None
             )
             if not session_result or 'sessionId' not in session_result:
                 printer.print("❌ Failed to start IDE session.")
@@ -350,39 +355,51 @@ class SourceConnectionTestingPhase(BasePhase):
                 else:
                     raise e
 
-            # 2. Update requirements.txt
+            # 2. Update requirements.txt from current directory
             printer.print("  - Updating requirements.txt.")
-            template_requirements_lines = []
-            if self.context.code_generation.template_requirements:
-                for line in self.context.code_generation.template_requirements.split('\n'):
-                    line = line.strip()
-                    if line and not line.startswith('#'):
-                        template_requirements_lines.append(line)
+            # Use the requirements.txt from the current app directory instead of rebuilding
+            app_dir = self.context.code_generation.app_extract_dir
+            requirements_path = os.path.join(app_dir, "requirements.txt")
+            if os.path.exists(requirements_path):
+                with open(requirements_path, 'r', encoding='utf-8') as f:
+                    requirements = f.read()
+                await quix_tools.update_session_file(self.context.workspace.workspace_id, session_id, "requirements.txt",
+                                                     requirements)
             else:
-                template_requirements_lines = ["python-dotenv", "requests"]
-            ai_dependencies = self.dependency_parser.parse_dependency_comments(self.context.code_generation.connection_test_code)
-            additional_packages = ai_dependencies or self.dependency_parser.detect_required_packages(self.context.code_generation.connection_test_code)
-            all_packages = list(dict.fromkeys(template_requirements_lines + additional_packages))
-            requirements = "\n".join(all_packages) + "\n"
-            await quix_tools.update_session_file(self.context.workspace.workspace_id, session_id, "requirements.txt",
-                                                 requirements)
+                # Fallback to template requirements if no requirements.txt exists
+                printer.print("  - ⚠️ requirements.txt not found in current directory, using template defaults")
+                template_requirements_lines = []
+                if self.context.code_generation.template_requirements:
+                    for line in self.context.code_generation.template_requirements.split('\n'):
+                        line = line.strip()
+                        if line and not line.startswith('#'):
+                            template_requirements_lines.append(line)
+                else:
+                    template_requirements_lines = ["python-dotenv", "requests"]
+                ai_dependencies = self.dependency_parser.parse_dependency_comments(self.context.code_generation.connection_test_code)
+                additional_packages = ai_dependencies or self.dependency_parser.detect_required_packages(self.context.code_generation.connection_test_code)
+                all_packages = list(dict.fromkeys(template_requirements_lines + additional_packages))
+                requirements = "\n".join(all_packages) + "\n"
+                await quix_tools.update_session_file(self.context.workspace.workspace_id, session_id, "requirements.txt",
+                                                     requirements)
 
-            # 3. Install dependencies
+            # 3. Upload app.yaml from current directory
+            printer.print("  - Uploading app.yaml.")
+            app_yaml_path = os.path.join(app_dir, "app.yaml")
+            if os.path.exists(app_yaml_path):
+                with open(app_yaml_path, 'r', encoding='utf-8') as f:
+                    app_yaml_content = f.read()
+                await quix_tools.update_session_file(self.context.workspace.workspace_id, session_id, "app.yaml",
+                                                     app_yaml_content)
+            else:
+                printer.print("  - ⚠️ app.yaml not found in current directory")
+
+            # 4. Install dependencies
             printer.print("  - Installing dependencies.")
             await quix_tools.setup_session(self.context.workspace.workspace_id, session_id, force=True)
 
-            # 4. Inject environment variables that were already collected before session creation
-            # The env_var_manager was already created and used above
-            session_env_vars, session_secrets = env_var_manager.prepare_session_variables()
-            
-            if session_env_vars or session_secrets:
-                await quix_tools.update_session_environment(
-                    self.context.workspace.workspace_id,
-                    session_id,
-                    environment_variables=session_env_vars if session_env_vars else None,
-                    secrets=session_secrets if session_secrets else None
-                )
-                printer.print("  - Injected variables into the running IDE session.")
+            # Note: Environment variables were already set during session creation,
+            # so we don't need to inject them again here
 
             printer.print("✅ Connection test environment configured.")
 
@@ -515,6 +532,15 @@ class SourceConnectionTestingPhase(BasePhase):
             elif execution_status == 'success':
                 printer.print("✅ Connection test completed successfully with no apparent errors!")
                 self.context.connection_test_output = logs
+
+                # Pause to let user review the success analysis
+                printer.print("")
+                printer.print("📋 Log analysis complete. Press Enter to continue to the next phase...")
+                try:
+                    input()
+                except KeyboardInterrupt:
+                    printer.print("\n⚠️ Interrupted. Continuing anyway...")
+
                 return True  # Return success status
             elif execution_status == 'uncertain':
                 printer.print("⚠️ Could not determine if connection test succeeded.")
@@ -751,6 +777,15 @@ class SourceConnectionTestingPhase(BasePhase):
             elif execution_status == 'success':
                 printer.print("✅ Connection test completed successfully with no apparent errors!")
                 self.context.connection_test_output = logs
+
+                # Pause to let user review the success analysis
+                printer.print("")
+                printer.print("📋 Log analysis complete. Press Enter to continue to the next phase...")
+                try:
+                    input()
+                except KeyboardInterrupt:
+                    printer.print("\n⚠️ Interrupted. Continuing anyway...")
+
                 return True  # Return success status
             elif execution_status == 'uncertain':
                 printer.print("⚠️ Could not determine if connection test succeeded.")

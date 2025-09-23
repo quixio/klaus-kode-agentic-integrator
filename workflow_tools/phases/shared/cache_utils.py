@@ -652,8 +652,14 @@ class CacheUtils:
         
         return None
     
-    def use_cached_user_prompt(self, cached_prompt: str) -> bool:
-        """Show cached user prompt to user and ask for confirmation."""
+    def use_cached_user_prompt(self, cached_prompt: str, is_for_additional_requirements: bool = False) -> bool:
+        """Show cached user prompt to user and ask for confirmation.
+
+        Args:
+            cached_prompt: The cached requirements to show
+            is_for_additional_requirements: If True, this is being called in the context where
+                                           the user can add additional requirements to base requirements
+        """
         cache_file = self._get_cached_user_prompt_filename()
 
         # Prepare content dict
@@ -674,9 +680,14 @@ class CacheUtils:
             content_dict["Requirements Preview"] = cached_prompt[:150] + "..."
             content_dict["Full Length"] = f"{len(cached_prompt)} characters"
 
-        # Display the beautiful cache panel
+        # Display the beautiful cache panel with appropriate title
+        if is_for_additional_requirements:
+            panel_title = "Cached Base Requirements"
+        else:
+            panel_title = "Cached User Requirements"
+
         printer.print_cache_panel(
-            title="Cached User Requirements",
+            title=panel_title,
             cache_file=cache_file,
             content_dict=content_dict,
             border_style="cyan"
@@ -686,8 +697,13 @@ class CacheUtils:
         if len(cached_prompt) > 200:
             printer.print("\n📝 Full requirements:")
             printer.print(f'"{cached_prompt}"')
-        
-        question = "Would you like to use these cached app requirements instead of entering new ones?"
+
+        # Choose appropriate question based on context
+        if is_for_additional_requirements:
+            question = "Would you like to reuse these base requirements?\n(You can add additional requirements in the next step)"
+        else:
+            question = "Would you like to use these cached app requirements instead of entering new ones?"
+
         response = get_user_approval_with_back(question, allow_back=True)
         if response == 'back':
             raise NavigationBackRequest("User requested to go back")
@@ -805,7 +821,7 @@ class CacheUtils:
 
         # Display the beautiful cache panel
         printer.print_cache_panel(
-            title="Cached Additional Requirements",
+            title="Cached Additional Requirements from Previous Run",
             cache_file=cache_file,
             content_dict=content_dict,
             border_style="cyan"
@@ -813,19 +829,19 @@ class CacheUtils:
 
         # If requirements are long, show full text separately
         if cached_additional and len(cached_additional) > 200:
-            printer.print("\n📝 Full additional requirements:")
+            printer.print("\n📝 Full cached additional requirements:")
             printer.print(f'"{cached_additional}"')
 
-        question = "Would you like to use these cached additional requirements?"
+        question = "Would you like to reuse these cached additional requirements or enter new ones?"
         response = get_user_approval_with_back(question, allow_back=True)
         if response == 'back':
             raise NavigationBackRequest("User requested to go back")
         if response == 'yes':
             printer.print("✅ Using cached additional requirements")
-            return True
+            return True  # Return True means use cached
         else:
             printer.print("🔄 Will enter fresh additional requirements")
-            return False
+            return False  # Return False means don't use cached, enter new
 
     def save_additional_requirements_to_cache(self, additional_requirements: str):
         """Save additional requirements to cache file for future runs."""

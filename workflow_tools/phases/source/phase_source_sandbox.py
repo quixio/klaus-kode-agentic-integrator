@@ -398,11 +398,19 @@ class SourceSandboxPhase(BasePhase):
                 elif execution_status == 'success':
                     printer.print("✅ Source application appears to be running successfully!")
                     printer.print("  - Data is being produced to the output topic")
-                    
+
+                    # Pause to let user review the success analysis
+                    printer.print("")
+                    printer.print("📋 Log analysis complete. Press Enter to continue to the next phase...")
+                    try:
+                        input()
+                    except KeyboardInterrupt:
+                        printer.print("\n⚠️ Interrupted. Continuing anyway...")
+
                     # Create production-ready code
                     production_code = self._create_production_code(self.context.code_generation.generated_code_draft)
                     self.context.code_generation.generated_code_draft = production_code
-                    
+
                     return PhaseResult(success=True, message="Source sandbox testing completed successfully")
                 elif execution_status == 'uncertain':
                     printer.print("⚠️ Could not determine if source is running correctly.")

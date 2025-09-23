@@ -17,6 +17,11 @@ You must work on files in the {app_path} directory. NEVER try to look at any fil
 Read app.yaml file (which is the equivalent to a .env file) and update the variables in there to match the new use case.
 
 **NOTE**: Since this is a connection test only, you don't need to configure any Kafka topic variables yet. Focus only on the source system connection parameters (credentials, endpoints, etc.).
+
+**CRITICAL YAML FORMATTING**: When adding or updating variables in app.yaml, always quote description values that contain colons, special characters, or could be misinterpreted as YAML syntax. For example:
+```yaml
+description: "Date format (e.g., YYYY-MM-DD) for API requests"
+```
 </environment-variables>
 
 <credential-handling>
@@ -77,3 +82,19 @@ This code will be uploaded to a code sandbox and tested there. NEVER attempt to 
 <important-note-todos>
 If you are creating an internal TODO list for yourself, please print it as part of your thoughts so that the user can see whats going on. You don't need approval for the list, just make it visible.
 </important-note-todos>
+
+<dependencies-and-extras>
+NEVER add ANY version constraints to common dependencies - no ==, >=, <=, ~=, or any other version specifiers (BAD: "requests==2.2.1", "pandas>=1.5.0", GOOD: "requests", "pandas")—unless you are explicitly asked to do so.
+
+<dependency-examples>
+CORRECT requirements.txt format:
+requests
+pandas
+openpyxl
+
+INCORRECT (DO NOT DO THIS):
+requests>=2.25.0
+pandas>=1.5.0
+openpyxl>=3.0.9
+</dependency-examples>
+</dependencies-and-extras>

@@ -4,6 +4,8 @@ import os
 import json
 import httpx
 import logging
+import asyncio
+import random
 import pandas as pd
 from typing import Any, Optional, Dict, List
 from enum import Enum
@@ -63,9 +65,24 @@ async def make_quix_request(
     content_payload: Optional[str] = None,
     params: Optional[Dict[str, Any]] = None,
     accept_header: str = "application/json",
-    timeout: float = 120.0
+    timeout: float = 120.0,
+    max_retries: int = 3,
+    base_delay: float = 2.0
 ) -> Any:
-    """Makes an authenticated request to the Quix Portal API."""
+    """Makes an authenticated request to the Quix Portal API with retry logic.
+
+    Args:
+        method: HTTP method
+        path: API path
+        workspace_id: Optional workspace ID
+        json_payload: Optional JSON payload
+        content_payload: Optional text content payload
+        params: Optional query parameters
+        accept_header: Accept header value
+        timeout: Request timeout in seconds
+        max_retries: Maximum number of retry attempts for network errors
+        base_delay: Base delay for exponential backoff
+    """
     token = os.environ.get("QUIX_TOKEN")
     base_url = os.environ.get("QUIX_BASE_URL")
 
@@ -91,11 +108,11 @@ async def make_quix_request(
 
     # Get verbose mode setting
     verbose_mode = os.environ.get('VERBOSE_MODE', 'false').lower() == 'true'
-    
+
     # Log request info based on verbosity
     if verbose_mode:
         logger.info(f"Requesting: {method} {full_url}")
-    
+
     # Log request payload with pretty formatting (only in verbose mode)
     if verbose_mode:
         if json_payload is not None:
@@ -104,71 +121,99 @@ async def make_quix_request(
             logger.info(f"Request content: {content_payload[:500]}...")
         elif params:
             logger.info(f"Request params: {params}")
-    
-    try:
-        async with httpx.AsyncClient() as client:
-            request_args = {
-                "method": method,
-                "url": full_url,
-                "headers": headers,
-                "timeout": timeout  # Use the configurable timeout parameter
-            }
-            if json_payload is not None:
-                request_args["json"] = json_payload
-            if content_payload is not None:
-                request_args["content"] = content_payload
-            if params:
-                request_args["params"] = params
 
-            response = await client.request(**request_args)
+    # Retry loop for network errors
+    last_error = None
+    for attempt in range(max_retries):
+        try:
+            async with httpx.AsyncClient() as client:
+                request_args = {
+                    "method": method,
+                    "url": full_url,
+                    "headers": headers,
+                    "timeout": timeout  # Use the configurable timeout parameter
+                }
+                if json_payload is not None:
+                    request_args["json"] = json_payload
+                if content_payload is not None:
+                    request_args["content"] = content_payload
+                if params:
+                    request_args["params"] = params
 
-            response.raise_for_status()
+                response = await client.request(**request_args)
 
-            if not response.content:
+                response.raise_for_status()
+
+                if not response.content:
+                    if verbose_mode:
+                        logger.info("Response: Empty/No content")
+                    return None
+
+                if "application/json" in response.headers.get("content-type", ""):
+                    json_response = response.json()
+                    # Only log detailed response in verbose mode
+                    if verbose_mode:
+                        logger.info(f"Response JSON:\n{pretty_json(json_response)}")
+                    # In non-verbose mode, don't log success messages
+                    return json_response
+
+                text_response = response.text
                 if verbose_mode:
-                    logger.info("Response: Empty/No content")
-                return None
-
-            if "application/json" in response.headers.get("content-type", ""):
-                json_response = response.json()
-                # Only log detailed response in verbose mode
-                if verbose_mode:
-                    logger.info(f"Response JSON:\n{pretty_json(json_response)}")
+                    if len(text_response) < 1000:
+                        logger.info(f"Response text: {text_response}")
+                    else:
+                        logger.info(f"Response text (truncated): {text_response[:500]}...")
                 # In non-verbose mode, don't log success messages
-                return json_response
-            
-            text_response = response.text
-            if verbose_mode:
-                if len(text_response) < 1000:
-                    logger.info(f"Response text: {text_response}")
-                else:
-                    logger.info(f"Response text (truncated): {text_response[:500]}...")
-            # In non-verbose mode, don't log success messages
-            return text_response
+                return text_response
 
-    except httpx.HTTPStatusError as e:
-        # More detailed logging for HTTP errors
-        if verbose_mode:
-            logger.error(f"HTTP Status Error: {e.response.status_code} calling {e.request.method} {e.request.url}")
-            # Try to parse and pretty-print error response
-            try:
-                error_json = e.response.json()
-                logger.error(f"Error response:\n{pretty_json(error_json)}")
-            except:
-                logger.error(f"Error response text: {e.response.text}")
-        else:
-            # In non-verbose mode, just log a simple error
-            logger.error(f"API Error {e.response.status_code}: {e.request.method} {e.request.url.path}")
-        raise QuixApiError(f"API request failed with status {e.response.status_code}: {e.response.text}", e.response.status_code)
-    
-    except json.JSONDecodeError as e:
-        logger.error(f"JSON Decode Error from {full_url}. Response: {e.response.text if hasattr(e, 'response') else 'No response text.'}")
-        # Return the raw text if it's not valid JSON, it might contain a readable error message
-        return e.response.text if hasattr(e, 'response') else ""
-    
-    except Exception as e:
-        logger.error(f"An unexpected error of type {type(e).__name__} occurred: {repr(e)}")
-        raise QuixApiError(f"An unexpected error occurred: {repr(e)}")
+        except (httpx.ConnectTimeout, httpx.ReadTimeout, httpx.ConnectError, httpx.NetworkError) as e:
+            # Network-related errors that should be retried
+            last_error = e
+            if attempt < max_retries - 1:
+                # Calculate delay with exponential backoff and jitter
+                delay = base_delay * (2 ** attempt)
+                jitter = random.uniform(0, delay * 0.1)
+                total_delay = delay + jitter
+
+                logger.warning(f"⚠️ Network error ({type(e).__name__}). Retrying in {total_delay:.1f} seconds... (attempt {attempt + 1}/{max_retries})")
+                logger.info(f"   Operation: {method} {path}")
+
+                await asyncio.sleep(total_delay)
+                continue
+            else:
+                # Max retries exhausted
+                logger.error(f"❌ Network error after {max_retries} attempts: {type(e).__name__}")
+                logger.error(f"   Operation failed: {method} {path}")
+                logger.error(f"   Error details: {repr(e)}")
+                raise QuixApiError(f"Network error after {max_retries} attempts: {type(e).__name__}('')")
+
+        except httpx.HTTPStatusError as e:
+            # More detailed logging for HTTP errors
+            if verbose_mode:
+                logger.error(f"HTTP Status Error: {e.response.status_code} calling {e.request.method} {e.request.url}")
+                # Try to parse and pretty-print error response
+                try:
+                    error_json = e.response.json()
+                    logger.error(f"Error response:\n{pretty_json(error_json)}")
+                except:
+                    logger.error(f"Error response text: {e.response.text}")
+            else:
+                # In non-verbose mode, just log a simple error
+                logger.error(f"API Error {e.response.status_code}: {e.request.method} {e.request.url.path}")
+            raise QuixApiError(f"API request failed with status {e.response.status_code}: {e.response.text}", e.response.status_code)
+
+        except json.JSONDecodeError as e:
+            logger.error(f"JSON Decode Error from {full_url}. Response: {e.response.text if hasattr(e, 'response') else 'No response text.'}")
+            # Return the raw text if it's not valid JSON, it might contain a readable error message
+            return e.response.text if hasattr(e, 'response') else ""
+
+        except Exception as e:
+            logger.error(f"An unexpected error of type {type(e).__name__} occurred: {repr(e)}")
+            raise QuixApiError(f"An unexpected error occurred: {repr(e)}")
+
+    # Should never reach here, but just in case
+    if last_error:
+        raise QuixApiError(f"Request failed after {max_retries} attempts: {repr(last_error)}")
 
 # --- Tool Functions that are regular async functions (No AI involved) ---
 
@@ -707,7 +752,15 @@ async def run_code_in_session_with_timeout(workspace_id: str, session_id: str, f
             # Add 5 seconds to the HTTP timeout to be slightly longer than our collection timeout
             async with client.stream("POST", url, headers=headers, json=payload,
                                     timeout=timeout_seconds + 5.0) as response:
-                response.raise_for_status()
+                # Check status code without accessing the response body
+                if response.status_code >= 400:
+                    # For error responses, read the content first
+                    try:
+                        error_content = await response.aread()
+                        error_text = error_content.decode('utf-8', errors='replace')
+                    except Exception:
+                        error_text = f"Status {response.status_code}"
+                    return f"HTTP error during execution: {response.status_code} - {error_text}"
 
                 # Check if the response is actually streaming
                 content_type = response.headers.get('content-type', '')

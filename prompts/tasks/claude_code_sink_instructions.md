@@ -84,6 +84,11 @@ Important instructions:
 2. Update {app_path}/requirements.txt with any new dependencies you have used (use correct pip package names)
 3. Update {app_path}/app.yaml with all new environment variables you have introduced in this new code
 
+**CRITICAL YAML FORMATTING**: When adding or updating variables in app.yaml, always quote description values that contain colons, special characters, or could be misinterpreted as YAML syntax. For example:
+```yaml
+description: "Date format (e.g., YYYY-MM-DD) for API requests"
+```
+
 4. **CRITICAL**: For the input topic variable in {app_path}/app.yaml, set the defaultValue to "{topic_name}" (this is the topic the user selected during setup)
 5. If there is an {app_path}/.env file present, update it with all the new environment variables to match app.yaml
 6. For debugging, include early print statements to show raw message structure
@@ -216,7 +221,19 @@ quixstreams[redis]
 quixstreams[s3]
 quixstreams[tdengine]
 
-Except for the quixstreams library, NEVER pin common dependencies to a specific version (such as "requests==2.2.1" or "python-dotenv==1.3.0") unless you are explicitly asked to do so. Instead, specify dependencies purely by name such as ("requests" or "python-dotenv").
+Except for the quixstreams library, NEVER add ANY version constraints to common dependencies - no ==, >=, <=, ~=, or any other version specifiers (BAD: "requests==2.2.1", "pandas>=1.5.0", GOOD: "requests", "pandas")—unless you are explicitly asked to do so.
+
+<dependency-examples>
+CORRECT requirements.txt format:
+requests
+pandas
+openpyxl
+
+INCORRECT (DO NOT DO THIS):
+requests>=2.25.0
+pandas>=1.5.0
+openpyxl>=3.0.9
+</dependency-examples>
 </dependencies-and-extras>
 
 <critical-dependency-versions>

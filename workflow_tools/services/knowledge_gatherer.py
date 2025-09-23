@@ -77,9 +77,16 @@ class KnowledgeGatheringService:
                     if self.cache_utils.use_cached_schema_analysis(cached_schema, sanitized_name):
                         # User wants to use cached schema - skip connection testing
                         printer.print("🚀 Skipping connection testing phase due to cached schema.")
-                        
+
                         # Set flag to skip connection testing and schema phases
                         self.context.skip_connection_testing = True
+
+                        # IMPORTANT: Also load the cached requirements so generation phase has them
+                        cached_requirements = self.cache_utils.check_cached_user_prompt()
+                        if cached_requirements:
+                            # Store in context so generation phase can access them
+                            self.context.technology.source_technology = cached_requirements
+                            printer.print(f"✅ Loaded cached requirements for generation phase")
                         
                         # Save the cached schema to proper cache directory
                         import os
