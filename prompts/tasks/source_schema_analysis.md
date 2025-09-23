@@ -10,7 +10,7 @@ Please provide a comprehensive analysis including:
 3. **Data Patterns**: Identify any patterns, ranges, or constraints
 4. **Key Fields**: Identify primary keys, timestamps, or important identifiers
 5. **Data Quality**: Note any missing values, inconsistencies, or issues
-6. **Kafka Message Format**: Suggest how this data should be structured as Kafka messages
+6. **Kafka Message Format**: Suggest how this data should be structured as Kafka messages in JSON format.
 7. **Transformation Needs**: Identify any data transformations that might be needed
 
 Focus on providing actionable insights for code generation.
