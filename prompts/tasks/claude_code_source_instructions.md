@@ -165,7 +165,19 @@ quixstreams[redis]
 quixstreams[s3]
 quixstreams[tdengine]
 
-Except for the quixstreams library, NEVER pin common dependencies to a specific version (such as "requests==2.2.1" or "python-dotenv==1.3.0") unless you are explicitly asked to do so. Instead, specify dependencies purely by name such as ("requests" or "python-dotenv").
+Except for the quixstreams library, NEVER add ANY version constraints to common dependencies - no ==, >=, <=, ~=, or any other version specifiers (BAD: "requests==2.2.1", "pandas>=1.5.0", GOOD: "requests", "pandas")—unless you are explicitly asked to do so.
+
+<dependency-examples>
+CORRECT requirements.txt format:
+requests
+pandas
+openpyxl
+
+INCORRECT (DO NOT DO THIS):
+requests>=2.25.0
+pandas>=1.5.0
+openpyxl>=3.0.9
+</dependency-examples>
 </dependencies-and-extras>
 
 <critical-dependency-versions>

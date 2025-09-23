@@ -16,6 +16,7 @@ from pathlib import Path
 from typing import Dict, Any, Optional, Tuple, List
 from claude_code_sdk import query, ClaudeCodeOptions, AssistantMessage, TextBlock, ToolUseBlock, ResultMessage, ThinkingBlock
 from rich.console import Console
+from workflow_tools.core.claude_interruption import InterruptibleTransport, InterruptibleClaudeQuery
 from rich.panel import Panel
 from workflow_tools.contexts import WorkflowContext
 from workflow_tools.common import printer, extract_python_code_from_llm_output
@@ -88,6 +89,9 @@ class ClaudeCodeService:
         
         # Initialize thought process tracking for debug cycles
         self._debug_attempt_counters = {"main": 0, "connection_test": 0}
+
+        # Interruption feature flag - can be controlled via environment or config
+        self.enable_interruption = os.environ.get("KLAUS_ENABLE_INTERRUPTION", "false").lower() == "true"
     
     def _detect_claude_cli_path(self) -> Optional[str]:
         """Detect Claude Code CLI installation path.
@@ -231,29 +235,36 @@ class ClaudeCodeService:
         # If not found, prompt user
         return self._prompt_for_claude_path()
     
-    async def _query_with_balance_retry(self, prompt: str, options: ClaudeCodeOptions, operation_name: str = "Claude Code operation"):
-        """Execute a Claude query with automatic retry on balance errors.
-        
+    async def _query_with_balance_retry(self, prompt: str, options: ClaudeCodeOptions, operation_name: str = "Claude Code operation", enable_interruption: bool = False):
+        """Execute a Claude query with automatic retry on balance errors and optional interruption support.
+
         This centralized method handles credit balance errors gracefully by:
         1. Catching balance-related errors
         2. Showing a helpful message to the user
         3. Waiting for user to top up and press Enter
         4. Retrying the operation
-        
+
         Args:
             prompt: The prompt to send to Claude
             options: Claude Code SDK options
             operation_name: Name of the operation for logging
-            
+            enable_interruption: Whether to enable keyboard interruption during execution
+
         Yields:
             Messages from Claude Code SDK
-            
+
         Raises:
             Exception: For non-balance related errors
         """
         try:
-            async for message in query(prompt=prompt, options=options):
-                yield message
+            if enable_interruption:
+                # Use interruptible query
+                async for message in InterruptibleClaudeQuery.query_with_interruption(prompt=prompt, options=options):
+                    yield message
+            else:
+                # Use standard query
+                async for message in query(prompt=prompt, options=options):
+                    yield message
         except Exception as e:
             error_msg = str(e)
             
@@ -271,10 +282,14 @@ class ClaudeCodeService:
                 await get_enhanced_input_async("\n🔄 Press Enter when you're ready to retry (after topping up)...")
                 
                 printer.print(f"\n🔄 Retrying {operation_name}...")
-                
-                # Retry the query
-                async for message in query(prompt=prompt, options=options):
-                    yield message
+
+                # Retry the query with same interruption settings
+                if enable_interruption:
+                    async for message in InterruptibleClaudeQuery.query_with_interruption(prompt=prompt, options=options):
+                        yield message
+                else:
+                    async for message in query(prompt=prompt, options=options):
+                        yield message
             else:
                 # Re-raise non-balance errors
                 raise
@@ -650,9 +665,11 @@ class ClaudeCodeService:
         
         try:
             printer.print("\n📝 Claude Code is working on your application...")
+            if self.enable_interruption:
+                printer.print("   💡 Press Ctrl+I to interrupt and add guidance")
             printer.print("=" * 60)
-            
-            async for message in self._query_with_balance_retry(enhanced_prompt, options, f"{workflow_type} code generation"):
+
+            async for message in self._query_with_balance_retry(enhanced_prompt, options, f"{workflow_type} code generation", enable_interruption=self.enable_interruption):
                 if isinstance(message, AssistantMessage):
                     for block in message.content:
                         if isinstance(block, TextBlock):
@@ -891,13 +908,15 @@ class ClaudeCodeService:
         
         try:
             printer.print("\n🔍 Claude Code is analyzing and fixing the errors...")
+            if self.enable_interruption:
+                printer.print("   💡 Press Ctrl+I to interrupt and add guidance")
             printer.print("=" * 60)
-            
+
             # Collect Claude's thought process for saving
             claude_thoughts = []
             claude_outputs = []
 
-            async for message in self._query_with_balance_retry(debug_prompt, options, "code debugging"):
+            async for message in self._query_with_balance_retry(debug_prompt, options, "code debugging", enable_interruption=self.enable_interruption):
                 if isinstance(message, AssistantMessage):
                     for block in message.content:
                         if isinstance(block, TextBlock):
@@ -1402,9 +1421,11 @@ This is a connection test only - do NOT integrate with Quix Streams or Kafka yet
         
         try:
             printer.print("\n📝 Claude Code is working on your connection test...")
+            if self.enable_interruption:
+                printer.print("   💡 Press Ctrl+I to interrupt and add guidance")
             printer.print("=" * 60)
-            
-            async for message in self._query_with_balance_retry(connection_test_prompt, options, "connection test generation"):
+
+            async for message in self._query_with_balance_retry(connection_test_prompt, options, "connection test generation", enable_interruption=self.enable_interruption):
                 if isinstance(message, AssistantMessage):
                     for block in message.content:
                         if isinstance(block, TextBlock):

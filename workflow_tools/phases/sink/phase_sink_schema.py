@@ -9,7 +9,7 @@ from workflow_tools.core.navigation import NavigationRequest, SinkWorkflowSteps
 from workflow_tools.integrations import quix_tools
 from workflow_tools.phases.base.base_phase import BasePhase, PhaseResult
 from workflow_tools.services.model_utils import create_agent_with_model_config
-from workflow_tools.core.prompt_manager import load_agent_instructions
+from workflow_tools.core.prompt_manager import load_agent_instructions, load_task_prompt
 
 class SinkSchemaPhase(BasePhase):
     """Handles schema analysis and approval."""
@@ -162,10 +162,10 @@ class SinkSchemaPhase(BasePhase):
             if messages:
                 first_message = messages[0]
         
-        agent_prompt = (
-            "Here is a sample of messages from a Kafka topic. Please analyze the data structure and "
-            f"provide a clear, human-readable markdown description of the schema.\n\n"
-            f"Full Data Sample:\n```json\n{data_sample_str}\n```\n\n"
+        # Load prompt template and format with variables
+        agent_prompt = load_task_prompt(
+            "sink_schema_analysis",
+            data_sample=data_sample_str
         )
         
         # Get analysis from AI with timeout
@@ -237,13 +237,12 @@ class SinkSchemaPhase(BasePhase):
                     # Re-run analysis with feedback
                     printer.print("\n🤖 Re-analyzing schema with your feedback...")
                     
-                    enhanced_prompt = (
-                        f"I previously analyzed this Kafka topic data and provided this analysis:\n\n"
-                        f"```markdown\n{current_schema_description}\n```\n\n"
-                        f"However, the user has provided the following correction/feedback:\n"
-                        f"\"{user_feedback}\"\n\n"
-                        f"Please provide an updated and corrected schema analysis based on this feedback.\n\n"
-                        f"Original Data Sample:\n```json\n{data_sample_str}\n```"
+                    # Load retry prompt template and format with variables
+                    enhanced_prompt = load_task_prompt(
+                        "sink_schema_analysis_retry",
+                        previous_analysis=current_schema_description,
+                        user_feedback=user_feedback,
+                        data_sample=data_sample_str
                     )
                     
                     try:

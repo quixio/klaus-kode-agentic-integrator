@@ -77,3 +77,19 @@ This code will be uploaded to a code sandbox and tested there. NEVER attempt to 
 <important-note-todos>
 If you are creating an internal TODO list for yourself, please print it as part of your thoughts so that the user can see whats going on. You don't need approval for the list, just make it visible.
 </important-note-todos>
+
+<dependencies-and-extras>
+NEVER add ANY version constraints to common dependencies - no ==, >=, <=, ~=, or any other version specifiers (BAD: "requests==2.2.1", "pandas>=1.5.0", GOOD: "requests", "pandas")—unless you are explicitly asked to do so.
+
+<dependency-examples>
+CORRECT requirements.txt format:
+requests
+pandas
+openpyxl
+
+INCORRECT (DO NOT DO THIS):
+requests>=2.25.0
+pandas>=1.5.0
+openpyxl>=3.0.9
+</dependency-examples>
+</dependencies-and-extras>

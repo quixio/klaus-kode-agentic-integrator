@@ -3,7 +3,7 @@
 import os
 import asyncio
 from typing import Optional, Dict, Any
-from agents import Runner
+from workflow_tools.services.runner_utils import run_agent_with_retry
 from workflow_tools.common import WorkflowContext, printer
 from workflow_tools.phases.base.base_phase import BasePhase, PhaseResult
 from workflow_tools.phases.shared.app_management import AppManager
@@ -258,13 +258,19 @@ class DiagnoseAppDownloadPhase(BasePhase):
             # Combine prompt with file contents
             full_prompt = prompt + "\n\n## File Contents\n" + "\n".join(files_content)
             
-            # Get AI analysis
-            result = await Runner.run(
+            # Get AI analysis with centralized retry logic
+            result = await run_agent_with_retry(
                 starting_agent=self.analyzer_agent,
                 input=full_prompt,
-                context=self.context
+                context=self.context,
+                operation_name=f"Analyzing application '{self.context.workspace.app_name}'"
             )
-            
+
+            if result is None:
+                # All retries exhausted
+                printer.print("\n💡 Tip: You can retry this workflow when the API is less busy.")
+                return False
+
             # Extract the string output from RunResult
             response = result.final_output
             

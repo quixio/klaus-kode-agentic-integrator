@@ -19,10 +19,10 @@ class SourceSchemaPhase(BasePhase):
     def __init__(self, context: WorkflowContext, debug_mode: bool = False):
         super().__init__(context, debug_mode)
         self.run_config = RunConfig(workflow_name="Create Quix Source (V1)")
-        
+
         # Load agent instructions from external prompt file
         from workflow_tools.core.prompt_manager import load_agent_instructions
-        
+
         # Define schema analyzer agent using model configuration
         self.schema_analyzer_agent = create_agent_with_model_config(
             agent_name="SourceSchemaAnalyzerAgent",
@@ -79,26 +79,14 @@ class SourceSchemaPhase(BasePhase):
             # Read sample data
             with open(self.context.sample_data_file, 'r', encoding='utf-8') as file:
                 sample_data = file.read()
-            
-            # Prepare prompt for schema analysis
-            prompt = f"""
-Analyze the following sample data from {self.context.technology.destination_technology}:
 
-Sample Data:
-{sample_data}
-
-Please provide a comprehensive analysis including:
-
-1. **Data Structure**: Describe the overall format and structure
-2. **Field Analysis**: List all fields/columns with their data types
-3. **Data Patterns**: Identify any patterns, ranges, or constraints
-4. **Key Fields**: Identify primary keys, timestamps, or important identifiers
-5. **Data Quality**: Note any missing values, inconsistencies, or issues
-6. **Kafka Message Format**: Suggest how this data should be structured as Kafka messages
-7. **Transformation Needs**: Identify any data transformations that might be needed
-
-Focus on providing actionable insights for code generation.
-"""
+            # Load prompt template and format with variables
+            from workflow_tools.core.prompt_manager import load_task_prompt
+            prompt = load_task_prompt(
+                "source_schema_analysis",
+                technology_name=self.context.technology.destination_technology,
+                sample_data=sample_data
+            )
             
             # Get analysis from AI with timeout
             import asyncio
@@ -280,33 +268,15 @@ Focus on providing actionable insights for code generation.
                 with open(self.context.sample_data_file, 'r', encoding='utf-8') as file:
                     sample_data = file.read()
             
-            # Prepare enhanced prompt with feedback
-            enhanced_prompt = f"""
-I previously analyzed this data from {self.context.technology.destination_technology} and provided this analysis:
-
-```markdown
-{self.context.source_schema_analysis}
-```
-
-However, the user has provided the following correction/feedback:
-"{feedback}"
-
-Please provide an updated and corrected schema analysis based on this feedback.
-
-Original Sample Data:
-{sample_data}
-
-Please provide a comprehensive analysis including:
-1. **Data Structure**: Describe the overall format and structure
-2. **Field Analysis**: List all fields/columns with their data types
-3. **Data Patterns**: Identify any patterns, ranges, or constraints
-4. **Key Fields**: Identify primary keys, timestamps, or important identifiers
-5. **Data Quality**: Note any missing values, inconsistencies, or issues
-6. **Kafka Message Format**: Suggest how this data should be structured as Kafka messages
-7. **Transformation Needs**: Identify any data transformations that might be needed
-
-Focus on addressing the user's feedback while providing actionable insights for code generation.
-"""
+            # Load retry prompt template and format with variables
+            from workflow_tools.core.prompt_manager import load_task_prompt
+            enhanced_prompt = load_task_prompt(
+                "source_schema_analysis_retry",
+                technology_name=self.context.technology.destination_technology,
+                previous_analysis=self.context.source_schema_analysis,
+                user_feedback=feedback,
+                sample_data=sample_data
+            )
             
             # Re-run the analysis
             import asyncio

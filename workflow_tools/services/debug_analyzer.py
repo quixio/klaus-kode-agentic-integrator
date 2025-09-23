@@ -4,9 +4,10 @@ import os
 import re
 import traceback
 from typing import Dict, Any, Optional, List, Tuple
-from agents import Agent, Runner, RunConfig
+from agents import Agent, RunConfig
 
 from workflow_tools.contexts import WorkflowContext
+from workflow_tools.services.runner_utils import run_agent_with_retry
 from workflow_tools.common import extract_python_code_from_llm_output
 from workflow_tools.exceptions import NavigationBackRequest
 from workflow_tools.core.prompt_manager import PromptManager
@@ -812,13 +813,19 @@ class DebugAnalyzer:
             Agent response string or None if failed
         """
         try:
-            result = await Runner.run(
+            result = await run_agent_with_retry(
                 starting_agent=agent,
                 input=prompt,
                 context=self.context,
-                run_config=self.run_config
+                operation_name=f"Debug analysis for {workflow_type}"
             )
-            
+
+            # Handle retry exhaustion
+            if result is None:
+                if self.debug_mode:
+                    print("❌ Debug: Agent failed after retries due to API overload")
+                return None
+
             # Extract the final output string from the RunResult object
             if result:
                 if hasattr(result, 'final_output'):

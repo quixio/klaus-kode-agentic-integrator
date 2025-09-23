@@ -4,9 +4,10 @@ import os
 import json
 from typing import Dict, Any, Optional, Tuple
 from dataclasses import dataclass
-from agents import Agent, Runner, RunConfig, ModelSettings
+from agents import Agent, RunConfig, ModelSettings
 from agents.extensions.models.litellm_model import LitellmModel
 from workflow_tools.contexts import WorkflowContext
+from workflow_tools.services.runner_utils import run_agent_with_retry
 from workflow_tools.common import printer
 from workflow_tools.core.prompt_manager import PromptManager
 from workflow_tools.services.model_utils import create_agent_with_model_config
@@ -80,17 +81,27 @@ class LogAnalyzer:
             printer.print_debug(f"📊 Analyzing logs with AI (objective: {test_objective[:100]}...)")
         
         try:
-            # Run the agent to analyze the logs
-            result = await Runner.run(
+            # Run the agent to analyze the logs with retry logic
+            result = await run_agent_with_retry(
                 starting_agent=agent,
                 input=analysis_prompt,
                 context=self.context,
-                run_config=self.run_config
+                operation_name=f"Log analysis for {test_objective[:50]}..."
             )
-            
+
+            if result is None:
+                # Retries exhausted, fall back to uncertain
+                printer.print_debug("⚠️ Log analysis failed after retries, falling back to uncertain")
+                return LogAnalysisResult(
+                    success=False,
+                    confidence='low',
+                    reasoning="Unable to analyze logs due to API overload",
+                    status='uncertain'
+                )
+
             # Parse the structured response
             return self._parse_analysis_response(result.final_output)
-            
+
         except Exception as e:
             printer.print_debug(f"⚠️ Error in AI log analysis: {e}")
             # Fall back to uncertain if AI analysis fails

@@ -421,6 +421,15 @@ class SinkSandboxPhase(BasePhase):
                 else:  # execution_status is either 'success' or 'uncertain'
                     if execution_status == 'success':
                         printer.print("✅ Test run completed successfully with no apparent errors!")
+
+                        # Pause to let user review the success analysis
+                        printer.print("")
+                        printer.print("📋 Log analysis complete. Press Enter to continue...")
+                        try:
+                            input()
+                        except KeyboardInterrupt:
+                            printer.print("\n⚠️ Interrupted. Continuing anyway...")
+
                     elif execution_status == 'uncertain':
                         printer.print("⚠️ Could not determine if sink is running correctly.")
                         printer.print("  - No clear success or error indicators found in logs")

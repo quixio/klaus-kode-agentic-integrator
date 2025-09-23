@@ -196,6 +196,16 @@ class DiagnoseSandboxPhase(BasePhase):
             self.context.diagnose['last_logs'] = logs
             
             if execution_status in ['success', 'partial_success']:
+                printer.print("\n✅ Application test successful!")
+
+                # Pause to let user review the success analysis
+                printer.print("")
+                printer.print("📋 Log analysis complete. Press Enter to continue...")
+                try:
+                    input()
+                except KeyboardInterrupt:
+                    printer.print("\n⚠️ Interrupted. Continuing anyway...")
+
                 return True, False  # Success, no auto-continue needed
             
             # Handle errors

@@ -6,9 +6,10 @@ import asyncio
 import requests
 from enum import Enum
 from typing import Optional, Dict, Any, Tuple
-from agents import Agent, Runner
+from agents import Agent
 from workflow_tools.common import WorkflowContext, printer, workflow_logger
 from workflow_tools.services.model_utils import create_agent_with_model_config
+from workflow_tools.services.runner_utils import run_agent_with_retry
 
 class DeploymentStatus(Enum):
     """Deployment status enum based on Quix API documentation."""
@@ -280,12 +281,18 @@ class DeploymentMonitor:
             )
         
         try:
-            result = await Runner.run(
+            result = await run_agent_with_retry(
                 starting_agent=log_analysis_agent,
                 input=analysis_prompt,
                 context=self.context,
-                run_config=self.run_config
+                operation_name=f"Deployment log analysis for {self.context.deployment.deployment_name}"
             )
+
+            if result is None:
+                # API overloaded, return a fallback message
+                workflow_logger.error("Log analysis failed due to API overload after retries")
+                return "⚠️ Unable to analyze logs due to API overload. Please review logs manually."
+
             return result.final_output
         except Exception as e:
             workflow_logger.error(f"Error during log analysis: {e}")
