@@ -257,6 +257,6 @@ Eventually, you'll want a transformation app between the source and sink (e.g., 
 
 Klaus Kode doesn’t yet support a transformation workflow—but it’s on the roadmap.
 
-In the meantime, you can try the "**Diagnose and Update**" workflow that lets you interate on an existing app (in Quix Cloud) that you created in a previous session.
+In the meantime, you can try the "**Diagnose and Update**" workflow that lets you iterate on an existing app (in Quix Cloud) that you created in a previous session.
 
 ---
