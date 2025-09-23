@@ -48,6 +48,11 @@ Please fix the issues by:
 3. **USE THE EDIT TOOL ON REQUIREMENTS.TXT** to update {app_path}/requirements.txt with proper package names and versions if dependency errors occur—also verify that package extras are included if needed (check error messages for required extras) - but don't update it if the error has nothing to do with dependencies.
 4. **USE THE EDIT TOOL ON APP.YAML** Make sure environment variables are properly handled and if there are errors due to variables not being defined properly, and update {app_path}/app.yaml with proper variable names or at least make sure that the right variables exist
 
+**CRITICAL YAML FORMATTING**: When editing app.yaml, always quote description values that contain colons, special characters, or could be misinterpreted as YAML syntax. For example:
+```yaml
+description: "Date format (e.g., YYYY-MM-DD) for API requests"
+```
+
 **DO NOT just analyze the code - you MUST actually EDIT the files to fix the errors!**
 Focus on making the code work correctly on the remote platform by editing, code and/or variables and/or dependencies.
 </critical-instructions>

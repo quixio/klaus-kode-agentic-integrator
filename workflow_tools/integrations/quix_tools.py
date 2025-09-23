@@ -752,7 +752,15 @@ async def run_code_in_session_with_timeout(workspace_id: str, session_id: str, f
             # Add 5 seconds to the HTTP timeout to be slightly longer than our collection timeout
             async with client.stream("POST", url, headers=headers, json=payload,
                                     timeout=timeout_seconds + 5.0) as response:
-                response.raise_for_status()
+                # Check status code without accessing the response body
+                if response.status_code >= 400:
+                    # For error responses, read the content first
+                    try:
+                        error_content = await response.aread()
+                        error_text = error_content.decode('utf-8', errors='replace')
+                    except Exception:
+                        error_text = f"Status {response.status_code}"
+                    return f"HTTP error during execution: {response.status_code} - {error_text}"
 
                 # Check if the response is actually streaming
                 content_type = response.headers.get('content-type', '')

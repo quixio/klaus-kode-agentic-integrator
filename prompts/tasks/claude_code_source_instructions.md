@@ -58,6 +58,11 @@ Important instructions:
 2. Update {app_path}/requirements.txt with any new dependencies you have used (use correct pip package names)
 3. Update {app_path}/app.yaml with all new environment variables you have introduced in this new code
 
+**CRITICAL YAML FORMATTING**: When adding or updating variables in app.yaml, always quote description values that contain colons, special characters, or could be misinterpreted as YAML syntax. For example:
+```yaml
+description: "Date format (e.g., YYYY-MM-DD) for API requests"
+```
+
 Note that variables in app.yaml can have one of the following types:
 
     "Topic",

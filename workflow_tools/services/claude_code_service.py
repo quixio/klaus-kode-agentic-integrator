@@ -1143,66 +1143,57 @@ class ClaudeCodeService:
         while iteration < max_iterations:
             # Get user prompt for what to build
             if iteration == 0:
-                # Check for cached user prompt first
-                cached_prompt = self.cache_utils.check_cached_user_prompt()
-                if cached_prompt:
-                    # Extract the actual prompt from the cached file (skip header comments)
-                    prompt_lines = cached_prompt.split('\n')
-                    actual_prompt_lines = []
-                    skip_comments = True
-                    for line in prompt_lines:
-                        if skip_comments and line.strip() and not line.strip().startswith('#'):
-                            skip_comments = False
-                        if not skip_comments:
-                            actual_prompt_lines.append(line)
-                    actual_prompt = '\n'.join(actual_prompt_lines).strip()
-                    
-                    if self.cache_utils.use_cached_user_prompt(actual_prompt):
-                        user_prompt = actual_prompt
+                # For source workflows, check if we already have requirements from earlier in THIS workflow
+                if workflow_type == "source" and hasattr(self.context.technology, 'source_technology') and self.context.technology.source_technology:
+                    # We already have requirements from the connection test phase in THIS workflow
+                    # No need to check cache or ask if they want to reuse - just show them and ask for additional
+                    connection_requirements = self.context.technology.source_technology
+                    printer.print(f"\n📝 Your connection test requirements were:")
+                    printer.print(f"   \"{connection_requirements}\"")
+
+                    # ALWAYS ask for additional requirements directly - no confusing cache prompts
+                    printer.print("\n")
+                    additional_requirements = text(
+                        "🔄 Is there anything else you'd like to add for the main application?\n   (Or press Enter to use the same requirements)",
+                        default=""
+                    ).strip()
+
+                    # Cache the additional requirements for future runs
+                    if additional_requirements:
+                        self.cache_utils.save_additional_requirements_to_cache(additional_requirements)
+
+                    if additional_requirements:
+                        # Concatenate the requirements
+                        user_prompt = f"{connection_requirements}\n\n{additional_requirements}"
+                        printer.print(f"✅ Combined requirements: Connection + Additional")
                     else:
-                        # User wants to enter fresh requirements
-                        from workflow_tools.common import clear_screen
-                        clear_screen()
-                        
-                        # For source workflows, check if we have connection test requirements to show
-                        if workflow_type == "source" and hasattr(self.context.technology, 'source_technology') and self.context.technology.source_technology:
-                            # We have previous requirements from connection test phase
-                            connection_requirements = self.context.technology.source_technology
-                            printer.print(f"\n📝 Your connection test requirements were:")
-                            printer.print(f"   \"{connection_requirements}\"")
+                        # Use connection requirements as-is
+                        user_prompt = connection_requirements
+                        printer.print(f"✅ Using connection test requirements for main application")
 
-                            # Check for cached additional requirements
-                            cached_additional = self.cache_utils.check_cached_additional_requirements()
-                            if cached_additional is not None:
-                                # Ask if they want to use cached additional requirements
-                                if self.cache_utils.use_cached_additional_requirements(cached_additional):
-                                    additional_requirements = cached_additional
-                                else:
-                                    # Get fresh additional requirements
-                                    additional_requirements = text(
-                                        "🔄 Is there anything else you'd like to add for the main application?\n   (Or press Enter to use the same requirements)",
-                                        default=""
-                                    ).strip()
-                                    # Cache the additional requirements
-                                    self.cache_utils.save_additional_requirements_to_cache(additional_requirements)
-                            else:
-                                # No cache, ask for additional requirements
-                                additional_requirements = text(
-                                    "🔄 Is there anything else you'd like to add for the main application?\n   (Or press Enter to use the same requirements)",
-                                    default=""
-                                ).strip()
-                                # Cache the additional requirements
-                                self.cache_utils.save_additional_requirements_to_cache(additional_requirements)
+                else:
+                    # No requirements in memory - either sink workflow or fresh source workflow
+                    # Check for cached user prompt from PREVIOUS runs
+                    cached_prompt = self.cache_utils.check_cached_user_prompt()
+                    if cached_prompt:
+                        # Extract the actual prompt from the cached file (skip header comments)
+                        prompt_lines = cached_prompt.split('\n')
+                        actual_prompt_lines = []
+                        skip_comments = True
+                        for line in prompt_lines:
+                            if skip_comments and line.strip() and not line.strip().startswith('#'):
+                                skip_comments = False
+                            if not skip_comments:
+                                actual_prompt_lines.append(line)
+                        actual_prompt = '\n'.join(actual_prompt_lines).strip()
 
-                            if additional_requirements:
-                                # Concatenate the requirements
-                                user_prompt = f"{connection_requirements}\n\n{additional_requirements}"
-                                printer.print(f"✅ Combined requirements: Connection + Additional")
-                            else:
-                                # Use connection requirements as-is
-                                user_prompt = connection_requirements
-                                printer.print(f"✅ Using connection test requirements for main application")
+                        if self.cache_utils.use_cached_user_prompt(actual_prompt):
+                            user_prompt = actual_prompt
                         else:
+                            # User wants to enter fresh requirements
+                            from workflow_tools.common import clear_screen
+                            clear_screen()
+
                             # Standard prompt for sink or source without prior requirements
                             console = Console()
                             console.print(Panel(
@@ -1211,58 +1202,19 @@ class ClaudeCodeService:
                                 title=f"📝 {workflow_type.title()} Application Requirements",
                                 border_style="blue"
                             ))
-                            
+
                             user_prompt = text(
                                 f"Enter your {workflow_type} requirements:"
                             ).strip()
-                            
+
                             if not user_prompt:
                                 printer.print("❌ No description provided. Aborting.")
                                 return None, None
-                        
-                        # Cache the new prompt
-                        self.cache_utils.save_user_prompt_to_cache(user_prompt)
-                else:
-                    # No cached prompt, ask user
-                    # For source workflows, check if we have connection test requirements to show
-                    if workflow_type == "source" and hasattr(self.context.technology, 'source_technology') and self.context.technology.source_technology:
-                        # We have previous requirements from connection test phase
-                        connection_requirements = self.context.technology.source_technology
-                        printer.print(f"\n📝 Your connection test requirements were:")
-                        printer.print(f"   \"{connection_requirements}\"")
 
-                        # Check for cached additional requirements
-                        cached_additional = self.cache_utils.check_cached_additional_requirements()
-                        if cached_additional is not None:
-                            # Ask if they want to use cached additional requirements
-                            if self.cache_utils.use_cached_additional_requirements(cached_additional):
-                                additional_requirements = cached_additional
-                            else:
-                                # Get fresh additional requirements
-                                additional_requirements = text(
-                                    "🔄 Is there anything else you'd like to add for the main application?\n   (Or press Enter to use the same requirements)",
-                                    default=""
-                                ).strip()
-                                # Cache the additional requirements
-                                self.cache_utils.save_additional_requirements_to_cache(additional_requirements)
-                        else:
-                            # No cache, ask for additional requirements
-                            additional_requirements = text(
-                                "🔄 Is there anything else you'd like to add for the main application?\n   (Or press Enter to use the same requirements)",
-                                default=""
-                            ).strip()
-                            # Cache the additional requirements
-                            self.cache_utils.save_additional_requirements_to_cache(additional_requirements)
-
-                        if additional_requirements:
-                            # Concatenate the requirements
-                            user_prompt = f"{connection_requirements}\n\n{additional_requirements}"
-                            printer.print(f"✅ Combined requirements: Connection + Additional")
-                        else:
-                            # Use connection requirements as-is
-                            user_prompt = connection_requirements
-                            printer.print(f"✅ Using connection test requirements for main application")
+                            # Cache the new prompt
+                            self.cache_utils.save_user_prompt_to_cache(user_prompt)
                     else:
+                        # No cached prompt and no requirements in memory - fresh start
                         # Standard prompt for sink or source without prior requirements
                         console = Console()
                         console.print(Panel(
@@ -1271,17 +1223,17 @@ class ClaudeCodeService:
                             title=f"📝 {workflow_type.title()} Application Requirements",
                             border_style="blue"
                         ))
-                        
+
                         user_prompt = text(
                             f"Enter your {workflow_type} requirements:"
                         ).strip()
-                        
+
                         if not user_prompt:
                             printer.print("❌ No description provided. Aborting.")
                             return None, None
-                    
-                    # Cache the new prompt
-                    self.cache_utils.save_user_prompt_to_cache(user_prompt)
+
+                        # Cache the new prompt
+                        self.cache_utils.save_user_prompt_to_cache(user_prompt)
             else:
                 printer.print("\n📝 Please describe what changes you'd like:")
                 user_prompt = await get_enhanced_input_async("> ")

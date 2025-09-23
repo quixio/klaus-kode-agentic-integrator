@@ -17,6 +17,11 @@ You must work on files in the {app_path} directory. NEVER try to look at any fil
 Read app.yaml file (which is the equivalent to a .env file) and update the variables in there to match the new use case.
 
 **NOTE**: Since this is a connection test only, you don't need to configure any Kafka topic variables yet. Focus only on the source system connection parameters (credentials, endpoints, etc.).
+
+**CRITICAL YAML FORMATTING**: When adding or updating variables in app.yaml, always quote description values that contain colons, special characters, or could be misinterpreted as YAML syntax. For example:
+```yaml
+description: "Date format (e.g., YYYY-MM-DD) for API requests"
+```
 </environment-variables>
 
 <credential-handling>
