@@ -26,17 +26,22 @@ The application should be processing data with this schema (from Kafka topic ana
 </error-logs>
 
 <previous-debug-attempts>
-Learn from these to avoid repeating the same mistakes:
-(if you just see empty space between "**START THOUGHTS:**" and "**END THOUGHTS:**", then are no previous thoughts yet)
+Learn from these previous debug attempts to avoid repeating the same mistakes:
+(if you just see empty space between "**START PREVIOUS ATTEMPTS:**" and "**END PREVIOUS ATTEMPTS:**", then there are no previous attempts yet)
 
-**START THOUGHTS:**
+**START PREVIOUS ATTEMPTS:**
 {previous_thoughts}
-**END THOUGHTS:**
+**END PREVIOUS ATTEMPTS:**
 
-Please use the previous thoughts to prevent yourself from trying the same thing over and over again.
-Please also provide an indication that you acknowledge the thoughts.
+The above includes both:
+- [THINKING]: Your internal reasoning from previous attempts
+- VISIBLE OUTPUT: What you communicated to the user
 
-If you find yourself repeating the same mistakes over and over again, try to ultrathink about the problem from a different perspective.
+CRITICAL: Review the [THINKING] sections carefully to understand what approaches you've already tried internally.
+If you notice you're about to try the same approach again, STOP and try a completely different strategy.
+
+Please acknowledge what you learned from the previous attempts before proceeding.
+If you find yourself repeating the same mistakes, try to reason about the problem from a fundamentally different angle.
 </previous-debug-attempts>
 
 <critical-instructions>
@@ -78,7 +83,13 @@ If you are creating an internal TODO list for yourself, please print it as part 
 </todo-list-note>
 
 <general-debugging-guidance>
-If you are unsure about how to best leverage the technology or framework used in the code, feel free to search the web.
+If you are struggling to debug the issue double-check the documentation for relevant informaton.
+
+For example:
+
+* for general debugging help, check `.../../resources/common/debugging.md`
+* for issues with serialization, check `.../../resources/common/serialization.md`
+* for issues with processings and producing data (and how to use `sdf` streaming dataframes), check `.../../resources/source/processing.md`
 
 Although your job is to debug the application and ensure that it works correctly, avoid creating overly complex, byzantine code that is difficult for users to read. Remember, this connection code is still a prototype, not yet ready for production.
 
@@ -86,6 +97,6 @@ Once you have fixed the bug in the original bug report, do not try to continue o
 
 Just fix the bug and thats it. The user does not want to wait several minutes while you sniff through every single file in the directory.
 
-If you are not sure about what to do, search the web.
+If you are still unsure about how to best leverage the technology or framework used in the code, feel free to search the web.
 </general-debugging-guidance>
 
