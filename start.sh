@@ -123,10 +123,38 @@ else
             echo -e "${GREEN}✅ Existing virtual environment uses Python $VENV_PYTHON_VERSION${NC}"
             # Activate existing virtual environment
             source .venv/bin/activate
+
+            # Always update requirements in case they've changed
+            echo -e "${GREEN}📥 Updating requirements...${NC}"
+            pip install --upgrade pip --quiet
+            if [ $? -ne 0 ]; then
+                echo -e "${RED}❌ Failed to upgrade pip${NC}"
+                exit 1
+            fi
+            pip install -r requirements.txt --quiet
+            if [ $? -ne 0 ]; then
+                echo -e "${RED}❌ Failed to install requirements${NC}"
+                exit 1
+            fi
+            echo -e "${GREEN}✅ Requirements updated${NC}"
         fi
     else
         # Activate existing virtual environment
         source .venv/bin/activate
+
+        # Always update requirements in case they've changed
+        echo -e "${GREEN}📥 Updating requirements...${NC}"
+        pip install --upgrade pip --quiet
+        if [ $? -ne 0 ]; then
+            echo -e "${RED}❌ Failed to upgrade pip${NC}"
+            exit 1
+        fi
+        pip install -r requirements.txt --quiet
+        if [ $? -ne 0 ]; then
+            echo -e "${RED}❌ Failed to install requirements${NC}"
+            exit 1
+        fi
+        echo -e "${GREEN}✅ Requirements updated${NC}"
     fi
 fi
 

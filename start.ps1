@@ -134,14 +134,56 @@ if (-not (Test-Path ".venv")) {
                 Write-ColorOutput Green "✅ Existing virtual environment uses Python $venvVersion"
                 # Activate existing virtual environment
                 & .\.venv\Scripts\Activate.ps1
+
+                # Always update requirements in case they've changed
+                Write-ColorOutput Green "📥 Updating requirements..."
+                python -m pip install --upgrade pip --quiet
+                if ($LASTEXITCODE -ne 0) {
+                    Write-ColorOutput Red "❌ Failed to upgrade pip"
+                    exit 1
+                }
+                pip install -r requirements.txt --quiet
+                if ($LASTEXITCODE -ne 0) {
+                    Write-ColorOutput Red "❌ Failed to install requirements"
+                    exit 1
+                }
+                Write-ColorOutput Green "✅ Requirements updated"
             }
         } else {
             # Activate existing virtual environment
             & .\.venv\Scripts\Activate.ps1
+
+            # Always update requirements in case they've changed
+            Write-ColorOutput Green "📥 Updating requirements..."
+            python -m pip install --upgrade pip --quiet
+            if ($LASTEXITCODE -ne 0) {
+                Write-ColorOutput Red "❌ Failed to upgrade pip"
+                exit 1
+            }
+            pip install -r requirements.txt --quiet
+            if ($LASTEXITCODE -ne 0) {
+                Write-ColorOutput Red "❌ Failed to install requirements"
+                exit 1
+            }
+            Write-ColorOutput Green "✅ Requirements updated"
         }
     } else {
         # Activate existing virtual environment
         & .\.venv\Scripts\Activate.ps1
+
+        # Always update requirements in case they've changed
+        Write-ColorOutput Green "📥 Updating requirements..."
+        python -m pip install --upgrade pip --quiet
+        if ($LASTEXITCODE -ne 0) {
+            Write-ColorOutput Red "❌ Failed to upgrade pip"
+            exit 1
+        }
+        pip install -r requirements.txt --quiet
+        if ($LASTEXITCODE -ne 0) {
+            Write-ColorOutput Red "❌ Failed to install requirements"
+            exit 1
+        }
+        Write-ColorOutput Green "✅ Requirements updated"
     }
 }
 

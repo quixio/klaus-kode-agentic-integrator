@@ -129,6 +129,20 @@ if not exist ".venv" (
         echo [OK] Existing virtual environment uses Python !VENV_VERSION!
         REM Activate existing virtual environment
         call .venv\Scripts\activate.bat
+
+        REM Always update requirements in case they've changed
+        echo [SETUP] Updating requirements...
+        python -m pip install --upgrade pip --quiet
+        if !errorlevel! neq 0 (
+            echo [ERROR] Failed to upgrade pip
+            exit /b 1
+        )
+        pip install -r requirements.txt --quiet
+        if !errorlevel! neq 0 (
+            echo [ERROR] Failed to install requirements
+            exit /b 1
+        )
+        echo [OK] Requirements updated
     )
 )
 
