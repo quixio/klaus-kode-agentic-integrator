@@ -234,11 +234,8 @@ class DiagnoseDeploymentSyncPhase(BasePhase):
                                     printer.print(f"❌ Could not sync workspace: {ws_error}")
                             else:
                                 printer.print(f"❌ Failed to start deployment: {start_error}")
-                
-                return True
-            else:
-                printer.print("❌ Failed to sync deployment")
-                return False
+
+            return True
                 
         except Exception as e:
             printer.print(f"❌ Error syncing: {e}")

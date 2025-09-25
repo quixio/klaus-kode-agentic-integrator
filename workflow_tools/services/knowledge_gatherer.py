@@ -52,7 +52,7 @@ class KnowledgeGatheringService:
         # Fixed: Use library_item_id instead of selected_template_id for consistency
         self.context.technology.library_item_id = template_id
         self.context.technology.selected_template_id = template_id
-        self.context.technology.destination_technology = f"starter-{workflow_type}"
+        # DO NOT overwrite destination_technology - it contains the user's requirements!
         
         # App name should already be set by prerequisites phase
         if not hasattr(self.context.deployment, 'application_name') or not self.context.deployment.application_name:

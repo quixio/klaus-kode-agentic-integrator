@@ -1,6 +1,6 @@
 models:
   claude_code_sdk:
-    model: sonnet
+    model: claude-sonnet-4-20250514
     max_turns: 50
     allowed_tools:
     - Read
@@ -15,7 +15,7 @@ models:
     permission_mode: acceptEdits
     debug:
       max_turns: 50
-      model: sonnet
+      model: claude-sonnet-4-20250514
     sink: # No longer used, goes directly to claude 
       provider: anthropic
       model: claude-opus-4-1-20250805
