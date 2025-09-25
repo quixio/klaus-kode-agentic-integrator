@@ -351,6 +351,25 @@ class PrerequisitesCollector:
                     self.context.workspace.branch_name = workspace_details.get('branch', 'main')
                     if 'repositoryId' in workspace_details:
                         self.context.workspace.repository_id = workspace_details['repositoryId']
+            except QuixApiError as e:
+                if e.status_code == 403:
+                    printer.print(f"❌ Permission denied for workspace '{default_workspace_id}'")
+                    printer.print(f"\n💡 The workspace in your .env file doesn't match your PAT token's permissions.")
+                    printer.print(f"   Would you like to select a different workspace?\n")
+
+                    response = get_user_approval("Select a different workspace?")
+                    if response:
+                        # Clear the environment variable temporarily and continue to manual selection
+                        default_workspace_id = None
+                    else:
+                        return False
+                else:
+                    # Other API errors - use the ID anyway
+                    self.context.workspace.workspace_name = default_workspace_id
+                    self.context.workspace.branch_name = 'main'
+                    if self.debug_mode:
+                        printer.print_debug(f"Could not get workspace details: {e}")
+                    return True
             except Exception as e:
                 # If we can't get details, just use the ID
                 self.context.workspace.workspace_name = default_workspace_id
@@ -358,7 +377,9 @@ class PrerequisitesCollector:
                 if self.debug_mode:
                     printer.print_debug(f"Could not get workspace details: {e}")
 
-            return True
+            # If we cleared the default_workspace_id due to permission issues, continue to manual selection
+            if default_workspace_id:
+                return True
 
         try:
             # Get list of workspaces
@@ -447,6 +468,7 @@ class PrerequisitesCollector:
             # Check for demo topic and create if it doesn't exist
             demo_topic_name = "demo-output-topic" if workflow_type == "source" else "demo-input-topic"
             demo_topic_exists = False
+            demo_topic_created = False
 
             if not topics_df.empty:
                 # Check if demo topic already exists
@@ -467,13 +489,35 @@ class PrerequisitesCollector:
                     )
                     if result:
                         printer.print(f"✅ Created {demo_topic_name} successfully!")
+                        demo_topic_created = True
                         # Refresh topics list
                         topics_df = await quix_tools.find_topics(self.context.workspace.workspace_id)
+                except QuixApiError as e:
+                    if e.status_code == 403:
+                        printer.print(f"❌ Permission denied: Cannot create topics in this workspace")
+                        return False
+                    else:
+                        printer.print(f"⚠️ Could not create demo topic: {e}")
                 except Exception as e:
                     printer.print(f"⚠️ Could not create demo topic: {e}")
                     # Continue anyway, user can select or create another
-            
+
             if topics_df.empty:
+                # If we just created a demo topic successfully, use it
+                if demo_topic_created:
+                    self.context.workspace.topic_name = demo_topic_name
+                    self.context.workspace.topic_id = f"{self.context.workspace.workspace_id}-{demo_topic_name}"
+                    printer.print(f"✅ Using newly created {demo_topic_name}")
+
+                    # Log the topic URL
+                    url_builder = QuixPortalURLBuilder()
+                    topic_url = url_builder.get_topic_url(
+                        workspace=self.context.workspace.workspace_id,
+                        topic_name=demo_topic_name
+                    )
+                    printer.print(f"🔗 Topic URL: {topic_url}")
+                    return True
+
                 printer.print(f"❌ No topics found in the workspace.")
                 # For source workflows, offer to create a topic
                 if workflow_type == "source":
@@ -555,6 +599,14 @@ class PrerequisitesCollector:
             
         except NavigationBackRequest:
             raise  # Re-raise navigation requests
+        except QuixApiError as e:
+            if e.status_code == 403:
+                printer.print(f"❌ Permission denied: Cannot access topics in workspace '{self.context.workspace.workspace_id}'")
+                printer.print(f"\n💡 This workspace doesn't match your PAT token's permissions.")
+                printer.print(f"   Please go back and select a different workspace.\n")
+            else:
+                printer.print(f"❌ API Error: {e}")
+            return False
         except Exception as e:
             printer.print(f"❌ Error collecting topic info: {e}")
             return False
