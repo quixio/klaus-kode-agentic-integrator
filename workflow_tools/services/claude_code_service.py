@@ -54,17 +54,17 @@ def monkey_patch_claude_sdk_for_windows(cli_path: str):
 
 class ClaudeCodeService:
     """Service for integrating Claude Code SDK with the Quix workflow."""
-    
+
     def __init__(self, context: WorkflowContext, debug_mode: bool = False):
         """Initialize the Claude Code service.
-        
+
         Args:
             context: Workflow context containing app details
             debug_mode: Whether to enable debug logging
         """
         self.context = context
         self.debug_mode = debug_mode
-        
+
         # Load Claude Code SDK configuration from models.yaml
         models_config = config.load_models_config()
         self.claude_config = models_config.get("models", {}).get("claude_code_sdk", {})
@@ -73,7 +73,7 @@ class ClaudeCodeService:
         if not self.claude_config:
             printer.print("⚠️ Warning: Claude Code SDK config not found in models.yaml, using defaults")
             self.claude_config = {
-                "model": "sonnet-4.1",
+                "model": "claude-sonnet-4-20250514",
                 "max_turns": 10,
                 "max_thinking_tokens": 8000,
                 "allowed_tools": ["Read", "Write", "Edit", "Bash", "Glob", "Grep","MultiEdit"],
@@ -92,7 +92,7 @@ class ClaudeCodeService:
 
         # Interruption feature flag - can be controlled via environment or config
         self.enable_interruption = os.environ.get("KLAUS_ENABLE_INTERRUPTION", "false").lower() == "true"
-    
+
     def _detect_claude_cli_path(self) -> Optional[str]:
         """Detect Claude Code CLI installation path.
 
@@ -646,14 +646,14 @@ class ClaudeCodeService:
             cwd=main_workflow_dir,  # Use main workflow directory as working directory
             system_prompt=system_prompt,
             max_turns=self.claude_config.get("max_turns", 10),
-            model=self.claude_config.get("model", "sonnet-4.1")
+            model=self.claude_config.get("model", "claude-sonnet-4-20250514")
         )
         
         # Debug: Log Claude Code SDK configuration
         printer.print_debug(f"🔍 DEBUG: Claude Code SDK configuration:")
         printer.print_debug(f"   - Working directory (cwd): {main_workflow_dir}")
         printer.print_debug(f"   - Target app path (relative): {relative_app_path}")
-        printer.print_debug(f"   - Model: {self.claude_config.get('model', 'sonnet-4.1')}")
+        printer.print_debug(f"   - Model: {self.claude_config.get('model', 'claude-sonnet-4-20250514')}")
         printer.print_debug(f"   - Max turns: {self.claude_config.get('max_turns', 10)}")
         printer.print_debug(f"   - Allowed tools: {self.claude_config.get('allowed_tools', ['Read', 'Write', 'Edit', 'Bash', 'Glob', 'Grep'])}")
         printer.print_debug(f"   - Permission mode: {self.claude_config.get('permission_mode', 'acceptEdits')}")
@@ -894,14 +894,14 @@ class ClaudeCodeService:
             cwd=main_workflow_dir,  # Use main workflow directory as working directory
             system_prompt=debug_system_prompt,
             max_turns=debug_config.get("max_turns", 5),
-            model=debug_config.get("model", self.claude_config.get("model", "sonnet-4.1"))
+            model=debug_config.get("model", self.claude_config.get("model", "claude-sonnet-4-20250514"))
         )
         
         # Debug: Log Claude Code SDK configuration for debugging
         printer.print_debug(f"🔍 DEBUG: Claude Code SDK debug configuration:")
         printer.print_debug(f"   - Working directory (cwd): {main_workflow_dir}")
         printer.print_debug(f"   - Target app path (relative): {relative_app_path}")
-        printer.print_debug(f"   - Model: {debug_config.get('model', self.claude_config.get('model', 'sonnet-4.1'))}")
+        printer.print_debug(f"   - Model: {debug_config.get('model', self.claude_config.get('model', 'claude-sonnet-4-20250514'))}")
         printer.print_debug(f"   - Max turns: {debug_config.get('max_turns', 5)}")
         printer.print_debug(f"   - Allowed tools: {self.claude_config.get('allowed_tools', ['Read', 'Write', 'Edit', 'Bash', 'Glob', 'Grep'])}")
         printer.print_debug(f"   - Permission mode: {self.claude_config.get('permission_mode', 'acceptEdits')}")
@@ -1171,8 +1171,17 @@ class ClaudeCodeService:
                         user_prompt = connection_requirements
                         printer.print(f"✅ Using connection test requirements for main application")
 
+                # For sink workflows, check if we already have requirements from earlier in THIS workflow
+                elif workflow_type == "sink" and hasattr(self.context.technology, 'destination_technology') and self.context.technology.destination_technology:
+                    # We already have requirements from earlier in THIS workflow (prerequisites phase)
+                    # Just use them directly - no additional requirements needed for sink
+                    user_prompt = self.context.technology.destination_technology
+                    printer.print(f"\n📝 Your sink requirements:")
+                    printer.print(f"   \"{user_prompt}\"")
+                    printer.print(f"\n✅ Using requirements for sink application")
+
                 else:
-                    # No requirements in memory - either sink workflow or fresh source workflow
+                    # No requirements in memory - fresh workflow start
                     # Check for cached user prompt from PREVIOUS runs
                     cached_prompt = self.cache_utils.check_cached_user_prompt()
                     if cached_prompt:
@@ -1347,7 +1356,7 @@ This is a connection test only - do NOT integrate with Quix Streams or Kafka yet
             cwd=main_workflow_dir,
             system_prompt=system_prompt,
             max_turns=self.claude_config.get("max_turns", 10),
-            model=self.claude_config.get("model", "sonnet-4.1")
+            model=self.claude_config.get("model", "claude-sonnet-4-20250514")
         )
         
         # Print prompts for debugging
