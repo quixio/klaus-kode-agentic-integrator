@@ -137,6 +137,9 @@ OR
 ```
 
 ---
+## Issues Getting Started?
+
+Join the [Quix Community Slack](https://quix.io/slack-invite) and post your question or issue there. The team is usually very response.
 
 ## Klaus Kode Data Integration Workflow
 
