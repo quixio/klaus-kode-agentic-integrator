@@ -7,6 +7,7 @@ and technology selection that was previously duplicated between sink and source 
 import os
 import json
 import glob
+import httpx
 import pandas as pd
 from datetime import datetime
 from typing import Dict, Optional, Literal, List, Tuple
@@ -346,15 +347,28 @@ class PrerequisitesCollector:
             # Try to get additional workspace details
             try:
                 workspace_details = await quix_tools.get_workspace_details(default_workspace_id)
-                if workspace_details:
+                if workspace_details and isinstance(workspace_details, dict):
                     self.context.workspace.workspace_name = workspace_details.get('name', default_workspace_id)
                     self.context.workspace.branch_name = workspace_details.get('branch', 'main')
                     if 'repositoryId' in workspace_details:
                         self.context.workspace.repository_id = workspace_details['repositoryId']
+                elif isinstance(workspace_details, str):
+                    # API returned a string error message instead of JSON
+                    printer.print(f"❌ Failed to get workspace details for '{default_workspace_id}'")
+                    printer.print(f"   Error response: {workspace_details}")
+                    printer.print(f"\n   This workspace may not exist or you may not have access to it.")
+                    printer.print(f"   Would you like to select a different workspace?\n")
+
+                    response = get_user_approval("Select a different workspace?")
+                    if response:
+                        default_workspace_id = None
+                    else:
+                        return False
             except QuixApiError as e:
                 if e.status_code == 403:
                     printer.print(f"❌ Permission denied for workspace '{default_workspace_id}'")
-                    printer.print(f"\n💡 The workspace in your .env file doesn't match your PAT token's permissions.")
+                    printer.print(f"   Error: {e}")
+                    printer.print(f"\n   Your PAT token doesn't have access to this workspace.")
                     printer.print(f"   Would you like to select a different workspace?\n")
 
                     response = get_user_approval("Select a different workspace?")
@@ -364,18 +378,54 @@ class PrerequisitesCollector:
                     else:
                         return False
                 else:
-                    # Other API errors - use the ID anyway
-                    self.context.workspace.workspace_name = default_workspace_id
-                    self.context.workspace.branch_name = 'main'
-                    if self.debug_mode:
-                        printer.print_debug(f"Could not get workspace details: {e}")
-                    return True
+                    printer.print(f"❌ API error when accessing workspace '{default_workspace_id}'")
+                    printer.print(f"   Error: {e}")
+                    printer.print(f"\n   Would you like to select a different workspace?\n")
+
+                    response = get_user_approval("Select a different workspace?")
+                    if response:
+                        default_workspace_id = None
+                    else:
+                        return False
+            except (httpx.ConnectTimeout, httpx.ReadTimeout) as e:
+                printer.print(f"❌ Connection timeout when accessing workspace '{default_workspace_id}'")
+                printer.print(f"   Error: {e}")
+                printer.print(f"\n   Possible causes:")
+                printer.print(f"   - Network connectivity issues")
+                printer.print(f"   - Firewall blocking access to portal-api.cloud.quix.io")
+                printer.print(f"   - Proxy configuration needed")
+                printer.print(f"\n   Would you like to select a different workspace?\n")
+
+                response = get_user_approval("Select a different workspace?")
+                if response:
+                    default_workspace_id = None
+                else:
+                    return False
+            except (httpx.ConnectError, httpx.NetworkError) as e:
+                printer.print(f"❌ Connection failed when accessing workspace '{default_workspace_id}'")
+                printer.print(f"   Error: {e}")
+                printer.print(f"\n   Unable to connect to Quix API. Possible causes:")
+                printer.print(f"   - No internet connection")
+                printer.print(f"   - DNS resolution issues")
+                printer.print(f"   - Firewall or security software blocking the connection")
+                printer.print(f"\n   Would you like to select a different workspace?\n")
+
+                response = get_user_approval("Select a different workspace?")
+                if response:
+                    default_workspace_id = None
+                else:
+                    return False
             except Exception as e:
-                # If we can't get details, just use the ID
-                self.context.workspace.workspace_name = default_workspace_id
-                self.context.workspace.branch_name = 'main'
-                if self.debug_mode:
-                    printer.print_debug(f"Could not get workspace details: {e}")
+                printer.print(f"❌ Unexpected error accessing workspace '{default_workspace_id}'")
+                printer.print(f"   Error type: {type(e).__name__}")
+                printer.print(f"   Error details: {e}")
+                printer.print(f"\n   Would you like to select a different workspace?\n")
+
+                response = get_user_approval("Select a different workspace?")
+                if response:
+                    default_workspace_id = None
+                else:
+                    return False
 
             # If we cleared the default_workspace_id due to permission issues, continue to manual selection
             if default_workspace_id:
