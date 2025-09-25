@@ -621,6 +621,12 @@ async def main():
             if temp_orchestrator._update_env_file('QUIX_WORKSPACE_ID', myproject_id):
                 printer.print(f"✅ Default workspace configured: {myproject_id}")
                 printer.print("   (You can change this later from the main menu)")
+            else:
+                # If .env update fails, at least set it in current session
+                os.environ['QUIX_WORKSPACE_ID'] = myproject_id
+                printer.print(f"⚠️ Could not write to .env file, but workspace set for this session: {myproject_id}")
+                printer.print("   💡 To make this permanent, add this line to your .env file:")
+                printer.print(f"      QUIX_WORKSPACE_ID={myproject_id}")
         else:
             printer.print("ℹ️ No default MyProject workspace found. You'll select one during workflow setup.")
 

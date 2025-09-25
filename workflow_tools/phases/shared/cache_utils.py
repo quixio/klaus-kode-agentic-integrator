@@ -889,25 +889,29 @@ class CacheUtils:
             return None
         
         try:
-            # Get app name for display
-            if hasattr(self.context.deployment, 'application_name'):
-                app_name = self.context.deployment.application_name
-            else:
-                app_name = 'app'
-            
-            printer.print(f"\n📋 Found cached app name for application '{app_name}'")
+            # Get app name for display - don't use None
+            display_name = 'current app'
+            if hasattr(self.context.deployment, 'application_name') and self.context.deployment.application_name:
+                display_name = self.context.deployment.application_name
+
+            printer.print(f"\n📋 Found cached app name")
             with open(cache_file, 'r', encoding='utf-8') as f:
                 content = f.read().strip()
-            
+
             # Extract only the actual app name (skip header comments)
             lines = content.split('\n')
-            app_name = None
+            cached_app_name = None
             for line in lines:
                 if line.strip() and not line.strip().startswith('#'):
-                    app_name = line.strip()
+                    cached_app_name = line.strip()
                     break
-            
-            return app_name if app_name else content
+
+            # Validate the cached name
+            if cached_app_name and cached_app_name.lower() != 'none':
+                return cached_app_name
+            else:
+                printer.print("⚠️ Invalid cached app name found, ignoring cache")
+                return None
             
         except Exception as e:
             printer.print(f"⚠️ Warning: Could not read cached app name: {e}")

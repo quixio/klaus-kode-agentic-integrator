@@ -7,6 +7,7 @@ and technology selection that was previously duplicated between sink and source 
 import os
 import json
 import glob
+import httpx
 import pandas as pd
 from datetime import datetime
 from typing import Dict, Optional, Literal, List, Tuple
@@ -346,19 +347,89 @@ class PrerequisitesCollector:
             # Try to get additional workspace details
             try:
                 workspace_details = await quix_tools.get_workspace_details(default_workspace_id)
-                if workspace_details:
+                if workspace_details and isinstance(workspace_details, dict):
                     self.context.workspace.workspace_name = workspace_details.get('name', default_workspace_id)
                     self.context.workspace.branch_name = workspace_details.get('branch', 'main')
                     if 'repositoryId' in workspace_details:
                         self.context.workspace.repository_id = workspace_details['repositoryId']
-            except Exception as e:
-                # If we can't get details, just use the ID
-                self.context.workspace.workspace_name = default_workspace_id
-                self.context.workspace.branch_name = 'main'
-                if self.debug_mode:
-                    printer.print_debug(f"Could not get workspace details: {e}")
+                elif isinstance(workspace_details, str):
+                    # API returned a string error message instead of JSON
+                    printer.print(f"❌ Failed to get workspace details for '{default_workspace_id}'")
+                    printer.print(f"   Error response: {workspace_details}")
+                    printer.print(f"\n   This workspace may not exist or you may not have access to it.")
+                    printer.print(f"   Would you like to select a different workspace?\n")
 
-            return True
+                    response = get_user_approval("Select a different workspace?")
+                    if response:
+                        default_workspace_id = None
+                    else:
+                        return False
+            except QuixApiError as e:
+                if e.status_code == 403:
+                    printer.print(f"❌ Permission denied for workspace '{default_workspace_id}'")
+                    printer.print(f"   Error: {e}")
+                    printer.print(f"\n   Your PAT token doesn't have access to this workspace.")
+                    printer.print(f"   Would you like to select a different workspace?\n")
+
+                    response = get_user_approval("Select a different workspace?")
+                    if response:
+                        # Clear the environment variable temporarily and continue to manual selection
+                        default_workspace_id = None
+                    else:
+                        return False
+                else:
+                    printer.print(f"❌ API error when accessing workspace '{default_workspace_id}'")
+                    printer.print(f"   Error: {e}")
+                    printer.print(f"\n   Would you like to select a different workspace?\n")
+
+                    response = get_user_approval("Select a different workspace?")
+                    if response:
+                        default_workspace_id = None
+                    else:
+                        return False
+            except (httpx.ConnectTimeout, httpx.ReadTimeout) as e:
+                printer.print(f"❌ Connection timeout when accessing workspace '{default_workspace_id}'")
+                printer.print(f"   Error: {e}")
+                printer.print(f"\n   Possible causes:")
+                printer.print(f"   - Network connectivity issues")
+                printer.print(f"   - Firewall blocking access to portal-api.cloud.quix.io")
+                printer.print(f"   - Proxy configuration needed")
+                printer.print(f"\n   Would you like to select a different workspace?\n")
+
+                response = get_user_approval("Select a different workspace?")
+                if response:
+                    default_workspace_id = None
+                else:
+                    return False
+            except (httpx.ConnectError, httpx.NetworkError) as e:
+                printer.print(f"❌ Connection failed when accessing workspace '{default_workspace_id}'")
+                printer.print(f"   Error: {e}")
+                printer.print(f"\n   Unable to connect to Quix API. Possible causes:")
+                printer.print(f"   - No internet connection")
+                printer.print(f"   - DNS resolution issues")
+                printer.print(f"   - Firewall or security software blocking the connection")
+                printer.print(f"\n   Would you like to select a different workspace?\n")
+
+                response = get_user_approval("Select a different workspace?")
+                if response:
+                    default_workspace_id = None
+                else:
+                    return False
+            except Exception as e:
+                printer.print(f"❌ Unexpected error accessing workspace '{default_workspace_id}'")
+                printer.print(f"   Error type: {type(e).__name__}")
+                printer.print(f"   Error details: {e}")
+                printer.print(f"\n   Would you like to select a different workspace?\n")
+
+                response = get_user_approval("Select a different workspace?")
+                if response:
+                    default_workspace_id = None
+                else:
+                    return False
+
+            # If we cleared the default_workspace_id due to permission issues, continue to manual selection
+            if default_workspace_id:
+                return True
 
         try:
             # Get list of workspaces
@@ -447,6 +518,7 @@ class PrerequisitesCollector:
             # Check for demo topic and create if it doesn't exist
             demo_topic_name = "demo-output-topic" if workflow_type == "source" else "demo-input-topic"
             demo_topic_exists = False
+            demo_topic_created = False
 
             if not topics_df.empty:
                 # Check if demo topic already exists
@@ -467,13 +539,35 @@ class PrerequisitesCollector:
                     )
                     if result:
                         printer.print(f"✅ Created {demo_topic_name} successfully!")
+                        demo_topic_created = True
                         # Refresh topics list
                         topics_df = await quix_tools.find_topics(self.context.workspace.workspace_id)
+                except QuixApiError as e:
+                    if e.status_code == 403:
+                        printer.print(f"❌ Permission denied: Cannot create topics in this workspace")
+                        return False
+                    else:
+                        printer.print(f"⚠️ Could not create demo topic: {e}")
                 except Exception as e:
                     printer.print(f"⚠️ Could not create demo topic: {e}")
                     # Continue anyway, user can select or create another
-            
+
             if topics_df.empty:
+                # If we just created a demo topic successfully, use it
+                if demo_topic_created:
+                    self.context.workspace.topic_name = demo_topic_name
+                    self.context.workspace.topic_id = f"{self.context.workspace.workspace_id}-{demo_topic_name}"
+                    printer.print(f"✅ Using newly created {demo_topic_name}")
+
+                    # Log the topic URL
+                    url_builder = QuixPortalURLBuilder()
+                    topic_url = url_builder.get_topic_url(
+                        workspace=self.context.workspace.workspace_id,
+                        topic_name=demo_topic_name
+                    )
+                    printer.print(f"🔗 Topic URL: {topic_url}")
+                    return True
+
                 printer.print(f"❌ No topics found in the workspace.")
                 # For source workflows, offer to create a topic
                 if workflow_type == "source":
@@ -555,6 +649,14 @@ class PrerequisitesCollector:
             
         except NavigationBackRequest:
             raise  # Re-raise navigation requests
+        except QuixApiError as e:
+            if e.status_code == 403:
+                printer.print(f"❌ Permission denied: Cannot access topics in workspace '{self.context.workspace.workspace_id}'")
+                printer.print(f"\n💡 This workspace doesn't match your PAT token's permissions.")
+                printer.print(f"   Please go back and select a different workspace.\n")
+            else:
+                printer.print(f"❌ API Error: {e}")
+            return False
         except Exception as e:
             printer.print(f"❌ Error collecting topic info: {e}")
             return False
@@ -746,12 +848,31 @@ class PrerequisitesCollector:
             elif action == 'use_suggestion':
                 app_name = suggested_name
             else:  # custom
-                # Use questionary for text input
+                # Use questionary for text input with retry logic
                 import questionary
-                app_name = questionary.text(
-                    "Application name:",
-                    style=QUESTIONARY_STYLE
-                ).ask()
+                max_retries = 3
+                for retry in range(max_retries):
+                    try:
+                        app_name = questionary.text(
+                            "Application name:",
+                            style=QUESTIONARY_STYLE
+                        ).ask()
+
+                        if app_name and app_name.strip():
+                            break
+                        elif retry < max_retries - 1:
+                            printer.print("⚠️ Application name cannot be empty. Please try again.")
+                        else:
+                            printer.print("❌ Failed to get application name after multiple attempts.")
+                            return None
+                    except Exception as e:
+                        if self.debug_mode:
+                            printer.print_debug(f"Error getting app name input: {e}")
+                        if retry < max_retries - 1:
+                            printer.print("⚠️ Error reading input. Please try again.")
+                        else:
+                            printer.print("❌ Failed to read input. Please check your terminal compatibility.")
+                            return None
         else:
             # No suggestion available, offer to enter name or go back
             choices = [
@@ -764,18 +885,41 @@ class PrerequisitesCollector:
             if action == 'back':
                 return None  # Signal to go back
             else:
-                # Use questionary for text input
+                # Use questionary for text input with retry logic
                 import questionary
-                app_name = questionary.text(
-                    "Application name:",
-                    style=QUESTIONARY_STYLE
-                ).ask()
+                max_retries = 3
+                for retry in range(max_retries):
+                    try:
+                        app_name = questionary.text(
+                            "Application name:",
+                            style=QUESTIONARY_STYLE
+                        ).ask()
 
-        if not app_name:
-            printer.print("❌ No application name provided.")
-            return None
+                        if app_name and app_name.strip():
+                            break
+                        elif retry < max_retries - 1:
+                            printer.print("⚠️ Application name cannot be empty. Please try again.")
+                        else:
+                            printer.print("❌ Failed to get application name after multiple attempts.")
+                            return None
+                    except Exception as e:
+                        if self.debug_mode:
+                            printer.print_debug(f"Error getting app name input: {e}")
+                        if retry < max_retries - 1:
+                            printer.print("⚠️ Error reading input. Please try again.")
+                        else:
+                            printer.print("❌ Failed to read input. Please check your terminal compatibility.")
+                            return None
 
-        return app_name
+        if not app_name or not app_name.strip():
+            # Final fallback: generate a default name based on workflow type and timestamp
+            from datetime import datetime
+            timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+            fallback_name = f"{workflow_type}-app-{timestamp}"
+            printer.print(f"⚠️ No valid application name provided. Using default: {fallback_name}")
+            return fallback_name
+
+        return app_name.strip()
 
     async def _suggest_app_name(self, workflow_type: Literal["sink", "source"]) -> Optional[str]:
         """Generate an app name suggestion using AI based on requirements.
