@@ -798,12 +798,31 @@ class PrerequisitesCollector:
             elif action == 'use_suggestion':
                 app_name = suggested_name
             else:  # custom
-                # Use questionary for text input
+                # Use questionary for text input with retry logic
                 import questionary
-                app_name = questionary.text(
-                    "Application name:",
-                    style=QUESTIONARY_STYLE
-                ).ask()
+                max_retries = 3
+                for retry in range(max_retries):
+                    try:
+                        app_name = questionary.text(
+                            "Application name:",
+                            style=QUESTIONARY_STYLE
+                        ).ask()
+
+                        if app_name and app_name.strip():
+                            break
+                        elif retry < max_retries - 1:
+                            printer.print("⚠️ Application name cannot be empty. Please try again.")
+                        else:
+                            printer.print("❌ Failed to get application name after multiple attempts.")
+                            return None
+                    except Exception as e:
+                        if self.debug_mode:
+                            printer.print_debug(f"Error getting app name input: {e}")
+                        if retry < max_retries - 1:
+                            printer.print("⚠️ Error reading input. Please try again.")
+                        else:
+                            printer.print("❌ Failed to read input. Please check your terminal compatibility.")
+                            return None
         else:
             # No suggestion available, offer to enter name or go back
             choices = [
@@ -816,18 +835,41 @@ class PrerequisitesCollector:
             if action == 'back':
                 return None  # Signal to go back
             else:
-                # Use questionary for text input
+                # Use questionary for text input with retry logic
                 import questionary
-                app_name = questionary.text(
-                    "Application name:",
-                    style=QUESTIONARY_STYLE
-                ).ask()
+                max_retries = 3
+                for retry in range(max_retries):
+                    try:
+                        app_name = questionary.text(
+                            "Application name:",
+                            style=QUESTIONARY_STYLE
+                        ).ask()
 
-        if not app_name:
-            printer.print("❌ No application name provided.")
-            return None
+                        if app_name and app_name.strip():
+                            break
+                        elif retry < max_retries - 1:
+                            printer.print("⚠️ Application name cannot be empty. Please try again.")
+                        else:
+                            printer.print("❌ Failed to get application name after multiple attempts.")
+                            return None
+                    except Exception as e:
+                        if self.debug_mode:
+                            printer.print_debug(f"Error getting app name input: {e}")
+                        if retry < max_retries - 1:
+                            printer.print("⚠️ Error reading input. Please try again.")
+                        else:
+                            printer.print("❌ Failed to read input. Please check your terminal compatibility.")
+                            return None
 
-        return app_name
+        if not app_name or not app_name.strip():
+            # Final fallback: generate a default name based on workflow type and timestamp
+            from datetime import datetime
+            timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+            fallback_name = f"{workflow_type}-app-{timestamp}"
+            printer.print(f"⚠️ No valid application name provided. Using default: {fallback_name}")
+            return fallback_name
+
+        return app_name.strip()
 
     async def _suggest_app_name(self, workflow_type: Literal["sink", "source"]) -> Optional[str]:
         """Generate an app name suggestion using AI based on requirements.
