@@ -1,0 +1,40 @@
+{
+  "permissions": {
+    "deny": [
+      "Read(../**)",
+      "Write(../**)",
+      "Edit(../**)",
+      "MultiEdit(../**)",
+      "Read(/**)",
+      "Write(/**)",
+      "Edit(/**)",
+      "MultiEdit(/**)",
+      "Read(~/**)",
+      "Write(~/**)",
+      "Edit(~/**)",
+      "MultiEdit(~/**)",
+      "Bash(cd:../**)",
+      "Bash(cd:/**)",
+      "Bash(cd:~/**)"
+    ],
+    "allow": [
+      "Read(./**)",
+      "Write(./**)",
+      "Edit(./**)",
+      "MultiEdit(./**)",
+      "Glob(./**)",
+      "Grep(./**)",
+      "Bash(git:*)",
+      "Bash(python:*)",
+      "Bash(pip:*)",
+      "Bash(ls:*)",
+      "Bash(pwd:*)",
+      "Bash(echo:*)",
+      "Bash(mkdir:./**)",
+      "Bash(rm:./**)",
+      "Bash(cp:./**)",
+      "Bash(mv:./**)"
+    ]
+  },
+  "additionalDirectories": []
+}

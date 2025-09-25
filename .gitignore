@@ -237,7 +237,10 @@ resources/template_requirements.txt
 manual_backups/
 logging/*
 claude_docs_archive/
-.claude
+# .claude/settings.json contains important project-specific Claude Code settings
+# Only ignore user-specific cache/tmp files
+.claude/cache/
+.claude/tmp/
 quix-ai-sidekick-sidepanel/
 
 # Navigation documentation (temporary analysis files)
